@@ -1,3 +1,5 @@
+import Foundation
+import Observation
 import SwiftUI
 
 /// 게임 진행 상태 (UI용)
