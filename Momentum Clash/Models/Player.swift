@@ -1,0 +1,71 @@
+import Foundation
+
+/// 플레이어 상태
+struct Player: Equatable {
+    let id: UUID
+    var name: String
+
+    var lp: Int                    // Life Points
+    var momentum: Int              // 기세 (0~10)
+    var energy: Int                // 이번 턴 기본 기력
+
+    var deck: [AnyCard]            // 덱
+    var hand: [AnyCard]            // 패
+    var graveyard: [AnyCard]       // 묘지
+    var field: PlayerField         // 필드 (5슬롯)
+
+    var didAttackThisTurn: Bool    // 이번 턴 공격 여부
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        deck: [AnyCard]
+    ) {
+        self.id = id
+        self.name = name
+        self.lp = TurnSystem.startingLP
+        self.momentum = 0
+        self.energy = 0
+        self.deck = deck
+        self.hand = []
+        self.graveyard = []
+        self.field = PlayerField()
+        self.didAttackThisTurn = false
+    }
+
+    // MARK: - LP
+
+    mutating func takeDamage(_ amount: Int) {
+        lp = max(0, lp - amount)
+    }
+
+    var isDefeated: Bool { lp <= 0 }
+    var canDraw: Bool { !deck.isEmpty }
+
+    // MARK: - 기세
+
+    mutating func gainMomentum(_ amount: Int) {
+        momentum = min(MomentumSystem.maxMomentum, momentum + amount)
+    }
+
+    mutating func loseMomentum(_ amount: Int) {
+        momentum = max(0, momentum - amount)
+    }
+
+    /// 턴 시작 시 기본 기력 세팅
+    mutating func refreshEnergy() {
+        energy = MomentumSystem.baseEnergy(
+            currentLP: lp,
+            maxLP: TurnSystem.startingLP
+        )
+    }
+
+    // MARK: - 초기 드로우
+
+    mutating func drawInitialHand() {
+        let count = min(TurnSystem.startingHandSize, deck.count)
+        for _ in 0..<count {
+            hand.append(deck.removeFirst())
+        }
+    }
+}

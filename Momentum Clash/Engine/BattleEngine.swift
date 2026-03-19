@@ -1,0 +1,122 @@
+import Foundation
+
+/// 전투 결과
+struct BattleResult {
+    let attackerDestroyed: Bool
+    let defenderDestroyed: Bool
+    let lpDamageToDefender: Int  // 방어 측 플레이어 LP 데미지
+    let lpDamageToAttacker: Int  // 공격 측 플레이어 LP 데미지
+}
+
+/// 전투 계산 엔진
+struct BattleEngine {
+
+    /// 몬스터 vs 몬스터 전투
+    static func resolveCombat(
+        attackerCard: MonsterCard,
+        attackerSlot: Int,
+        attackerField: PlayerField,
+        defenderCard: MonsterCard,
+        defenderSlot: Int,
+        defenderField: PlayerField,
+        attackerMomentumBonus: Int,   // 기세 스킬에 의한 추가 전투력
+        defenderMomentumBonus: Int,
+        defenderShield: Int
+    ) -> BattleResult {
+        // 공격자 전투력 계산
+        let attackerCP = calculateEffectiveCP(
+            card: attackerCard,
+            slotIndex: attackerSlot,
+            field: attackerField,
+            opponentAttribute: defenderCard.attribute,
+            momentumBonus: attackerMomentumBonus
+        )
+
+        // 방어자 전투력 계산
+        let defenderCP = calculateEffectiveCP(
+            card: defenderCard,
+            slotIndex: defenderSlot,
+            field: defenderField,
+            opponentAttribute: attackerCard.attribute,
+            momentumBonus: defenderMomentumBonus
+        )
+
+        // 방어막 적용: 공격자의 데미지를 방어막이 먼저 흡수
+        let attackDamage = max(0, attackerCP - defenderShield)
+
+        if attackDamage > defenderCP {
+            // 공격자 승리: 방어자 파괴, 차이만큼 LP 데미지
+            return BattleResult(
+                attackerDestroyed: false,
+                defenderDestroyed: true,
+                lpDamageToDefender: attackDamage - defenderCP,
+                lpDamageToAttacker: 0
+            )
+        } else if attackDamage < defenderCP {
+            // 방어자 승리: 공격자 파괴, 차이만큼 LP 데미지
+            return BattleResult(
+                attackerDestroyed: true,
+                defenderDestroyed: false,
+                lpDamageToDefender: 0,
+                lpDamageToAttacker: defenderCP - attackDamage
+            )
+        } else {
+            // 동일: 양쪽 파괴
+            return BattleResult(
+                attackerDestroyed: true,
+                defenderDestroyed: true,
+                lpDamageToDefender: 0,
+                lpDamageToAttacker: 0
+            )
+        }
+    }
+
+    /// 직접 공격 (상대 필드에 몬스터 없을 때)
+    static func resolveDirectAttack(
+        attackerCard: MonsterCard,
+        attackerSlot: Int,
+        attackerField: PlayerField,
+        momentumBonus: Int
+    ) -> Int {
+        return calculateEffectiveCP(
+            card: attackerCard,
+            slotIndex: attackerSlot,
+            field: attackerField,
+            opponentAttribute: nil,
+            momentumBonus: momentumBonus
+        )
+    }
+
+    /// 유효 전투력 계산
+    /// 순서: 기본 CP → 장착/지속 효과 → 지형 보너스 → 속성 상성 배율 → 기세 스킬
+    static func calculateEffectiveCP(
+        card: MonsterCard,
+        slotIndex: Int,
+        field: PlayerField,
+        opponentAttribute: Attribute?,
+        momentumBonus: Int
+    ) -> Int {
+        // 1. 기본 전투력
+        var cp = Double(card.combatPower)
+
+        // 2. 장착 마법 / 지속 효과 (추후 구현)
+
+        // 3. 지형 보너스
+        cp += Double(field.terrainBonus(at: slotIndex))
+
+        // 4. 속성 상성 배율
+        if let opponentAttr = opponentAttribute {
+            cp *= card.attribute.damageMultiplier(against: opponentAttr)
+        }
+
+        // 5. 기세 스킬 효과
+        cp += Double(momentumBonus)
+
+        return max(0, Int(cp))
+    }
+
+    /// 기세 폭발 데미지 계산
+    static func explosionDamage(momentum: Int) -> Int {
+        return momentum * 100
+    }
+}
