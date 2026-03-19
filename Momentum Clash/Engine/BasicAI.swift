@@ -88,7 +88,6 @@ struct BasicAI {
         let defIdx = 1 - atkIdx
 
         let attackerSlots = gameState.players[atkIdx].field.monsterSlotIndices
-        let defenderSlots = gameState.players[defIdx].field.monsterSlotIndices
 
         for atkSlot in attackerSlots {
             guard case .monster(let atkCard, _) = gameState.players[atkIdx].field.slots[atkSlot].content
