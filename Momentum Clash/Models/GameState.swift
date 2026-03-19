@@ -127,7 +127,7 @@ struct GameState {
             return nil
         }
 
-        return TurnSystem.selectiveDraw(player: &currentPlayer)
+        return TurnSystem.selectiveDraw(player: &players[currentPlayerIndex])
     }
 
     /// 선택 드로우 결과 적용
@@ -135,7 +135,7 @@ struct GameState {
         TurnSystem.resolveSelectiveDraw(
             chosen: chosen,
             rejected: rejected,
-            player: &currentPlayer
+            player: &players[currentPlayerIndex]
         )
     }
 }
