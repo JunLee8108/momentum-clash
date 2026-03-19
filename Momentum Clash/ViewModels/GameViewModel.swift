@@ -19,12 +19,13 @@ struct GameLog: Identifiable {
 }
 
 /// 게임 뷰모델 (MVVM 컨트롤러)
+@Observable
 @MainActor
-class GameViewModel: ObservableObject {
-    @Published var gameState: GameState
-    @Published var uiState: GameUIState = .notStarted
-    @Published var logs: [GameLog] = []
-    @Published var selectedHandIndex: Int? = nil
+class GameViewModel {
+    var gameState: GameState
+    var uiState: GameUIState = .notStarted
+    var logs: [GameLog] = []
+    var selectedHandIndex: Int? = nil
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1

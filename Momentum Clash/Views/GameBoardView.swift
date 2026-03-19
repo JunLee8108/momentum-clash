@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
-    @ObservedObject var viewModel: GameViewModel
+    var viewModel: GameViewModel
 
     var body: some View {
         ZStack {
