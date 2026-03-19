@@ -122,21 +122,23 @@ struct GameState {
     mutating func drawPhase() -> (choice1: AnyCard, choice2: AnyCard)? {
         currentPhase = .draw
 
-        guard currentPlayer.deck.count >= 2 else {
+        let idx = currentPlayerIndex
+        guard players[idx].deck.count >= 2 else {
             // 덱에 1장 이하 → 드로우 불가, 패배
             return nil
         }
 
-        return TurnSystem.selectiveDraw(deck: &currentPlayer.deck)
+        return TurnSystem.selectiveDraw(deck: &players[idx].deck)
     }
 
     /// 선택 드로우 결과 적용
     mutating func resolveDrawChoice(chosen: AnyCard, rejected: AnyCard) {
+        let idx = currentPlayerIndex
         TurnSystem.resolveSelectiveDraw(
             chosen: chosen,
             rejected: rejected,
-            hand: &currentPlayer.hand,
-            deck: &currentPlayer.deck
+            hand: &players[idx].hand,
+            deck: &players[idx].deck
         )
     }
 }
