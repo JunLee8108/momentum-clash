@@ -51,17 +51,10 @@ struct BasicAI {
             }.sorted { $0.priority > $1.priority }
 
             if let best = summonCandidates.first {
-                var energy = gameState.players[idx].energy
-                var momentum = gameState.players[idx].momentum
-
                 guard TurnSystem.payCost(
                     cost: best.card.cost,
-                    currentEnergy: &energy,
-                    currentMomentum: &momentum
+                    player: &gameState.players[idx]
                 ) != nil else { continue }
-
-                gameState.players[idx].energy = energy
-                gameState.players[idx].momentum = momentum
 
                 // 패에서 제거
                 gameState.players[idx].hand.remove(at: best.index)

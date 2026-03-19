@@ -146,21 +146,14 @@ class GameViewModel: ObservableObject {
     func summonToSlot(_ slotIndex: Int) {
         guard case .selectingSummonSlot(let card, let handIndex) = uiState else { return }
 
-        var energy = gameState.currentPlayer.energy
-        var momentum = gameState.currentPlayer.momentum
-
         guard let payment = TurnSystem.payCost(
             cost: card.cost,
-            currentEnergy: &energy,
-            currentMomentum: &momentum
+            player: &gameState.currentPlayer
         ) else {
             addLog("비용 지불 실패!")
             uiState = .mainPhase
             return
         }
-
-        gameState.currentPlayer.energy = energy
-        gameState.currentPlayer.momentum = momentum
 
         // 패에서 제거
         gameState.currentPlayer.hand.remove(at: handIndex)
@@ -185,17 +178,10 @@ class GameViewModel: ObservableObject {
     }
 
     private func executeSpell(_ spell: SpellCard, handIndex: Int) {
-        var energy = gameState.currentPlayer.energy
-        var momentum = gameState.currentPlayer.momentum
-
         guard let payment = TurnSystem.payCost(
             cost: spell.cost,
-            currentEnergy: &energy,
-            currentMomentum: &momentum
+            player: &gameState.currentPlayer
         ) else { return }
-
-        gameState.currentPlayer.energy = energy
-        gameState.currentPlayer.momentum = momentum
         gameState.currentPlayer.hand.remove(at: handIndex)
 
         addLog("\(spell.name) 발동! [기력 -\(payment.energySpent), 기세 -\(payment.momentumSpent)]")
