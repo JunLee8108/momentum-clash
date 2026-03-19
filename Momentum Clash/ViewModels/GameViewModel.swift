@@ -148,7 +148,7 @@ class GameViewModel: ObservableObject {
 
         guard let payment = TurnSystem.payCost(
             cost: card.cost,
-            player: &gameState.currentPlayer
+            player: &gameState.players[gameState.currentPlayerIndex]
         ) else {
             addLog("비용 지불 실패!")
             uiState = .mainPhase
@@ -180,7 +180,7 @@ class GameViewModel: ObservableObject {
     private func executeSpell(_ spell: SpellCard, handIndex: Int) {
         guard let payment = TurnSystem.payCost(
             cost: spell.cost,
-            player: &gameState.currentPlayer
+            player: &gameState.players[gameState.currentPlayerIndex]
         ) else { return }
         gameState.currentPlayer.hand.remove(at: handIndex)
 
