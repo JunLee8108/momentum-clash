@@ -13,7 +13,7 @@ struct GameBoardView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 // 상대 (AI) 정보
                 PlayerInfoView(
                     player: viewModel.aiPlayer,
@@ -67,7 +67,7 @@ struct GameBoardView: View {
                 // 액션 버튼
                 actionButtons
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 8)
 
             // 오버레이: 드로우 선택
             if case .drawSelection(let c1, let c2) = viewModel.uiState {

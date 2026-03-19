@@ -54,10 +54,10 @@ struct PlayerInfoView: View {
                     .foregroundColor(.gray)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Color.black.opacity(0.3))
         )
     }
@@ -78,15 +78,15 @@ struct LPBarView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 6)
                     .fill(Color.gray.opacity(0.3))
 
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: 6)
                     .fill(barColor)
                     .frame(width: geo.size.width * ratio)
             }
         }
-        .frame(height: 6)
+        .frame(height: 12)
     }
 
     private var ratio: CGFloat {
