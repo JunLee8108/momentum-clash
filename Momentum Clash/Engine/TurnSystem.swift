@@ -29,10 +29,10 @@ struct TurnSystem {
     static let sameCardLimit = 3
 
     /// 선택 드로우: 덱에서 2장을 뽑아 선택지 제공
-    static func selectiveDraw(deck: inout [AnyCard]) -> (choice1: AnyCard, choice2: AnyCard)? {
-        guard deck.count >= 2 else { return nil }
-        let card1 = deck.removeFirst()
-        let card2 = deck.removeFirst()
+    static func selectiveDraw(player: inout Player) -> (choice1: AnyCard, choice2: AnyCard)? {
+        guard player.deck.count >= 2 else { return nil }
+        let card1 = player.deck.removeFirst()
+        let card2 = player.deck.removeFirst()
         return (card1, card2)
     }
 
@@ -40,11 +40,10 @@ struct TurnSystem {
     static func resolveSelectiveDraw(
         chosen: AnyCard,
         rejected: AnyCard,
-        hand: inout [AnyCard],
-        deck: inout [AnyCard]
+        player: inout Player
     ) {
-        hand.append(chosen)
-        deck.append(rejected) // 덱 맨 아래로
+        player.hand.append(chosen)
+        player.deck.append(rejected) // 덱 맨 아래로
     }
 
     /// 카드 소환 비용 지불 가능 여부
@@ -60,18 +59,17 @@ struct TurnSystem {
     /// - Returns: (소모된 기력, 소모된 기세)
     static func payCost(
         cost: Int,
-        currentEnergy: inout Int,
-        currentMomentum: inout Int
+        player: inout Player
     ) -> (energySpent: Int, momentumSpent: Int)? {
-        guard canPayCost(cost: cost, currentEnergy: currentEnergy, currentMomentum: currentMomentum) else {
+        guard canPayCost(cost: cost, currentEnergy: player.energy, currentMomentum: player.momentum) else {
             return nil
         }
 
-        let energySpent = min(currentEnergy, cost)
+        let energySpent = min(player.energy, cost)
         let momentumSpent = cost - energySpent
 
-        currentEnergy -= energySpent
-        currentMomentum -= momentumSpent
+        player.energy -= energySpent
+        player.momentum -= momentumSpent
 
         return (energySpent, momentumSpent)
     }
