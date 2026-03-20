@@ -114,6 +114,7 @@ struct CardView: View {
 struct FieldSlotView: View {
     let slot: FieldSlot
     let index: Int
+    var globalTerrain: Attribute? = nil
     var isHighlighted: Bool = false
     var aiHighlightColor: Color? = nil
     var hasAttacked: Bool = false
@@ -139,7 +140,19 @@ struct FieldSlotView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
 
-                    HStack(spacing: 1) {
+                    if let terrain = globalTerrain, card.attribute == terrain {
+                        // 지형 보너스 적용: 기본 → (+보너스) → 합계
+                        let bonus = PlayerField.globalTerrainBonus
+                        Text("\(card.combatPower)")
+                            .font(.system(size: 8))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text("(+\(bonus))")
+                            .font(.system(size: 7, weight: .semibold))
+                            .foregroundColor(.cyan)
+                        Text("\(card.combatPower + bonus)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.orange)
+                    } else {
                         Text("\(card.combatPower)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(.orange)
