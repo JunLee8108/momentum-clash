@@ -32,11 +32,20 @@ struct HandView: View {
 struct DrawSelectionView: View {
     let choice1: AnyCard
     let choice2: AnyCard
-    let hand: [AnyCard]
+    let player: Player
     let onSelect: (AnyCard, AnyCard) -> Void
 
     @State private var showHand = false
     @State private var detailCard: AnyCard?
+
+    private var hand: [AnyCard] { player.hand }
+
+    private var lpColor: Color {
+        let ratio = Double(player.lp) / Double(TurnSystem.startingLP)
+        if ratio <= 0.25 { return .red }
+        if ratio <= 0.5 { return .orange }
+        return .white
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -83,8 +92,41 @@ struct DrawSelectionView: View {
                 )
             }
 
-            // 현재 패 목록
+            // 현재 상태 & 패 목록
             if showHand {
+                // 상태 요약 바
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.red)
+                        Text("\(player.lp)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(lpColor)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text("\(player.momentum)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.orange)
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.cyan)
+                        Text("\(player.energy)")
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .foregroundColor(.cyan)
+                    }
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                )
                 if hand.isEmpty {
                     Text("패에 카드가 없습니다")
                         .font(.caption)
