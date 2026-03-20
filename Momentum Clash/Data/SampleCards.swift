@@ -174,7 +174,7 @@ enum SampleCards {
         imageName: "card_archangel"
     )
 
-    // MARK: - 마법 카드
+    // MARK: - 일반 마법 카드
 
     static let earthBarrier = SpellCard(
         name: "대지의 방벽", attribute: .earth, cost: 1, rarity: .normal,
@@ -184,36 +184,12 @@ enum SampleCards {
         imageName: "spell_earth_barrier"
     )
 
-    static let fireStorm = SpellCard(
-        name: "화염 폭풍", attribute: .fire, cost: 3, rarity: .rare,
-        spellType: .normal,
-        effect: CardEffect(timing: .onSummon, description: "상대 몬스터 전체에 400 데미지"),
-        flavorText: "모든 것을 태우는 불의 폭풍",
-        imageName: "spell_fire_storm"
-    )
-
-    static let healingRain = SpellCard(
-        name: "치유의 비", attribute: .water, cost: 2, rarity: .normal,
-        spellType: .normal,
-        effect: CardEffect(timing: .onSummon, description: "아군 LP 500 회복"),
-        flavorText: "생명의 비가 상처를 씻어낸다",
-        imageName: "spell_healing_rain"
-    )
-
     static let eternalFurnace = SpellCard(
         name: "불멸의 화로", attribute: .fire, cost: 3, rarity: .rare,
         spellType: .continuous,
         effect: CardEffect(timing: .eachTurn, description: "매 턴 아군 화(火) 속성 몬스터 전투력 +200"),
         flavorText: "꺼지지 않는 화로가 아군을 강화한다",
         imageName: "spell_eternal_furnace"
-    )
-
-    static let earthEcho = SpellCard(
-        name: "대지의 울림", attribute: .earth, cost: 2, rarity: .normal,
-        spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "필드 슬롯 2개를 지(地) 속성으로 변경"),
-        flavorText: "대지가 울리며 지형이 변한다",
-        imageName: "spell_earth_echo"
     )
 
     static let windBlade = SpellCard(
@@ -232,6 +208,40 @@ enum SampleCards {
         imageName: "spell_thunder_strike"
     )
 
+    // MARK: - 지형 마법 카드 (4종)
+
+    static let fireStorm = SpellCard(
+        name: "화염 폭풍", attribute: .fire, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 화염으로 2턴 변경. 상대 몬스터 전체에 200 데미지"),
+        flavorText: "불의 폭풍이 전장을 뒤덮는다",
+        imageName: "spell_fire_storm"
+    )
+
+    static let healingRain = SpellCard(
+        name: "치유의 비", attribute: .water, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 수류로 2턴 변경. 아군 LP 300 회복"),
+        flavorText: "생명의 비가 전장을 적신다",
+        imageName: "spell_healing_rain"
+    )
+
+    static let earthEcho = SpellCard(
+        name: "대지의 울림", attribute: .earth, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 대지로 2턴 변경. 아군 몬스터 전체에 방어막 200 부여"),
+        flavorText: "대지가 울리며 전장이 변한다",
+        imageName: "spell_earth_echo"
+    )
+
+    static let windStorm = SpellCard(
+        name: "폭풍의 눈", attribute: .wind, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 폭풍으로 2턴 변경. 상대 몬스터 1체 전투력 -200"),
+        flavorText: "폭풍이 전장을 휩쓸며 바꿔놓는다",
+        imageName: "spell_wind_storm"
+    )
+
     // MARK: - 테스트 덱
 
     /// 화염 러시 덱 (30장)
@@ -246,12 +256,11 @@ enum SampleCards {
         for _ in 0..<3 { deck.append(.monster(earthGuard)) }
         for _ in 0..<2 { deck.append(.monster(stormHawk)) }
         for _ in 0..<2 { deck.append(.monster(infernoKnight)) }
-        // 강화: 고비용 추가
         for _ in 0..<2 { deck.append(.monster(shadowRogue)) }
-        // 마법 8장
+        // 마법 8장 (지형 마법 포함)
         for _ in 0..<2 { deck.append(.spell(fireStorm)) }
+        for _ in 0..<2 { deck.append(.spell(windStorm)) }
         for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
-        for _ in 0..<2 { deck.append(.spell(windBlade)) }
         for _ in 0..<2 { deck.append(.spell(thunderStrike)) }
         deck.shuffle()
         return deck
@@ -270,11 +279,11 @@ enum SampleCards {
         for _ in 0..<2 { deck.append(.monster(deathKnight)) }
         for _ in 0..<3 { deck.append(.monster(mistSpirit)) }
         for _ in 0..<2 { deck.append(.monster(oceanLord)) }
-        // 마법 8장
-        for _ in 0..<3 { deck.append(.spell(earthBarrier)) }
+        // 마법 8장 (지형 마법 포함)
         for _ in 0..<2 { deck.append(.spell(earthEcho)) }
         for _ in 0..<2 { deck.append(.spell(healingRain)) }
-        deck.append(.spell(eternalFurnace))
+        for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
+        for _ in 0..<2 { deck.append(.spell(windBlade)) }
         deck.shuffle()
         return deck
     }

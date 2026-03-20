@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 /// 7가지 속성 (화/수/풍/지/뇌/암/광)
 enum Attribute: String, CaseIterable, Codable {
@@ -72,6 +73,18 @@ enum Attribute: String, CaseIterable, Codable {
         case .thunder: return "⚡"
         case .dark:    return "🌑"
         case .light:   return "✨"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .fire:    return .red
+        case .water:   return .blue
+        case .wind:    return .green
+        case .earth:   return .brown
+        case .thunder: return .yellow
+        case .dark:    return .purple
+        case .light:   return .orange
         }
     }
 }

@@ -21,7 +21,8 @@ struct BattleEngine {
         defenderField: PlayerField,
         attackerMomentumBonus: Int,   // 기세 스킬에 의한 추가 전투력
         defenderMomentumBonus: Int,
-        defenderShield: Int
+        defenderShield: Int,
+        globalTerrain: Attribute
     ) -> BattleResult {
         // 공격자 전투력 계산
         let attackerCP = calculateEffectiveCP(
@@ -29,7 +30,8 @@ struct BattleEngine {
             slotIndex: attackerSlot,
             field: attackerField,
             opponentAttribute: defenderCard.attribute,
-            momentumBonus: attackerMomentumBonus
+            momentumBonus: attackerMomentumBonus,
+            globalTerrain: globalTerrain
         )
 
         // 방어자 전투력 계산
@@ -38,7 +40,8 @@ struct BattleEngine {
             slotIndex: defenderSlot,
             field: defenderField,
             opponentAttribute: attackerCard.attribute,
-            momentumBonus: defenderMomentumBonus
+            momentumBonus: defenderMomentumBonus,
+            globalTerrain: globalTerrain
         )
 
         // 방어막 적용: 공격자의 데미지를 방어막이 먼저 흡수
@@ -76,33 +79,36 @@ struct BattleEngine {
         attackerCard: MonsterCard,
         attackerSlot: Int,
         attackerField: PlayerField,
-        momentumBonus: Int
+        momentumBonus: Int,
+        globalTerrain: Attribute
     ) -> Int {
         return calculateEffectiveCP(
             card: attackerCard,
             slotIndex: attackerSlot,
             field: attackerField,
             opponentAttribute: nil,
-            momentumBonus: momentumBonus
+            momentumBonus: momentumBonus,
+            globalTerrain: globalTerrain
         )
     }
 
     /// 유효 전투력 계산
-    /// 순서: 기본 CP → 장착/지속 효과 → 지형 보너스 → 속성 상성 배율 → 기세 스킬
+    /// 순서: 기본 CP → 장착/지속 효과 → 글로벌 지형 보너스 → 속성 상성 배율 → 기세 스킬
     static func calculateEffectiveCP(
         card: MonsterCard,
         slotIndex: Int,
         field: PlayerField,
         opponentAttribute: Attribute?,
-        momentumBonus: Int
+        momentumBonus: Int,
+        globalTerrain: Attribute
     ) -> Int {
         // 1. 기본 전투력
         var cp = Double(card.combatPower)
 
         // 2. 장착 마법 / 지속 효과 (추후 구현)
 
-        // 3. 지형 보너스
-        cp += Double(field.terrainBonus(at: slotIndex))
+        // 3. 글로벌 지형 보너스 (+300)
+        cp += Double(field.terrainBonus(at: slotIndex, globalTerrain: globalTerrain))
 
         // 4. 속성 상성 배율
         if let opponentAttr = opponentAttribute {

@@ -48,10 +48,9 @@ struct BasicAI {
                 score += 300
             }
 
-            // 지형 시너지
-            let hasMatchingTerrain = myField.slots.contains { $0.terrain == m.attribute }
-            if hasMatchingTerrain {
-                score += 200
+            // 글로벌 지형 시너지
+            if m.attribute == gameState.globalTerrain {
+                score += 300
             }
 
             return score
@@ -92,7 +91,8 @@ struct BasicAI {
                     let score = evaluateSummonPriority(
                         monster: m,
                         myField: gameState.players[idx].field,
-                        opponentField: gameState.players[opponentIdx].field
+                        opponentField: gameState.players[opponentIdx].field,
+                        globalTerrain: gameState.globalTerrain
                     )
                     return (i, card, score)
                 case .spell(let s):
@@ -144,7 +144,8 @@ struct BasicAI {
         // 최적 공격 순서 계획
         let attackPlan = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
-            defenderField: gameState.players[defIdx].field
+            defenderField: gameState.players[defIdx].field,
+            globalTerrain: gameState.globalTerrain
         )
 
         var usedAttackers = Set<Int>()
@@ -167,7 +168,8 @@ struct BasicAI {
                     defenderField: gameState.players[defIdx].field,
                     attackerMomentumBonus: 0,
                     defenderMomentumBonus: 0,
-                    defenderShield: shield
+                    defenderShield: shield,
+                    globalTerrain: gameState.globalTerrain
                 )
 
                 logs.append("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
@@ -201,7 +203,8 @@ struct BasicAI {
                     attackerCard: atkCard,
                     attackerSlot: plan.attackerSlot,
                     attackerField: gameState.players[atkIdx].field,
-                    momentumBonus: 0
+                    momentumBonus: 0,
+                    globalTerrain: gameState.globalTerrain
                 )
                 gameState.players[defIdx].takeDamage(damage)
                 gameState.players[atkIdx].gainMomentum(2)
@@ -228,7 +231,8 @@ struct BasicAI {
                         attackerCard: atkCard,
                         attackerSlot: atkSlot,
                         attackerField: gameState.players[atkIdx].field,
-                        momentumBonus: 0
+                        momentumBonus: 0,
+                        globalTerrain: gameState.globalTerrain
                     )
                     gameState.players[defIdx].takeDamage(damage)
                     gameState.players[atkIdx].gainMomentum(2)
@@ -277,7 +281,8 @@ struct BasicAI {
                     let score = evaluateSummonPriority(
                         monster: m,
                         myField: gameState.players[idx].field,
-                        opponentField: gameState.players[opponentIdx].field
+                        opponentField: gameState.players[opponentIdx].field,
+                        globalTerrain: gameState.globalTerrain
                     )
                     return (i, card, score)
                 case .spell(let s):
@@ -330,7 +335,8 @@ struct BasicAI {
         // 최적 매칭 기반 공격 계획
         var plans = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
-            defenderField: gameState.players[defIdx].field
+            defenderField: gameState.players[defIdx].field,
+            globalTerrain: gameState.globalTerrain
         )
 
         // 파괴 시뮬레이션: 적이 전멸하면 남은 공격자로 직접 공격 추가
@@ -351,7 +357,8 @@ struct BasicAI {
                         defenderField: gameState.players[defIdx].field,
                         attackerMomentumBonus: 0,
                         defenderMomentumBonus: 0,
-                        defenderShield: shield
+                        defenderShield: shield,
+                        globalTerrain: gameState.globalTerrain
                     )
                     if result.defenderDestroyed {
                         aliveDefSlots.remove(defSlot)
@@ -380,7 +387,8 @@ struct BasicAI {
     /// 그리디 알고리즘으로 가장 유리한 공격자-방어자 매칭을 계산
     private func buildOptimalAttackPlan(
         attackerField: PlayerField,
-        defenderField: PlayerField
+        defenderField: PlayerField,
+        globalTerrain: Attribute
     ) -> [(attackerSlot: Int, defenderSlot: Int?)] {
         let atkSlots = attackerField.monsterSlotIndices
         let defSlots = defenderField.monsterSlotIndices
@@ -411,12 +419,12 @@ struct BasicAI {
                 let atkCP = BattleEngine.calculateEffectiveCP(
                     card: atkCard, slotIndex: atkSlot,
                     field: attackerField, opponentAttribute: defCard.attribute,
-                    momentumBonus: 0
+                    momentumBonus: 0, globalTerrain: globalTerrain
                 )
                 let defCP = BattleEngine.calculateEffectiveCP(
                     card: defCard, slotIndex: defSlot,
                     field: defenderField, opponentAttribute: atkCard.attribute,
-                    momentumBonus: 0
+                    momentumBonus: 0, globalTerrain: globalTerrain
                 )
 
                 allMatches.append(MatchScore(
@@ -460,7 +468,8 @@ struct BasicAI {
     private func evaluateSummonPriority(
         monster: MonsterCard,
         myField: PlayerField,
-        opponentField: PlayerField
+        opponentField: PlayerField,
+        globalTerrain: Attribute
     ) -> Int {
         var score = monster.combatPower + 1000  // 기본 점수 (몬스터 > 마법)
 
@@ -480,41 +489,17 @@ struct BasicAI {
             score -= 300
         }
 
-        // 지형 매칭 보너스: 같은 속성 지형 빈 슬롯이 있으면 +200
-        let hasMatchingTerrain = myField.emptySlotIndices.contains { i in
-            myField.slots[i].terrain == monster.attribute
-        }
-        if hasMatchingTerrain {
-            score += 200
-        }
-
-        // 속성 지배 기여: 소환하면 지배(3+) 달성에 가까워지면 +300
-        let currentTerrainCount = myField.terrainCount(for: monster.attribute)
-        if currentTerrainCount == 2 {
-            score += 300  // 이 소환으로 속성 지배 달성
-        } else if currentTerrainCount >= 3 {
-            score += 150  // 지배 강화
+        // 글로벌 지형 보너스: 몬스터 속성이 현재 지형과 일치하면 +300
+        if monster.attribute == globalTerrain {
+            score += 300
         }
 
         return score
     }
 
-    /// 지형 시너지를 고려한 최적 소환 슬롯
+    /// 최적 소환 슬롯 (빈 슬롯 중 첫 번째)
     private func bestSummonSlot(for monster: MonsterCard, field: PlayerField) -> Int {
-        let emptySlots = field.emptySlotIndices
-
-        // 1순위: 같은 속성 지형 슬롯
-        if let matchingSlot = emptySlots.first(where: { field.slots[$0].terrain == monster.attribute }) {
-            return matchingSlot
-        }
-
-        // 2순위: 중립 지형 슬롯 (다른 속성이 아닌 곳)
-        if let neutralSlot = emptySlots.first(where: { field.slots[$0].terrain == nil }) {
-            return neutralSlot
-        }
-
-        // 3순위: 아무 빈 슬롯
-        return emptySlots.first ?? 0
+        return field.emptySlotIndices.first ?? 0
     }
 
     // MARK: - 마법 유용성 판단
@@ -549,7 +534,9 @@ struct BasicAI {
             return hasRelevantMonster || hasRelevantInHand
 
         case .terrain:
-            // 지형 마법: 관련 속성 몬스터가 있어야 지형 보너스 활용 가능
+            // 지형 마법: 현재 지형이 이미 같은 속성이면 불필요
+            if gameState.globalTerrain == spell.attribute { return false }
+            // 관련 속성 몬스터가 있어야 지형 보너스 활용 가능
             let hasRelevantMonster = myField.monsterSlotIndices.contains { i in
                 if case .monster(let m, _) = myField.slots[i].content {
                     return m.attribute == spell.attribute
@@ -611,6 +598,19 @@ struct BasicAI {
             return .breakthrough
         }
 
+        // 지형 장악 (비용 4): 지형 보너스 받는 몬스터가 2체 이상이면 사용
+        if momentum >= MomentumSkill.terrainMastery.cost {
+            let terrainMatchCount = myField.monsterSlotIndices.filter { i in
+                if case .monster(let m, _) = myField.slots[i].content {
+                    return m.attribute == gameState.globalTerrain
+                }
+                return false
+            }.count
+            if terrainMatchCount >= 2 {
+                return .terrainMastery
+            }
+        }
+
         // 투지 (비용 3): 핵심 몬스터가 상대보다 약간 약할 때 +500으로 역전 가능
         if momentum >= MomentumSkill.fighting.cost && myMonsterCount > 0 && opponentMonsterCount > 0 {
             // 가장 강한 내 몬스터와 가장 강한 적 몬스터 비교
@@ -640,7 +640,8 @@ struct BasicAI {
         attackerSlot: Int,
         attackerField: PlayerField,
         defenderSlots: [Int],
-        defenderField: PlayerField
+        defenderField: PlayerField,
+        globalTerrain: Attribute
     ) -> Int? {
         struct TargetInfo {
             let slot: Int
@@ -660,7 +661,8 @@ struct BasicAI {
                 slotIndex: attackerSlot,
                 field: attackerField,
                 opponentAttribute: defCard.attribute,
-                momentumBonus: 0
+                momentumBonus: 0,
+                globalTerrain: globalTerrain
             )
 
             let defCP = BattleEngine.calculateEffectiveCP(
@@ -668,7 +670,8 @@ struct BasicAI {
                 slotIndex: defSlot,
                 field: defenderField,
                 opponentAttribute: attacker.attribute,
-                momentumBonus: 0
+                momentumBonus: 0,
+                globalTerrain: globalTerrain
             )
 
             targets.append(TargetInfo(

@@ -6,12 +6,10 @@ struct GameBoardView: View {
 
     var body: some View {
         ZStack {
-            // 배경
-            LinearGradient(
-                colors: [Color(red: 0.1, green: 0.1, blue: 0.2), Color(red: 0.05, green: 0.05, blue: 0.15)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // 지형 속성 배경
+            terrainBackground
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 0.8), value: viewModel.gameState.globalTerrain)
 
             VStack(spacing: 8) {
                 // 상대 (AI) 정보
@@ -26,9 +24,10 @@ struct GameBoardView: View {
                 // 상대 필드
                 fieldView(player: viewModel.aiPlayer, isOpponent: true)
 
-                // 구분선
+                // 구분선 + 지형 인디케이터
                 HStack {
                     Rectangle().fill(Color.gray.opacity(0.3)).frame(height: 1)
+                    terrainIndicator
                     Text("턴 \(viewModel.gameState.turnNumber)")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
@@ -170,6 +169,60 @@ struct GameBoardView: View {
                 .transition(.opacity)
             }
         }
+    }
+
+    // MARK: - 지형 배경
+
+    @ViewBuilder
+    private var terrainBackground: some View {
+        let terrain = viewModel.gameState.globalTerrain
+        let colors = terrainGradientColors(for: terrain)
+        LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+    }
+
+    private func terrainGradientColors(for terrain: Attribute) -> [Color] {
+        switch terrain {
+        case .fire:
+            return [Color(red: 0.25, green: 0.05, blue: 0.02), Color(red: 0.12, green: 0.02, blue: 0.0)]
+        case .water:
+            return [Color(red: 0.02, green: 0.08, blue: 0.25), Color(red: 0.01, green: 0.04, blue: 0.15)]
+        case .wind:
+            return [Color(red: 0.02, green: 0.18, blue: 0.08), Color(red: 0.01, green: 0.08, blue: 0.04)]
+        case .earth:
+            return [Color(red: 0.18, green: 0.12, blue: 0.05), Color(red: 0.08, green: 0.06, blue: 0.02)]
+        case .thunder:
+            return [Color(red: 0.2, green: 0.18, blue: 0.02), Color(red: 0.08, green: 0.06, blue: 0.12)]
+        case .dark:
+            return [Color(red: 0.08, green: 0.02, blue: 0.15), Color(red: 0.02, green: 0.01, blue: 0.06)]
+        case .light:
+            return [Color(red: 0.22, green: 0.18, blue: 0.08), Color(red: 0.1, green: 0.08, blue: 0.02)]
+        }
+    }
+
+    private var terrainIndicator: some View {
+        let terrain = viewModel.gameState.globalTerrain
+        let isSpell = viewModel.gameState.isSpellTerrain
+        let remaining = viewModel.gameState.terrainTurnsRemaining
+        return HStack(spacing: 2) {
+            Text(terrain.emoji)
+                .font(.system(size: 11))
+            Text("\(terrain.displayName)")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(isSpell ? .orange : .white.opacity(0.8))
+            Text("(\(remaining))")
+                .font(.system(size: 8))
+                .foregroundColor(.white.opacity(0.5))
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(
+            Capsule()
+                .fill(terrain.color.opacity(0.3))
+                .overlay(
+                    Capsule()
+                        .strokeBorder(isSpell ? Color.orange.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - 필드 뷰

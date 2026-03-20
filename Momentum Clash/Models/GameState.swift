@@ -19,6 +19,11 @@ struct GameState {
     var currentPhase: TurnPhase
     var isFirstTurn: Bool          // 선공 첫 턴 (공격 불가)
 
+    // MARK: - 글로벌 지형 시스템
+    var globalTerrain: Attribute           // 현재 활성 지형 속성
+    var terrainTurnsRemaining: Int         // 지형 유지 남은 턴 수
+    var isSpellTerrain: Bool               // 마법카드에 의한 지형인지
+
     var currentPlayer: Player {
         get { players[currentPlayerIndex] }
         set { players[currentPlayerIndex] = newValue }
@@ -41,6 +46,11 @@ struct GameState {
         self.turnNumber = 1
         self.currentPhase = .draw
         self.isFirstTurn = true
+
+        // 글로벌 지형 초기화 (랜덤)
+        self.globalTerrain = Attribute.allCases.randomElement()!
+        self.terrainTurnsRemaining = 2
+        self.isSpellTerrain = false
 
         // 선공은 기세 2로 시작
         self.players[firstPlayerIndex].momentum = 2
@@ -69,6 +79,14 @@ struct GameState {
         // 엔드 페이즈 정리
         endPhaseCleanup()
 
+        // 지형 카운트다운
+        terrainTurnsRemaining -= 1
+        if terrainTurnsRemaining <= 0 {
+            isSpellTerrain = false
+            globalTerrain = Attribute.allCases.randomElement()!
+            terrainTurnsRemaining = 2
+        }
+
         // 턴 전환
         currentPlayerIndex = opponentIndex
         turnNumber += 1
@@ -80,14 +98,29 @@ struct GameState {
         currentPlayer.didAttackThisTurn = false
     }
 
+    // MARK: - 지형 마법
+
+    /// 마법카드로 지형 강제 변경 (2턴 지속)
+    mutating func setSpellTerrain(_ attribute: Attribute) {
+        globalTerrain = attribute
+        terrainTurnsRemaining = 2
+        isSpellTerrain = true
+    }
+
     // MARK: - 스탠바이 페이즈
 
     mutating func processStandbyPhase() {
         currentPhase = .standby
         currentPlayer.refreshEnergy()
 
-        // 속성 지배 중이면 기세 +1
-        if currentPlayer.field.attributeDominance() != nil {
+        // 글로벌 지형과 일치하는 몬스터가 있으면 기세 +1
+        let hasMatchingMonster = currentPlayer.field.monsterSlotIndices.contains { i in
+            if case .monster(let m, _) = currentPlayer.field.slots[i].content {
+                return m.attribute == globalTerrain
+            }
+            return false
+        }
+        if hasMatchingMonster {
             currentPlayer.gainMomentum(1)
         }
 
