@@ -15,6 +15,7 @@ struct Player: Equatable {
     var field: PlayerField         // 필드 (5슬롯)
 
     var didAttackThisTurn: Bool    // 이번 턴 공격 여부
+    var momentumBonus: Int         // 기세 스킬에 의한 전투력 증가 (턴 종료 시 리셋)
 
     init(
         id: UUID = UUID(),
@@ -31,6 +32,7 @@ struct Player: Equatable {
         self.graveyard = []
         self.field = PlayerField()
         self.didAttackThisTurn = false
+        self.momentumBonus = 0
     }
 
     // MARK: - LP
