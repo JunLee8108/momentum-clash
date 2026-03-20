@@ -3,6 +3,7 @@ import SwiftUI
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
     var viewModel: GameViewModel
+    @State private var showTerrainTooltip = false
 
     var body: some View {
         ZStack {
@@ -148,6 +149,9 @@ struct GameBoardView: View {
                     .animation(.easeOut(duration: 0.3), value: display.showLPFlash)
             }
 
+            // 오버레이: 지형 툴팁
+            terrainTooltipOverlay
+
             // 오버레이: 카드 상세보기 (패에서)
             if let detail = viewModel.showingCardDetail {
                 CardDetailView(
@@ -189,7 +193,7 @@ struct GameBoardView: View {
                     .aspectRatio(contentMode: .fill)
                     .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                     .clipped()
-                    .overlay(Color.black.opacity(0.4)) // 가독성을 위한 어둡게 처리
+                    .overlay(Color.black.opacity(0.55)) // 가독성을 위한 어둡게 처리
             }
         }
     }
@@ -237,6 +241,98 @@ struct GameBoardView: View {
                         .strokeBorder(isSpell ? Color.orange.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1)
                 )
         )
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showTerrainTooltip.toggle()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var terrainTooltipOverlay: some View {
+        if showTerrainTooltip {
+            let terrain = viewModel.gameState.globalTerrain
+            let isSpell = viewModel.gameState.isSpellTerrain
+            let remaining = viewModel.gameState.terrainTurnsRemaining
+
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showTerrainTooltip = false
+                    }
+                }
+
+            VStack(alignment: .leading, spacing: 8) {
+                // 헤더
+                HStack(spacing: 6) {
+                    Text(terrain.emoji)
+                        .font(.system(size: 18))
+                    Text("\(terrain.displayName) 지형")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text(isSpell ? "마법 지형" : "자연 지형")
+                        .font(.system(size: 10))
+                        .foregroundColor(isSpell ? .orange : .gray)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.white.opacity(0.1)))
+                }
+
+                Divider().background(Color.white.opacity(0.2))
+
+                // 효과 목록
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cyan)
+                            .frame(width: 16)
+                        Text("\(terrain.emoji) 속성 몬스터 전투력 +\(PlayerField.globalTerrainBonus)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                            .frame(width: 16)
+                        Text("\(terrain.emoji) 속성 몬스터 보유 시 매 턴 기세 +1")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+
+                Divider().background(Color.white.opacity(0.2))
+
+                // 남은 턴
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.5))
+                    Text("남은 턴: \(remaining)")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.6))
+                    Spacer()
+                    Text("탭하여 닫기")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.3))
+                }
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.black.opacity(0.9))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(terrain.color.opacity(0.4), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, 32)
+            .transition(.scale(scale: 0.9).combined(with: .opacity))
+        }
     }
 
     // MARK: - 필드 뷰
@@ -256,6 +352,7 @@ struct GameBoardView: View {
                 FieldSlotView(
                     slot: slot,
                     index: i,
+                    globalTerrain: viewModel.gameState.globalTerrain,
                     isHighlighted: highlighted,
                     aiHighlightColor: battleHighlight,
                     hasAttacked: attacked
