@@ -150,6 +150,7 @@ struct GameState {
         // 기세 보너스 리셋 (턴 한정 전투력 증가)
         currentPlayer.momentumBonus = 0
         currentPlayer.activeMomentumSkill = nil
+        currentPlayer.summonedThisTurn = []
 
         // 공격하지 않았으면 기세 -1
         if !currentPlayer.didAttackThisTurn {
