@@ -262,7 +262,7 @@ enum SampleCards {
         let build: @MainActor () -> [AnyCard]
     }
 
-    static let presetDecks: [PresetDeck] = [
+    @MainActor static let presetDecks: [PresetDeck] = [
         PresetDeck(
             name: "화염 러시",
             description: "저코스트 화/풍 몬스터로 빠르게 공격하는 공격형 덱",
