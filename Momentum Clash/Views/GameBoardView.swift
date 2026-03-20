@@ -168,11 +168,16 @@ struct GameBoardView: View {
                 let highlighted = slotHighlighted(index: i, isOpponent: isOpponent)
                 let battleHighlight = battleSlotHighlight(index: i, isOpponent: isOpponent)
 
+                let attacked = !isOpponent
+                    && viewModel.gameState.currentPhase == .battle
+                    && slot.hasAttacked
+
                 FieldSlotView(
                     slot: slot,
                     index: i,
                     isHighlighted: highlighted,
-                    aiHighlightColor: battleHighlight
+                    aiHighlightColor: battleHighlight,
+                    hasAttacked: attacked
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
