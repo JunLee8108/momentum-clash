@@ -880,6 +880,31 @@ class GameViewModel {
 
         // -- 메인 페이즈 --
         gameState.currentPhase = .main
+
+        // 릴리즈 판단: 소환 전에 희생 여부 결정
+        if let sacrifice = ai.planSacrifice(gameState: gameState),
+           case .monster(let sacMonster, _) = gameState.players[idx].field.slots[sacrifice.sacrificeSlot].content {
+
+            await showAIBanner("릴리즈", duration: 0.8)
+
+            // 필드에서 제거 → 묘지 이동
+            gameState.players[idx].field.removeCard(at: sacrifice.sacrificeSlot)
+            gameState.players[idx].graveyard.append(.monster(sacMonster))
+
+            // 기력 충전
+            gameState.players[idx].energy += sacMonster.cost
+
+            withAnimation(.easeInOut(duration: 0.3)) {
+                battleDisplay = BattleDisplay(
+                    message: "릴리즈: \(sacMonster.name) 희생!",
+                    highlightedSlot: sacrifice.sacrificeSlot
+                )
+            }
+            addLog("릴리즈: \(sacMonster.name) 희생! (기력 +\(sacMonster.cost))")
+
+            try? await Task.sleep(for: .seconds(1.2))
+        }
+
         let summonPlans = ai.planMainPhase(gameState: gameState)
 
         if !summonPlans.isEmpty {

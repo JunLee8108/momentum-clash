@@ -496,6 +496,113 @@ struct BasicAI {
         return plans
     }
 
+    // MARK: - 릴리즈 (희생) 판단
+
+    /// 필드 몬스터의 유지 가치 평가 (상성 + 지형 시너지 반영)
+    private func evaluateFieldValue(
+        monster: MonsterCard,
+        slotIndex: Int,
+        myField: PlayerField,
+        opponentField: PlayerField,
+        globalTerrain: Attribute
+    ) -> Int {
+        var score = monster.combatPower
+
+        let opponentAttributes = opponentField.monsterSlotIndices.compactMap { i -> Attribute? in
+            if case .monster(let m, _) = opponentField.slots[i].content { return m.attribute }
+            return nil
+        }
+
+        // 상대 약점을 찌르는 중이면 유지 가치 높음
+        if opponentAttributes.contains(where: { monster.attribute.strongAgainst == $0 }) {
+            score += 400
+        }
+
+        // 상대에게 약점 잡혀 있으면 유지 가치 낮음
+        if opponentAttributes.contains(where: { monster.attribute.weakAgainst == $0 }) {
+            score -= 200
+        }
+
+        // 글로벌 지형과 속성 일치하면 유지 가치 높음
+        if monster.attribute == globalTerrain {
+            score += 300
+        }
+
+        return score
+    }
+
+    /// 메인 페이즈 소환 전에 릴리즈 여부 판단 (한 턴 최대 1회)
+    func planSacrifice(gameState: GameState) -> (sacrificeSlot: Int, cardToSummon: AnyCard, handIndex: Int)? {
+        let idx = gameState.currentPlayerIndex
+        let opponentIdx = 1 - idx
+        let player = gameState.players[idx]
+        let myField = player.field
+        let opponentField = gameState.players[opponentIdx].field
+
+        // 패에서 현재 소환 불가능한 몬스터 후보 탐색 (기력 부족 or 필드 꽉 참)
+        let fieldFull = myField.emptySlotIndices.isEmpty
+        let hand = player.hand
+
+        let summonCandidates: [(index: Int, card: MonsterCard, score: Int)] = hand.enumerated().compactMap { (i, card) in
+            guard case .monster(let m) = card else { return nil }
+
+            let needsRelease: Bool
+            if fieldFull {
+                // 필드 꽉 참 → 릴리즈 필요
+                needsRelease = true
+            } else if m.cost > player.energy {
+                // 기력 부족 → 릴리즈로 기력 확보 필요
+                needsRelease = true
+            } else {
+                // 이미 소환 가능 → 릴리즈 불필요
+                return nil
+            }
+
+            guard needsRelease else { return nil }
+
+            let score = evaluateSummonPriority(
+                monster: m,
+                myField: myField,
+                opponentField: opponentField,
+                globalTerrain: gameState.globalTerrain
+            )
+            return (i, m, score)
+        }.sorted { $0.score > $1.score }
+
+        guard let bestCandidate = summonCandidates.first else { return nil }
+
+        // 희생 가능한 필드 몬스터 평가 (이번 턴 소환 제외)
+        let sacrificeCandidates: [(slot: Int, monster: MonsterCard, value: Int)] = myField.monsterSlotIndices.compactMap { slot in
+            guard !player.summonedThisTurn.contains(slot) else { return nil }
+            guard case .monster(let m, _) = myField.slots[slot].content else { return nil }
+
+            let value = evaluateFieldValue(
+                monster: m,
+                slotIndex: slot,
+                myField: myField,
+                opponentField: opponentField,
+                globalTerrain: gameState.globalTerrain
+            )
+            return (slot, m, value)
+        }.sorted { $0.value < $1.value } // 유지 가치 낮은 순
+
+        guard let weakest = sacrificeCandidates.first else { return nil }
+
+        // 릴리즈 후 소환 가능한지 확인 (기력 = 현재 + 희생 몬스터 비용)
+        let energyAfterSacrifice = player.energy + weakest.monster.cost
+        guard bestCandidate.card.cost <= energyAfterSacrifice else { return nil }
+
+        // 교체 이득 비교: 소환 점수 - 유지 가치 >= 300이어야 실행
+        let swapGain = bestCandidate.score - weakest.value
+        guard swapGain >= 300 else { return nil }
+
+        return (
+            sacrificeSlot: weakest.slot,
+            cardToSummon: .monster(bestCandidate.card),
+            handIndex: bestCandidate.index
+        )
+    }
+
     // MARK: - 소환 전략 평가
 
     /// 몬스터 소환 우선도 점수 계산 (상성 + 지형 시너지)
