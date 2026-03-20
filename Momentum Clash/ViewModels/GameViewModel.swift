@@ -691,6 +691,22 @@ class GameViewModel {
         gameState.currentPlayer.activeMomentumSkill = skill
         addLog("기세 스킬 [\(skill.displayName)] 발동! (기세 -\(skill.cost))")
 
+        // 배너 애니메이션
+        withAnimation(.easeInOut(duration: 0.3)) {
+            battleDisplay = BattleDisplay(
+                message: "기세 스킬: \(skill.displayName)!",
+                isPlayerAction: true
+            )
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(0.8))
+            await MainActor.run {
+                withAnimation {
+                    battleDisplay = nil
+                }
+            }
+        }
+
         switch skill {
         case .fighting:
             // 이번 턴 전투력 +500
