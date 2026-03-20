@@ -6,29 +6,37 @@ struct PresetDeckSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.14)
-                    .ignoresSafeArea()
+        VStack(spacing: 0) {
+            // 헤더
+            HStack {
+                Text("프리셋 덱")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
 
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(SampleCards.presetDecks) { preset in
-                            presetRow(preset)
-                        }
+                Spacer()
+
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(.gray, Color.white.opacity(0.15))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+
+            // 프리셋 목록
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(SampleCards.presetDecks) { preset in
+                        presetRow(preset)
                     }
-                    .padding()
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .navigationTitle("프리셋 덱")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("닫기") { dismiss() }
-                        .foregroundColor(.white)
-                }
-            }
-            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
@@ -37,47 +45,51 @@ struct PresetDeckSheet: View {
             onSelect(preset)
             dismiss()
         } label: {
-            HStack(spacing: 14) {
-                Text(preset.emoji)
-                    .font(.system(size: 32))
-                    .frame(width: 50, height: 50)
-                    .background(accentColor(preset).opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(preset.name)
-                        .font(.system(size: 16, weight: .bold))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Text(preset.emoji + " " + preset.name)
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text(preset.description)
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                        .lineLimit(2)
+                    Spacer()
+
+                    Text("30장")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
                 }
 
-                Spacer()
+                Text(preset.description)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
+                // 속성 뱃지
+                HStack(spacing: 6) {
+                    ForEach(mainAttributes(preset), id: \.self) { attr in
+                        Text(attr.emoji)
+                            .font(.system(size: 12))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(attr.color.opacity(0.25))
+                            .clipShape(Capsule())
+                    }
+                }
             }
             .padding(14)
-            .background(Color.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(accentColor(preset).opacity(0.3), lineWidth: 1)
-            )
+            .liquidGlass(cornerRadius: 14, opacity: 0.5)
         }
     }
 
-    private func accentColor(_ preset: SampleCards.PresetDeck) -> Color {
-        switch preset.accentColorName {
-        case "red": return .red
-        case "brown": return .brown
-        case "yellow": return .yellow
-        case "purple": return .purple
-        default: return .white
+    /// 프리셋에 포함된 주요 속성 추출 (몬스터 기준, 중복 제거)
+    private func mainAttributes(_ preset: SampleCards.PresetDeck) -> [Attribute] {
+        var seen = Set<Attribute>()
+        var result: [Attribute] = []
+        for (card, _) in preset.monsters {
+            if seen.insert(card.attribute).inserted {
+                result.append(card.attribute)
+            }
         }
+        return result
     }
 }
