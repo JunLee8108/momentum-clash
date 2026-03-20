@@ -432,6 +432,11 @@ struct GameBoardView: View {
             if case .selectingSummonSlot = viewModel.uiState {
                 return !viewModel.player.field.slots[index].content.isOccupied
             }
+            if case .selectingSacrificeSlot = viewModel.uiState {
+                if case .monster = viewModel.player.field.slots[index].content {
+                    return !viewModel.player.summonedThisTurn.contains(index)
+                }
+            }
         }
         if isOpponent {
             if case .selectingAttackTarget = viewModel.uiState {
@@ -452,6 +457,10 @@ struct GameBoardView: View {
             // 내 필드 슬롯 탭
             if case .selectingSummonSlot = viewModel.uiState {
                 viewModel.summonToSlot(index)
+                return
+            }
+            if case .selectingSacrificeSlot = viewModel.uiState {
+                viewModel.sacrificeMonster(at: index)
                 return
             }
             if case .battlePhase = viewModel.uiState, viewModel.canAttack {
@@ -509,6 +518,15 @@ struct GameBoardView: View {
                     .disabled(viewModel.player.momentum == 0)
                     .opacity(viewModel.player.momentum == 0 ? 0.4 : 1.0)
 
+                    Button {
+                        viewModel.enterSacrificeMode()
+                    } label: {
+                        Label("릴리즈", systemImage: "arrow.uturn.down")
+                    }
+                    .buttonStyle(GameButtonStyle(color: .purple))
+                    .disabled(!viewModel.hasSacrifiableMonster)
+                    .opacity(viewModel.hasSacrifiableMonster ? 1.0 : 0.4)
+
                     Button("배틀 페이즈") {
                         viewModel.enterBattlePhase()
                     }
@@ -529,6 +547,15 @@ struct GameBoardView: View {
                     Text("슬롯을 선택하세요")
                         .font(.caption)
                         .foregroundColor(.yellow)
+                    Button("취소") {
+                        viewModel.cancelSlotSelection()
+                    }
+                    .buttonStyle(GameButtonStyle(color: .gray))
+
+                case .selectingSacrificeSlot:
+                    Text("희생할 몬스터를 선택하세요")
+                        .font(.caption)
+                        .foregroundColor(.purple)
                     Button("취소") {
                         viewModel.cancelSlotSelection()
                     }

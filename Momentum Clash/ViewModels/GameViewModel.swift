@@ -10,6 +10,7 @@ enum GameUIState: Equatable {
     case battlePhase
     case selectingAttackTarget(attackerSlot: Int)
     case selectingSummonSlot(card: AnyCard, handIndex: Int)
+    case selectingSacrificeSlot
     case aiTurn
     case gameOver(winner: String)
 }
@@ -261,6 +262,7 @@ class GameViewModel {
         if case .monster(let monsterCard) = card {
             let success = gameState.currentPlayer.field.summonMonster(monsterCard, at: slotIndex)
             if success {
+                gameState.currentPlayer.summonedThisTurn.insert(slotIndex)
                 addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
             }
         } else if case .spell(let spellCard) = card {
@@ -274,6 +276,43 @@ class GameViewModel {
     }
 
     func cancelSlotSelection() {
+        uiState = .mainPhase
+    }
+
+    // MARK: - 릴리즈 (몬스터 희생)
+
+    /// 희생 가능한 몬스터가 있는지 확인
+    var hasSacrifiableMonster: Bool {
+        let field = player.field
+        for i in field.monsterSlotIndices {
+            if !player.summonedThisTurn.contains(i) {
+                return true
+            }
+        }
+        return false
+    }
+
+    func enterSacrificeMode() {
+        guard isPlayerTurn, gameState.currentPhase == .main else { return }
+        uiState = .selectingSacrificeSlot
+    }
+
+    func sacrificeMonster(at slotIndex: Int) {
+        guard case .selectingSacrificeSlot = uiState else { return }
+        guard case .monster(let card, _) = player.field.slots[slotIndex].content else { return }
+        guard !player.summonedThisTurn.contains(slotIndex) else {
+            addLog("이번 턴에 소환한 몬스터는 희생할 수 없습니다!")
+            return
+        }
+
+        // 필드에서 제거 → 묘지로 이동
+        gameState.currentPlayer.field.removeCard(at: slotIndex)
+        gameState.currentPlayer.graveyard.append(.monster(card))
+
+        // 기력 충전 (소환 비용만큼)
+        gameState.currentPlayer.energy += card.cost
+        addLog("릴리즈: \(card.name) 희생! (기력 +\(card.cost))")
+
         uiState = .mainPhase
     }
 
