@@ -709,69 +709,302 @@ struct BasicAI {
 
     // MARK: - 기세 스킬 판단
 
-    /// 메인 페이즈 끝에서 기세 스킬 사용 여부 판단
-    func chooseMomentumSkill(gameState: GameState) -> MomentumSkill? {
+    /// 기세 스킬 선택 결과 (스킬 + 투지 타겟 슬롯)
+    struct MomentumSkillChoice {
+        let skill: MomentumSkill
+        let fightingTargetSlot: Int?  // 투지 전용
+    }
+
+    /// 배틀 시뮬레이션 기반 기세 스킬 판단
+    /// 각 스킬을 사용했을 때의 배틀 결과를 시뮬레이션하고, 가장 이득이 큰 스킬을 선택
+    func chooseMomentumSkill(gameState: GameState) -> MomentumSkillChoice? {
         let idx = gameState.currentPlayerIndex
         let opponentIdx = 1 - idx
         let momentum = gameState.players[idx].momentum
         let myField = gameState.players[idx].field
         let opponentField = gameState.players[opponentIdx].field
+
+        // 몬스터가 없으면 스킬 사용 불가 (폭발 제외하고 의미 없음)
         let myMonsterCount = myField.monsterCount
         let opponentMonsterCount = opponentField.monsterCount
+        if myMonsterCount == 0 && opponentMonsterCount == 0 { return nil }
 
-        // 기세 폭발 (비용 8): 상대 약한 몬스터 2체 이상 파괴 가능
-        if momentum >= MomentumSkill.explosion.cost && opponentMonsterCount >= 2 {
+        // 1. 기준선: 스킬 없이 배틀 시뮬레이션
+        let baselineScore = simulateBattleScore(
+            gameState: gameState,
+            momentumBonus: 0,
+            fightingSlot: nil,
+            explosionKills: []
+        )
+
+        // 2. 각 사용 가능한 스킬별 시뮬레이션
+        struct Candidate {
+            let skill: MomentumSkill
+            let score: Int
+            let netGain: Int
+            let fightingSlot: Int?
+        }
+        var candidates: [Candidate] = []
+
+        // -- 투지 (코스트 3): 몬스터 1체에 +500 --
+        if momentum >= MomentumSkill.fighting.cost && myMonsterCount > 0 && opponentMonsterCount > 0 {
+            // 각 몬스터에 투지를 걸어보고 최적 타겟 찾기
+            var bestFightingScore = Int.min
+            var bestFightingSlot: Int?
+            for slot in myField.monsterSlotIndices {
+                let score = simulateBattleScore(
+                    gameState: gameState,
+                    momentumBonus: 500,
+                    fightingSlot: slot,
+                    explosionKills: []
+                )
+                if score > bestFightingScore {
+                    bestFightingScore = score
+                    bestFightingSlot = slot
+                }
+            }
+            if let slot = bestFightingSlot {
+                candidates.append(Candidate(
+                    skill: .fighting,
+                    score: bestFightingScore,
+                    netGain: bestFightingScore - baselineScore,
+                    fightingSlot: slot
+                ))
+            }
+        }
+
+        // -- 지형 장악 (코스트 4): 지형 매칭 몬스터에 추가 +300 --
+        if momentum >= MomentumSkill.terrainMastery.cost && myMonsterCount > 0 {
+            let hasTerrainMatch = myField.monsterSlotIndices.contains { i in
+                if case .monster(let m, _) = myField.slots[i].content {
+                    return m.attribute == gameState.globalTerrain
+                }
+                return false
+            }
+            if hasTerrainMatch {
+                let score = simulateBattleScore(
+                    gameState: gameState,
+                    momentumBonus: PlayerField.globalTerrainBonus,  // +300 추가 (2배 효과)
+                    fightingSlot: nil,
+                    explosionKills: [],
+                    terrainMastery: true
+                )
+                candidates.append(Candidate(
+                    skill: .terrainMastery,
+                    score: score,
+                    netGain: score - baselineScore,
+                    fightingSlot: nil
+                ))
+            }
+        }
+
+        // -- 돌파 (코스트 6): 전 몬스터 +300 --
+        if momentum >= MomentumSkill.breakthrough.cost && myMonsterCount > 0 && opponentMonsterCount > 0 {
+            let score = simulateBattleScore(
+                gameState: gameState,
+                momentumBonus: 300,
+                fightingSlot: nil,
+                explosionKills: []
+            )
+            candidates.append(Candidate(
+                skill: .breakthrough,
+                score: score,
+                netGain: score - baselineScore,
+                fightingSlot: nil
+            ))
+        }
+
+        // -- 폭발 (코스트 8): 상대 몬스터 중 CP ≤ 기세×100 파괴 후 배틀 --
+        if momentum >= MomentumSkill.explosion.cost && opponentMonsterCount > 0 {
             let explosionDmg = BattleEngine.explosionDamage(momentum: MomentumSkill.explosion.cost)
-            let killable = opponentField.monsterSlotIndices.filter { i in
+            let killableSlots = opponentField.monsterSlotIndices.filter { i in
                 if case .monster(let m, _) = opponentField.slots[i].content {
                     return m.combatPower <= explosionDmg
                 }
                 return false
             }
-            if killable.count >= 2 {
-                return .explosion
+            // 폭발은 파괴 자체가 가치 → 파괴된 몬스터 수 × 1000 + 남은 필드로 배틀
+            let score = simulateBattleScore(
+                gameState: gameState,
+                momentumBonus: 0,
+                fightingSlot: nil,
+                explosionKills: killableSlots
+            )
+            candidates.append(Candidate(
+                skill: .explosion,
+                score: score,
+                netGain: score - baselineScore,
+                fightingSlot: nil
+            ))
+        }
+
+        // 3. 최적 선택: 순이익이 가장 높은 스킬
+        guard !candidates.isEmpty else { return nil }
+
+        // 기세 낭비 방지: 기세가 높을수록 임계값을 낮춤
+        let threshold: Int
+        if momentum >= 8 {
+            threshold = 0     // 조금이라도 이득이면 사용
+        } else if momentum >= 6 {
+            threshold = 150   // 적당한 이득
+        } else {
+            threshold = 300   // 확실한 이득일 때만
+        }
+
+        // 순이익 기준 정렬, 동점이면 코스트 낮은 쪽 우선 (기세 절약)
+        let best = candidates
+            .filter { $0.netGain >= threshold }
+            .sorted { a, b in
+                if a.netGain != b.netGain { return a.netGain > b.netGain }
+                return a.skill.cost < b.skill.cost
             }
-        }
+            .first
 
-        // 전선 돌파 (비용 6): 아군 몬스터 3체 이상 + 상대 몬스터 있음
-        if momentum >= MomentumSkill.breakthrough.cost
-            && myMonsterCount >= 3 && opponentMonsterCount > 0 {
-            return .breakthrough
-        }
+        guard let chosen = best else { return nil }
+        return MomentumSkillChoice(skill: chosen.skill, fightingTargetSlot: chosen.fightingSlot)
+    }
 
-        // 지형 장악 (비용 4): 지형 보너스 받는 몬스터가 2체 이상이면 사용
-        if momentum >= MomentumSkill.terrainMastery.cost {
-            let terrainMatchCount = myField.monsterSlotIndices.filter { i in
-                if case .monster(let m, _) = myField.slots[i].content {
-                    return m.attribute == gameState.globalTerrain
+    // MARK: - 배틀 시뮬레이션
+
+    /// 특정 기세 스킬 조건에서 배틀을 시뮬레이션하고 점수를 반환
+    /// 점수 = (적 몬스터 파괴 × 1000) + (상대 LP 데미지) - (내 몬스터 파괴 × 800) - (내 LP 데미지)
+    private func simulateBattleScore(
+        gameState: GameState,
+        momentumBonus: Int,
+        fightingSlot: Int?,
+        explosionKills: [Int],
+        terrainMastery: Bool = false
+    ) -> Int {
+        let idx = gameState.currentPlayerIndex
+        let opponentIdx = 1 - idx
+        let myField = gameState.players[idx].field
+        var opponentField = gameState.players[opponentIdx].field
+
+        // 폭발로 파괴된 몬스터 반영 (임시 필드 복사)
+        var explosionScore = 0
+        if !explosionKills.isEmpty {
+            for slot in explosionKills.sorted().reversed() {
+                if case .monster(let m, _) = opponentField.slots[slot].content {
+                    explosionScore += 1000 + m.combatPower / 2  // 파괴 가치 + CP 비례 보너스
                 }
-                return false
-            }.count
-            if terrainMatchCount >= 2 {
-                return .terrainMastery
+                opponentField.removeCard(at: slot)
             }
         }
 
-        // 투지 (비용 3): 핵심 몬스터가 상대보다 약간 약할 때 +500으로 역전 가능
-        if momentum >= MomentumSkill.fighting.cost && myMonsterCount > 0 && opponentMonsterCount > 0 {
-            // 가장 강한 내 몬스터와 가장 강한 적 몬스터 비교
-            let myBestCP = myField.monsterSlotIndices.compactMap { i -> Int? in
-                if case .monster(let m, _) = myField.slots[i].content { return m.combatPower }
-                return nil
-            }.max() ?? 0
+        // 지형 장악: 지형 매칭 몬스터에만 보너스 적용
+        // 투지: 특정 슬롯에만 보너스 적용
+        // 돌파: 전체에 보너스 적용
+        let attackPlan = buildOptimalAttackPlan(
+            attackerField: myField,
+            defenderField: opponentField,
+            globalTerrain: gameState.globalTerrain,
+            attackerMomentumBonus: momentumBonus,
+            defenderMomentumBonus: 0,
+            attackerFightingSlot: fightingSlot,
+            defenderFightingSlot: nil
+        )
 
-            let opponentBestCP = opponentField.monsterSlotIndices.compactMap { i -> Int? in
-                if case .monster(let m, _) = opponentField.slots[i].content { return m.combatPower }
-                return nil
-            }.max() ?? 0
+        var score = explosionScore
+        var destroyedDefSlots = Set<Int>()
+        var destroyedAtkSlots = Set<Int>()
 
-            // 내가 약간 약한데 +500이면 역전 가능
-            if myBestCP < opponentBestCP && myBestCP + 500 > opponentBestCP {
-                return .fighting
+        for plan in attackPlan {
+            let atkSlot = plan.attackerSlot
+            guard case .monster(let atkCard, _) = myField.slots[atkSlot].content else { continue }
+
+            if let defSlot = plan.defenderSlot {
+                // 몬스터 vs 몬스터
+                guard case .monster(let defCard, let shield) = opponentField.slots[defSlot].content else { continue }
+
+                let atkBonus: Int
+                if terrainMastery {
+                    // 지형 장악: 지형 매칭 몬스터에 추가 보너스
+                    let isTerrainMatch = atkCard.attribute == gameState.globalTerrain
+                    atkBonus = isTerrainMatch ? momentumBonus : 0
+                } else if fightingSlot != nil {
+                    atkBonus = (atkSlot == fightingSlot) ? momentumBonus : 0
+                } else {
+                    atkBonus = momentumBonus
+                }
+
+                let result = BattleEngine.resolveCombat(
+                    attackerCard: atkCard,
+                    attackerSlot: atkSlot,
+                    attackerField: myField,
+                    defenderCard: defCard,
+                    defenderSlot: defSlot,
+                    defenderField: opponentField,
+                    attackerMomentumBonus: atkBonus,
+                    defenderMomentumBonus: 0,
+                    defenderShield: shield,
+                    globalTerrain: gameState.globalTerrain
+                )
+
+                if result.defenderDestroyed {
+                    score += 1000
+                    score += result.lpDamageToDefender
+                    destroyedDefSlots.insert(defSlot)
+                }
+                if result.attackerDestroyed {
+                    score -= 800
+                    score -= result.lpDamageToAttacker
+                    destroyedAtkSlots.insert(atkSlot)
+                }
+                if !result.attackerDestroyed && !result.defenderDestroyed {
+                    // 방어막에 막힘 → 작은 가산점
+                    score += 50
+                }
+            } else {
+                // 직접 공격
+                let atkBonus: Int
+                if terrainMastery {
+                    let isTerrainMatch = atkCard.attribute == gameState.globalTerrain
+                    atkBonus = isTerrainMatch ? momentumBonus : 0
+                } else if fightingSlot != nil {
+                    atkBonus = (atkSlot == fightingSlot) ? momentumBonus : 0
+                } else {
+                    atkBonus = momentumBonus
+                }
+                let directDmg = BattleEngine.resolveDirectAttack(
+                    attackerCard: atkCard,
+                    attackerSlot: atkSlot,
+                    attackerField: myField,
+                    momentumBonus: atkBonus,
+                    globalTerrain: gameState.globalTerrain
+                )
+                score += directDmg
             }
         }
 
-        return nil
+        // 폭발 후 적이 전멸 → 남은 공격자로 직접 공격 추가 점수
+        // opponentField는 이미 폭발 파괴가 반영된 복사본이므로 explosionKills 중복 차감 불필요
+        let remainingDefenders = opponentField.monsterCount - destroyedDefSlots.count
+        if remainingDefenders <= 0 {
+            let unusedAttackers = myField.monsterSlotIndices.filter { slot in
+                !destroyedAtkSlots.contains(slot) && !attackPlan.contains(where: { $0.attackerSlot == slot })
+            }
+            for atkSlot in unusedAttackers {
+                guard case .monster(let atkCard, _) = myField.slots[atkSlot].content else { continue }
+                let atkBonus: Int
+                if terrainMastery {
+                    atkBonus = atkCard.attribute == gameState.globalTerrain ? momentumBonus : 0
+                } else if fightingSlot != nil {
+                    atkBonus = (atkSlot == fightingSlot) ? momentumBonus : 0
+                } else {
+                    atkBonus = momentumBonus
+                }
+                let directDmg = BattleEngine.resolveDirectAttack(
+                    attackerCard: atkCard,
+                    attackerSlot: atkSlot,
+                    attackerField: myField,
+                    momentumBonus: atkBonus,
+                    globalTerrain: gameState.globalTerrain
+                )
+                score += directDmg
+            }
+        }
+
+        return score
     }
 
     // MARK: - 타겟 선택
