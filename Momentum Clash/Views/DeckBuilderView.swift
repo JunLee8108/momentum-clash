@@ -5,6 +5,7 @@ struct DeckBuilderView: View {
     @Bindable var deckVM: DeckViewModel
     @State private var showDeckList = false
     @State private var selectedCard: AnyCard? = nil
+    @State private var showPresetSheet = false
 
     var body: some View {
         ZStack {
@@ -19,7 +20,7 @@ struct DeckBuilderView: View {
                 // 상단: 덱 현황
                 deckStatusBar
                     .padding(.horizontal)
-                    .padding(.top, 8)
+                    .padding(.top, 20)
 
                 // 카드 타입 탭 (몬스터/마법)
                 cardTypePicker
@@ -38,6 +39,12 @@ struct DeckBuilderView: View {
                 // 하단: 내 덱 목록 (접기/펼치기)
                 deckListSection
             }
+        }
+        .sheet(isPresented: $showPresetSheet) {
+            PresetDeckSheet { preset in
+                deckVM.loadPreset(preset)
+            }
+            .presentationDetents([.medium])
         }
         .fullScreenCover(item: $selectedCard) { card in
             DeckCardDetailView(
@@ -94,6 +101,20 @@ struct DeckBuilderView: View {
             }
 
             Spacer()
+
+            // 프리셋 버튼
+            Button {
+                showPresetSheet = true
+            } label: {
+                Text("프리셋")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                    )
+            }
 
             // 초기화 버튼
             Button {

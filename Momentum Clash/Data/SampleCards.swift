@@ -251,6 +251,130 @@ enum SampleCards {
         thunderJudgment, darkVeil, holyLight
     ]
 
+    // MARK: - 프리셋 덱 메타데이터
+
+    struct PresetDeck: Identifiable {
+        let id = UUID()
+        let name: String
+        let description: String
+        let emoji: String
+        let accentColorName: String // "red", "brown", "yellow", "purple"
+        let build: () -> [AnyCard]
+    }
+
+    static let presetDecks: [PresetDeck] = [
+        PresetDeck(
+            name: "화염 러시",
+            description: "저코스트 화/풍 몬스터로 빠르게 공격하는 공격형 덱",
+            emoji: "🔥",
+            accentColorName: "red",
+            build: fireRushPreset
+        ),
+        PresetDeck(
+            name: "대지 요새",
+            description: "높은 전투력의 지/수 몬스터로 버티는 방어형 덱",
+            emoji: "⛰️",
+            accentColorName: "brown",
+            build: earthFortressPreset
+        ),
+        PresetDeck(
+            name: "뇌광 폭풍",
+            description: "뇌+광 시너지로 지형을 장악하는 콤보 덱",
+            emoji: "⚡",
+            accentColorName: "yellow",
+            build: thunderLightPreset
+        ),
+        PresetDeck(
+            name: "암흑 지배",
+            description: "암+화 속성으로 상대를 압박하는 파괴형 덱",
+            emoji: "🌑",
+            accentColorName: "purple",
+            build: darkDominationPreset
+        ),
+    ]
+
+    // MARK: - 프리셋 덱 (20몬스터 / 10마법)
+
+    /// 화염 러시 프리셋
+    static func fireRushPreset() -> [AnyCard] {
+        var deck: [AnyCard] = []
+        // 몬스터 20장
+        for _ in 0..<3 { deck.append(.monster(fireImp)) }        // 화 1코 x3
+        for _ in 0..<3 { deck.append(.monster(fireSlasher)) }    // 화 2코 x3
+        for _ in 0..<3 { deck.append(.monster(galeAssassin)) }   // 풍 2코 x3
+        for _ in 0..<2 { deck.append(.monster(windFairy)) }      // 풍 1코 x2
+        for _ in 0..<2 { deck.append(.monster(sparkSoldier)) }   // 뇌 1코 x2
+        for _ in 0..<2 { deck.append(.monster(flameDragon)) }    // 화 4코 x2
+        for _ in 0..<3 { deck.append(.monster(stormHawk)) }      // 풍 3코 x3
+        for _ in 0..<2 { deck.append(.monster(infernoKnight)) }  // 화 5코 x2
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(fireStorm)) }        // 화 x3
+        for _ in 0..<3 { deck.append(.spell(windStorm)) }        // 풍 x3
+        for _ in 0..<2 { deck.append(.spell(thunderJudgment)) }  // 뇌 x2
+        for _ in 0..<2 { deck.append(.spell(darkVeil)) }         // 암 x2
+        return deck
+    }
+
+    /// 대지 요새 프리셋
+    static func earthFortressPreset() -> [AnyCard] {
+        var deck: [AnyCard] = []
+        // 몬스터 20장
+        for _ in 0..<3 { deck.append(.monster(earthGuard)) }     // 지 2코 x3
+        for _ in 0..<3 { deck.append(.monster(rockGolem)) }      // 지 3코 x3
+        for _ in 0..<2 { deck.append(.monster(mountainGiant)) }  // 지 4코 x2
+        for _ in 0..<3 { deck.append(.monster(waterShield)) }    // 수 2코 x3
+        for _ in 0..<2 { deck.append(.monster(tidalSerpent)) }   // 수 3코 x2
+        for _ in 0..<3 { deck.append(.monster(mistSpirit)) }     // 수 2코 x3
+        for _ in 0..<2 { deck.append(.monster(holyPriest)) }     // 광 2코 x2
+        for _ in 0..<2 { deck.append(.monster(oceanLord)) }      // 수 5코 x2
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(earthEcho)) }        // 지 x3
+        for _ in 0..<3 { deck.append(.spell(healingRain)) }      // 수 x3
+        for _ in 0..<2 { deck.append(.spell(holyLight)) }        // 광 x2
+        for _ in 0..<2 { deck.append(.spell(darkVeil)) }         // 암 x2
+        return deck
+    }
+
+    /// 뇌광 폭풍 프리셋
+    static func thunderLightPreset() -> [AnyCard] {
+        var deck: [AnyCard] = []
+        // 몬스터 20장
+        for _ in 0..<3 { deck.append(.monster(sparkSoldier)) }   // 뇌 1코 x3
+        for _ in 0..<3 { deck.append(.monster(thunderBeast)) }   // 뇌 3코 x3
+        for _ in 0..<2 { deck.append(.monster(raijuEmperor)) }   // 뇌 5코 x2
+        for _ in 0..<3 { deck.append(.monster(holyPriest)) }     // 광 2코 x3
+        for _ in 0..<2 { deck.append(.monster(archangel)) }      // 광 5코 x2
+        for _ in 0..<3 { deck.append(.monster(waterShield)) }    // 수 2코 x3
+        for _ in 0..<2 { deck.append(.monster(tidalSerpent)) }   // 수 3코 x2
+        for _ in 0..<2 { deck.append(.monster(windFairy)) }      // 풍 1코 x2
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(thunderJudgment)) }  // 뇌 x3
+        for _ in 0..<3 { deck.append(.spell(holyLight)) }        // 광 x3
+        for _ in 0..<2 { deck.append(.spell(healingRain)) }      // 수 x2
+        for _ in 0..<2 { deck.append(.spell(windStorm)) }        // 풍 x2
+        return deck
+    }
+
+    /// 암흑 지배 프리셋
+    static func darkDominationPreset() -> [AnyCard] {
+        var deck: [AnyCard] = []
+        // 몬스터 20장
+        for _ in 0..<3 { deck.append(.monster(shadowRogue)) }    // 암 2코 x3
+        for _ in 0..<3 { deck.append(.monster(deathKnight)) }    // 암 4코 x3
+        for _ in 0..<3 { deck.append(.monster(fireSlasher)) }    // 화 2코 x3
+        for _ in 0..<3 { deck.append(.monster(fireImp)) }        // 화 1코 x3
+        for _ in 0..<2 { deck.append(.monster(flameDragon)) }    // 화 4코 x2
+        for _ in 0..<2 { deck.append(.monster(infernoKnight)) }  // 화 5코 x2
+        for _ in 0..<2 { deck.append(.monster(earthGuard)) }     // 지 2코 x2
+        for _ in 0..<2 { deck.append(.monster(rockGolem)) }      // 지 3코 x2
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(darkVeil)) }         // 암 x3
+        for _ in 0..<3 { deck.append(.spell(fireStorm)) }        // 화 x3
+        for _ in 0..<2 { deck.append(.spell(earthEcho)) }        // 지 x2
+        for _ in 0..<2 { deck.append(.spell(thunderJudgment)) }  // 뇌 x2
+        return deck
+    }
+
     // MARK: - 테스트 덱
 
     /// 화염 러시 덱 (30장)
