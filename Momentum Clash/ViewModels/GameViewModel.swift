@@ -371,8 +371,43 @@ class GameViewModel {
                 }
             }
 
-        default:
-            break
+        case .thunder:
+            // 상대 몬스터 1체에 300 데미지 (가장 강한 몬스터 타겟)
+            let opponentIdx = gameState.opponentIndex
+            let monsterSlots = gameState.players[opponentIdx].field.monsterSlotIndices
+            if let target = monsterSlots.max(by: { a, b in
+                guard case .monster(let mA, _) = gameState.players[opponentIdx].field.slots[a].content,
+                      case .monster(let mB, _) = gameState.players[opponentIdx].field.slots[b].content else { return false }
+                return mA.combatPower < mB.combatPower
+            }) {
+                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
+                    if m.combatPower <= 300 {
+                        gameState.players[opponentIdx].field.removeCard(at: target)
+                        gameState.players[opponentIdx].graveyard.append(.monster(m))
+                        addLog("\(m.name) 파괴! (번개 심판)")
+                    } else {
+                        addLog("\(m.name)에 300 데미지!")
+                    }
+                }
+            }
+
+        case .dark:
+            // 상대 몬스터 전체 방어막 제거
+            let opponentIdx = gameState.opponentIndex
+            for i in gameState.players[opponentIdx].field.monsterSlotIndices {
+                if case .monster(let m, let shield) = gameState.players[opponentIdx].field.slots[i].content, shield > 0 {
+                    gameState.players[opponentIdx].field.slots[i].content = .monster(m, shield: 0)
+                    addLog("\(m.name) 방어막 제거! (-\(shield))")
+                }
+            }
+            addLog("상대 전체 방어막 제거!")
+
+        case .light:
+            // 아군 몬스터 전체에 방어막 200 부여 (HP 회복 대신 방어막으로 구현)
+            for slot in gameState.currentPlayer.field.monsterSlotIndices {
+                gameState.currentPlayer.field.applyShield(200, at: slot)
+            }
+            addLog("아군 전체 HP 200 회복! (방어막 부여)")
         }
     }
 

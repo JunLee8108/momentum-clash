@@ -174,41 +174,7 @@ enum SampleCards {
         imageName: "card_archangel"
     )
 
-    // MARK: - 일반 마법 카드
-
-    static let earthBarrier = SpellCard(
-        name: "대지의 방벽", attribute: .earth, cost: 1, rarity: .normal,
-        spellType: .normal,
-        effect: CardEffect(timing: .onSummon, description: "아군 몬스터 1체에 방어막 600 부여"),
-        flavorText: "대지의 힘이 아군을 감싼다",
-        imageName: "spell_earth_barrier"
-    )
-
-    static let eternalFurnace = SpellCard(
-        name: "불멸의 화로", attribute: .fire, cost: 3, rarity: .rare,
-        spellType: .continuous,
-        effect: CardEffect(timing: .eachTurn, description: "매 턴 아군 화(火) 속성 몬스터 전투력 +200"),
-        flavorText: "꺼지지 않는 화로가 아군을 강화한다",
-        imageName: "spell_eternal_furnace"
-    )
-
-    static let windBlade = SpellCard(
-        name: "바람의 칼날", attribute: .wind, cost: 1, rarity: .normal,
-        spellType: .equipment,
-        effect: CardEffect(timing: .passive, description: "장착된 몬스터 전투력 +400"),
-        flavorText: "바람을 베는 보이지 않는 칼",
-        imageName: "spell_wind_blade"
-    )
-
-    static let thunderStrike = SpellCard(
-        name: "낙뢰", attribute: .thunder, cost: 2, rarity: .normal,
-        spellType: .normal,
-        effect: CardEffect(timing: .onSummon, description: "상대 몬스터 1체에 800 데미지"),
-        flavorText: "하늘에서 내리꽂히는 심판의 번개",
-        imageName: "spell_thunder_strike"
-    )
-
-    // MARK: - 지형 마법 카드 (4종)
+    // MARK: - 지형 마법 카드 (7종)
 
     static let fireStorm = SpellCard(
         name: "화염 폭풍", attribute: .fire, cost: 2, rarity: .rare,
@@ -242,6 +208,30 @@ enum SampleCards {
         imageName: "spell_wind_storm"
     )
 
+    static let thunderJudgment = SpellCard(
+        name: "번개의 심판", attribute: .thunder, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2턴 변경. 상대 몬스터 1체에 300 데미지"),
+        flavorText: "하늘의 심판이 전장을 뒤흔든다",
+        imageName: "spell_thunder_judgment"
+    )
+
+    static let darkVeil = SpellCard(
+        name: "암흑의 장막", attribute: .dark, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 암흑으로 2턴 변경. 상대 몬스터 전체 방어막 제거"),
+        flavorText: "어둠이 전장을 삼키며 방어를 무너뜨린다",
+        imageName: "spell_dark_veil"
+    )
+
+    static let holyLight = SpellCard(
+        name: "성스러운 빛", attribute: .light, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 빛으로 2턴 변경. 아군 몬스터 전체 HP 200 회복"),
+        flavorText: "성스러운 빛이 전장을 비추며 아군을 치유한다",
+        imageName: "spell_holy_light"
+    )
+
     // MARK: - 테스트 덱
 
     /// 화염 러시 덱 (30장)
@@ -257,11 +247,11 @@ enum SampleCards {
         for _ in 0..<2 { deck.append(.monster(stormHawk)) }
         for _ in 0..<2 { deck.append(.monster(infernoKnight)) }
         for _ in 0..<2 { deck.append(.monster(shadowRogue)) }
-        // 마법 8장 (지형 마법 포함)
+        // 마법 8장 (지형 마법)
         for _ in 0..<2 { deck.append(.spell(fireStorm)) }
+        for _ in 0..<2 { deck.append(.spell(thunderJudgment)) }
         for _ in 0..<2 { deck.append(.spell(windStorm)) }
-        for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
-        for _ in 0..<2 { deck.append(.spell(thunderStrike)) }
+        for _ in 0..<2 { deck.append(.spell(darkVeil)) }
         deck.shuffle()
         return deck
     }
@@ -279,11 +269,11 @@ enum SampleCards {
         for _ in 0..<2 { deck.append(.monster(deathKnight)) }
         for _ in 0..<3 { deck.append(.monster(mistSpirit)) }
         for _ in 0..<2 { deck.append(.monster(oceanLord)) }
-        // 마법 8장 (지형 마법 포함)
+        // 마법 8장 (지형 마법)
         for _ in 0..<2 { deck.append(.spell(earthEcho)) }
         for _ in 0..<2 { deck.append(.spell(healingRain)) }
-        for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
-        for _ in 0..<2 { deck.append(.spell(windBlade)) }
+        for _ in 0..<2 { deck.append(.spell(holyLight)) }
+        for _ in 0..<2 { deck.append(.spell(darkVeil)) }
         deck.shuffle()
         return deck
     }
