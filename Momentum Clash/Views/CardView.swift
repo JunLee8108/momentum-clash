@@ -115,6 +115,7 @@ struct FieldSlotView: View {
     let slot: FieldSlot
     let index: Int
     var isHighlighted: Bool = false
+    var aiHighlightColor: Color? = nil
     var onTap: (() -> Void)? = nil
 
     private let slotWidth: CGFloat = 75
@@ -200,8 +201,22 @@ struct FieldSlotView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6)
-                .stroke(isHighlighted ? Color.yellow : Color.gray.opacity(0.3), lineWidth: isHighlighted ? 2 : 1)
+                .stroke(
+                    aiHighlightColor ?? (isHighlighted ? Color.yellow : Color.gray.opacity(0.3)),
+                    lineWidth: aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : 1)
+                )
         )
+        .overlay(
+            // AI 액션 글로우 효과
+            Group {
+                if let color = aiHighlightColor {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(color.opacity(0.2))
+                        .allowsHitTesting(false)
+                }
+            }
+        )
+        .scaleEffect(aiHighlightColor != nil ? 1.05 : 1.0)
         .onTapGesture {
             onTap?()
         }

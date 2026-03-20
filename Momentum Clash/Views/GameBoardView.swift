@@ -85,17 +85,47 @@ struct GameBoardView: View {
                 }
             }
 
-            // 오버레이: AI 턴 표시
+            // 오버레이: AI 턴 액션 배너
             if case .aiTurn = viewModel.uiState {
                 VStack {
                     Spacer()
-                    Text("AI 턴 진행 중...")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                        .padding(8)
-                        .background(Capsule().fill(Color.black.opacity(0.6)))
+                    if let display = viewModel.aiActionDisplay {
+                        Text(display.message)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        display.attackingSlot != nil
+                                        ? Color.red.opacity(0.85)
+                                        : display.showLPFlash
+                                        ? Color.orange.opacity(0.85)
+                                        : Color.black.opacity(0.75)
+                                    )
+                            )
+                            .shadow(color: display.attackingSlot != nil ? .red.opacity(0.6) : .clear, radius: 8)
+                            .transition(.scale.combined(with: .opacity))
+                    } else {
+                        Text("AI 턴 진행 중...")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .padding(8)
+                            .background(Capsule().fill(Color.black.opacity(0.6)))
+                    }
                     Spacer()
                 }
+                .animation(.easeInOut(duration: 0.2), value: viewModel.aiActionDisplay)
+            }
+
+            // LP 데미지 플래시
+            if let display = viewModel.aiActionDisplay, display.showLPFlash {
+                Color.red.opacity(0.15)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .animation(.easeOut(duration: 0.3), value: display.showLPFlash)
             }
 
             // 오버레이: 카드 상세보기 (패에서)
@@ -129,16 +159,42 @@ struct GameBoardView: View {
             ForEach(0..<PlayerField.slotCount, id: \.self) { i in
                 let slot = player.field.slots[i]
                 let highlighted = slotHighlighted(index: i, isOpponent: isOpponent)
+                let aiHighlight = aiSlotHighlight(index: i, isOpponent: isOpponent)
 
                 FieldSlotView(
                     slot: slot,
                     index: i,
-                    isHighlighted: highlighted
+                    isHighlighted: highlighted,
+                    aiHighlightColor: aiHighlight
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
+                .animation(.easeInOut(duration: 0.3), value: aiHighlight != nil)
             }
         }
+    }
+
+    /// AI 액션에 따른 슬롯 하이라이트 색상
+    private func aiSlotHighlight(index: Int, isOpponent: Bool) -> Color? {
+        guard let display = viewModel.aiActionDisplay else { return nil }
+
+        // 소환 하이라이트 (AI 필드)
+        if isOpponent, let slot = display.highlightedSlot, slot == index {
+            return .green
+        }
+        // 공격자 하이라이트 (AI 필드)
+        if isOpponent, let atkSlot = display.attackingSlot, atkSlot == index {
+            return .red
+        }
+        // 공격 대상 하이라이트 (플레이어 필드)
+        if !isOpponent, let targetSlot = display.targetSlot, targetSlot == index {
+            return .red
+        }
+        // 직접 공격 시 플레이어 전체 필드 깜빡임
+        if !isOpponent, display.isDirectAttack {
+            return .red.opacity(0.5)
+        }
+        return nil
     }
 
     private func slotHighlighted(index: Int, isOpponent: Bool) -> Bool {
