@@ -25,6 +25,57 @@ struct BattleDisplay: Equatable {
     var isPlayerAction: Bool = false         // true면 플레이어, false면 AI
 }
 
+/// 전투 프리뷰 데이터
+struct CombatPreviewData: Equatable {
+    let attackerName: String
+    let attackerAttribute: Attribute
+    let attackerBaseCP: Int
+    let attackerEffectiveCP: Int
+    let attackerTerrainBonus: Int
+
+    let defenderName: String
+    let defenderAttribute: Attribute
+    let defenderBaseCP: Int
+    let defenderEffectiveCP: Int
+    let defenderTerrainBonus: Int
+    let defenderShield: Int
+
+    let attackerMultiplier: Double  // 공격자 속성 배율
+    let defenderMultiplier: Double  // 방어자 속성 배율
+
+    /// 예상 결과
+    var predictedResult: PredictedResult {
+        let attackDamage = max(0, attackerEffectiveCP - defenderShield)
+        if attackDamage > defenderEffectiveCP {
+            return .win
+        } else if attackDamage < defenderEffectiveCP {
+            return .lose
+        } else {
+            return .draw
+        }
+    }
+
+    enum PredictedResult {
+        case win, lose, draw
+
+        var displayText: String {
+            switch self {
+            case .win:  return "승리 예상"
+            case .lose: return "패배 예상"
+            case .draw: return "동귀어진"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .win:  return .green
+            case .lose: return .red
+            case .draw: return .yellow
+            }
+        }
+    }
+}
+
 /// 로그 메시지
 struct GameLog: Identifiable {
     let id = UUID()
@@ -42,6 +93,7 @@ class GameViewModel {
     var showingCardDetail: (card: AnyCard, handIndex: Int)? = nil
     var showingFieldCardDetail: AnyCard? = nil
     var battleDisplay: BattleDisplay? = nil
+    var combatPreview: CombatPreviewData? = nil
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1
@@ -319,10 +371,56 @@ class GameViewModel {
             return
         }
         uiState = .selectingAttackTarget(attackerSlot: slotIndex)
+        combatPreview = nil
+    }
+
+    /// 공격 대상 위에 호버/선택 시 프리뷰 갱신
+    func updateCombatPreview(attackerSlot: Int, defenderSlot: Int) {
+        guard case .monster(let atkCard, _) = player.field.slots[attackerSlot].content,
+              case .monster(let defCard, let shield) = aiPlayer.field.slots[defenderSlot].content
+        else {
+            combatPreview = nil
+            return
+        }
+
+        let atkTerrainBonus = player.field.terrainBonus(at: attackerSlot)
+        let defTerrainBonus = aiPlayer.field.terrainBonus(at: defenderSlot)
+
+        let atkMultiplier = atkCard.attribute.damageMultiplier(against: defCard.attribute)
+        let defMultiplier = defCard.attribute.damageMultiplier(against: atkCard.attribute)
+
+        let atkEffective = BattleEngine.calculateEffectiveCP(
+            card: atkCard, slotIndex: attackerSlot,
+            field: player.field, opponentAttribute: defCard.attribute,
+            momentumBonus: 0
+        )
+        let defEffective = BattleEngine.calculateEffectiveCP(
+            card: defCard, slotIndex: defenderSlot,
+            field: aiPlayer.field, opponentAttribute: atkCard.attribute,
+            momentumBonus: 0
+        )
+
+        combatPreview = CombatPreviewData(
+            attackerName: atkCard.name,
+            attackerAttribute: atkCard.attribute,
+            attackerBaseCP: atkCard.combatPower,
+            attackerEffectiveCP: atkEffective,
+            attackerTerrainBonus: atkTerrainBonus,
+            defenderName: defCard.name,
+            defenderAttribute: defCard.attribute,
+            defenderBaseCP: defCard.combatPower,
+            defenderEffectiveCP: defEffective,
+            defenderTerrainBonus: defTerrainBonus,
+            defenderShield: shield,
+            attackerMultiplier: atkMultiplier,
+            defenderMultiplier: defMultiplier
+        )
     }
 
     func executeAttack(attackerSlot: Int, defenderSlot: Int?) {
         guard isPlayerTurn else { return }
+
+        combatPreview = nil
 
         // 공격 애니메이션 중에는 추가 입력 차단
         uiState = .battlePhase
@@ -334,6 +432,7 @@ class GameViewModel {
     }
 
     func cancelAttack() {
+        combatPreview = nil
         uiState = .battlePhase
     }
 
@@ -808,5 +907,6 @@ class GameViewModel {
         showingCardDetail = nil
         showingFieldCardDetail = nil
         battleDisplay = nil
+        combatPreview = nil
     }
 }
