@@ -649,6 +649,7 @@ class GameViewModel {
         }
 
         gameState.currentPlayer.momentum -= skill.cost
+        gameState.currentPlayer.activeMomentumSkill = skill
         addLog("기세 스킬 [\(skill.displayName)] 발동! (기세 -\(skill.cost))")
 
         switch skill {

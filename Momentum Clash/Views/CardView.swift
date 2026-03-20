@@ -120,6 +120,8 @@ struct FieldSlotView: View {
     let slot: FieldSlot
     let index: Int
     var globalTerrain: Attribute? = nil
+    var activeMomentumSkill: MomentumSkill? = nil
+    var momentumBonus: Int = 0
     var isHighlighted: Bool = false
     var aiHighlightColor: Color? = nil
     var hasAttacked: Bool = false
@@ -174,6 +176,10 @@ struct FieldSlotView: View {
 
     @ViewBuilder
     private func monsterContentView(card: MonsterCard, shield: Int) -> some View {
+        let terrainBonus = (globalTerrain != nil && card.attribute == globalTerrain!) ? PlayerField.globalTerrainBonus : 0
+        let mBonus = effectiveMomentumBonus(for: card)
+        let hasAnyBonus = terrainBonus > 0 || mBonus > 0
+
         VStack(spacing: 1) {
             Text(card.name)
                 .font(.system(size: 8, weight: .bold))
@@ -181,15 +187,32 @@ struct FieldSlotView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
 
-            if let terrain = globalTerrain, card.attribute == terrain {
-                let bonus = PlayerField.globalTerrainBonus
+            if hasAnyBonus {
+                // 원본 CP
                 Text("\(card.combatPower)")
                     .font(.system(size: 8))
                     .foregroundColor(.white.opacity(0.6))
-                Text("(+\(bonus))")
-                    .font(.system(size: 7, weight: .semibold))
-                    .foregroundColor(.cyan)
-                Text("\(card.combatPower + bonus)")
+
+                // 지형 보너스
+                if terrainBonus > 0 {
+                    Text("(+\(terrainBonus))")
+                        .font(.system(size: 7, weight: .semibold))
+                        .foregroundColor(.cyan)
+                }
+
+                // 기세 보너스
+                if mBonus > 0 {
+                    HStack(spacing: 1) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 6))
+                        Text("+\(mBonus)")
+                            .font(.system(size: 7, weight: .semibold))
+                    }
+                    .foregroundColor(.orange)
+                }
+
+                // 합산 CP
+                Text("\(card.combatPower + terrainBonus + mBonus)")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.orange)
             } else {
@@ -207,6 +230,25 @@ struct FieldSlotView: View {
                 }
                 .foregroundColor(.cyan)
             }
+        }
+    }
+
+    /// 이 몬스터에 적용되는 기세 보너스 계산
+    private func effectiveMomentumBonus(for card: MonsterCard) -> Int {
+        guard let skill = activeMomentumSkill else { return 0 }
+        switch skill {
+        case .fighting:
+            return 500
+        case .terrainMastery:
+            // 지형 일치 몬스터만 추가 보너스
+            if let terrain = globalTerrain, card.attribute == terrain {
+                return PlayerField.globalTerrainBonus
+            }
+            return 0
+        case .breakthrough:
+            return 300
+        default:
+            return 0
         }
     }
 
@@ -237,11 +279,14 @@ struct FieldSlotView: View {
     }
 
     private var borderOverlay: some View {
-        RoundedRectangle(cornerRadius: 6)
-            .stroke(
-                aiHighlightColor ?? (isHighlighted ? Color.yellow : Color.gray.opacity(0.3)),
-                lineWidth: aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : 1)
-            )
+        let momentumGlow = hasMomentumGlow
+        let borderColor: Color = aiHighlightColor
+            ?? (isHighlighted ? .yellow : (momentumGlow ? .orange.opacity(0.7) : .gray.opacity(0.3)))
+        let borderWidth: CGFloat = aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : (momentumGlow ? 2 : 1))
+
+        return RoundedRectangle(cornerRadius: 6)
+            .stroke(borderColor, lineWidth: borderWidth)
+            .shadow(color: momentumGlow ? .orange.opacity(0.4) : .clear, radius: momentumGlow ? 4 : 0)
     }
 
     @ViewBuilder
@@ -250,6 +295,30 @@ struct FieldSlotView: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(color.opacity(0.2))
                 .allowsHitTesting(false)
+        } else if hasMomentumGlow {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.orange.opacity(0.12))
+                .allowsHitTesting(false)
+        }
+    }
+
+    /// 기세 스킬에 의한 glow 표시 여부
+    private var hasMomentumGlow: Bool {
+        guard let skill = activeMomentumSkill else { return false }
+        switch skill {
+        case .fighting, .breakthrough:
+            // 몬스터가 있는 슬롯에만 glow
+            if case .monster = slot.content { return true }
+            return false
+        case .terrainMastery:
+            // 지형 일치 몬스터만
+            if case .monster(let card, _) = slot.content,
+               let terrain = globalTerrain, card.attribute == terrain {
+                return true
+            }
+            return false
+        default:
+            return false
         }
     }
 
