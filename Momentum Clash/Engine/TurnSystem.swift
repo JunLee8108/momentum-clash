@@ -29,10 +29,21 @@ struct TurnSystem {
     static let sameCardLimit = 3
 
     /// 선택 드로우: 덱에서 2장을 뽑아 선택지 제공
+    /// 둘 다 마법이면 덱에서 가장 가까운 몬스터를 찾아 교체
     static func selectiveDraw(player: inout Player) -> (choice1: AnyCard, choice2: AnyCard)? {
         guard player.deck.count >= 2 else { return nil }
-        let card1 = player.deck.removeFirst()
-        let card2 = player.deck.removeFirst()
+        var card1 = player.deck.removeFirst()
+        var card2 = player.deck.removeFirst()
+
+        // 둘 다 마법이면 → 덱에서 가장 가까운 몬스터를 찾아 card2와 교체
+        if card1.isSpell && card2.isSpell {
+            if let monsterIdx = player.deck.firstIndex(where: { !$0.isSpell }) {
+                let monsterCard = player.deck.remove(at: monsterIdx)
+                player.deck.insert(card2, at: monsterIdx) // 마법을 원래 위치에 되돌림
+                card2 = monsterCard
+            }
+        }
+
         return (card1, card2)
     }
 
