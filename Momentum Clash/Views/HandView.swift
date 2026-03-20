@@ -36,6 +36,7 @@ struct DrawSelectionView: View {
     let onSelect: (AnyCard, AnyCard) -> Void
 
     @State private var showHand = false
+    @State private var detailCard: AnyCard?
 
     var body: some View {
         VStack(spacing: 16) {
@@ -92,7 +93,9 @@ struct DrawSelectionView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
                             ForEach(Array(hand.enumerated()), id: \.element.id) { _, card in
-                                CardView(card: card, isSmall: true)
+                                CardView(card: card, isSmall: true) {
+                                    detailCard = card
+                                }
                             }
                         }
                         .padding(.horizontal, 8)
@@ -106,5 +109,10 @@ struct DrawSelectionView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
         )
+        .fullScreenCover(item: $detailCard) { card in
+            FieldCardDetailView(card: card) {
+                detailCard = nil
+            }
+        }
     }
 }
