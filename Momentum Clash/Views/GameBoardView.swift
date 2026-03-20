@@ -85,42 +85,49 @@ struct GameBoardView: View {
                 }
             }
 
-            // 오버레이: AI 턴 액션 배너
-            if case .aiTurn = viewModel.uiState {
+            // 오버레이: 전투 배너 (AI턴 + 플레이어 공격 공용)
+            if let display = viewModel.battleDisplay {
                 VStack {
                     Spacer()
-                    if let display = viewModel.aiActionDisplay {
-                        Text(display.message)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(
-                                Capsule()
-                                    .fill(
-                                        display.attackingSlot != nil
-                                        ? Color.red.opacity(0.85)
-                                        : display.showLPFlash
-                                        ? Color.orange.opacity(0.85)
-                                        : Color.black.opacity(0.75)
-                                    )
-                            )
-                            .shadow(color: display.attackingSlot != nil ? .red.opacity(0.6) : .clear, radius: 8)
-                            .transition(.scale.combined(with: .opacity))
-                    } else {
-                        Text("AI 턴 진행 중...")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .padding(8)
-                            .background(Capsule().fill(Color.black.opacity(0.6)))
-                    }
+                    Text(display.message)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(
+                                    display.attackerSlot != nil
+                                    ? Color.red.opacity(0.85)
+                                    : display.showLPFlash
+                                    ? Color.orange.opacity(0.85)
+                                    : display.isPlayerAction
+                                    ? Color.blue.opacity(0.85)
+                                    : Color.black.opacity(0.75)
+                                )
+                        )
+                        .shadow(color: display.attackerSlot != nil ? .red.opacity(0.6) : .clear, radius: 8)
+                        .transition(.scale.combined(with: .opacity))
                     Spacer()
                 }
-                .animation(.easeInOut(duration: 0.2), value: viewModel.aiActionDisplay)
+                .allowsHitTesting(false)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.battleDisplay)
+            } else if case .aiTurn = viewModel.uiState {
+                // AI 턴이지만 아직 배너가 없을 때
+                VStack {
+                    Spacer()
+                    Text("AI 턴 진행 중...")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .padding(8)
+                        .background(Capsule().fill(Color.black.opacity(0.6)))
+                    Spacer()
+                }
+                .allowsHitTesting(false)
             }
 
             // LP 데미지 플래시
-            if let display = viewModel.aiActionDisplay, display.showLPFlash {
+            if let display = viewModel.battleDisplay, display.showLPFlash {
                 Color.red.opacity(0.15)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
@@ -159,40 +166,50 @@ struct GameBoardView: View {
             ForEach(0..<PlayerField.slotCount, id: \.self) { i in
                 let slot = player.field.slots[i]
                 let highlighted = slotHighlighted(index: i, isOpponent: isOpponent)
-                let aiHighlight = aiSlotHighlight(index: i, isOpponent: isOpponent)
+                let battleHighlight = battleSlotHighlight(index: i, isOpponent: isOpponent)
 
                 FieldSlotView(
                     slot: slot,
                     index: i,
                     isHighlighted: highlighted,
-                    aiHighlightColor: aiHighlight
+                    aiHighlightColor: battleHighlight
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
-                .animation(.easeInOut(duration: 0.3), value: aiHighlight != nil)
+                .animation(.easeInOut(duration: 0.3), value: battleHighlight != nil)
             }
         }
     }
 
-    /// AI 액션에 따른 슬롯 하이라이트 색상
-    private func aiSlotHighlight(index: Int, isOpponent: Bool) -> Color? {
-        guard let display = viewModel.aiActionDisplay else { return nil }
+    /// 전투 연출에 따른 슬롯 하이라이트 색상 (AI + 플레이어 통합)
+    private func battleSlotHighlight(index: Int, isOpponent: Bool) -> Color? {
+        guard let display = viewModel.battleDisplay else { return nil }
 
-        // 소환 하이라이트 (AI 필드)
-        if isOpponent, let slot = display.highlightedSlot, slot == index {
-            return .green
-        }
-        // 공격자 하이라이트 (AI 필드)
-        if isOpponent, let atkSlot = display.attackingSlot, atkSlot == index {
-            return .red
-        }
-        // 공격 대상 하이라이트 (플레이어 필드)
-        if !isOpponent, let targetSlot = display.targetSlot, targetSlot == index {
-            return .red
-        }
-        // 직접 공격 시 플레이어 전체 필드 깜빡임
-        if !isOpponent, display.isDirectAttack {
-            return .red.opacity(0.5)
+        if display.isPlayerAction {
+            // 플레이어 공격: 공격자 = 내 필드, 대상 = 상대 필드
+            if !isOpponent, let atkSlot = display.attackerSlot, atkSlot == index {
+                return .orange
+            }
+            if isOpponent, let targetSlot = display.targetSlot, targetSlot == index {
+                return .red
+            }
+            if isOpponent, display.isDirectAttack {
+                return .red.opacity(0.5)
+            }
+        } else {
+            // AI 액션: 소환 = AI 필드, 공격자 = AI 필드, 대상 = 내 필드
+            if isOpponent, let slot = display.highlightedSlot, slot == index {
+                return .green
+            }
+            if isOpponent, let atkSlot = display.attackerSlot, atkSlot == index {
+                return .red
+            }
+            if !isOpponent, let targetSlot = display.targetSlot, targetSlot == index {
+                return .red
+            }
+            if !isOpponent, display.isDirectAttack {
+                return .red.opacity(0.5)
+            }
         }
         return nil
     }
