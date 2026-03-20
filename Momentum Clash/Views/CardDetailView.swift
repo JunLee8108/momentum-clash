@@ -456,6 +456,14 @@ struct FieldCardDetailView: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.orange)
                 }
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.cyan)
+                    Text("기력 \(m.cost)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.cyan)
+                }
             }
             if let effect = m.effect {
                 HStack(alignment: .top, spacing: 6) {
