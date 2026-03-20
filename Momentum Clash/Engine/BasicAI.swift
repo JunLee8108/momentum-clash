@@ -173,7 +173,7 @@ struct BasicAI {
                     globalTerrain: gameState.globalTerrain
                 )
 
-                logs.append("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
+                logs.append("\(atkCard.name)(CP:\(result.attackerEffectiveCP)) → \(defCard.name)(CP:\(result.defenderEffectiveCP))")
                 gameState.players[atkIdx].gainMomentum(1)
                 gameState.players[atkIdx].didAttackThisTurn = true
                 usedAttackers.insert(plan.attackerSlot)

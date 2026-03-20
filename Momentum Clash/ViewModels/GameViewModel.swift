@@ -572,7 +572,7 @@ class GameViewModel {
                 globalTerrain: gameState.globalTerrain
             )
 
-            addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
+            addLog("\(atkCard.name)(CP:\(result.attackerEffectiveCP)) → \(defCard.name)(CP:\(result.defenderEffectiveCP))")
             gameState.players[playerIndex].gainMomentum(1)
             gameState.players[playerIndex].didAttackThisTurn = true
             gameState.players[playerIndex].field.slots[attackerSlot].hasAttacked = true
@@ -888,7 +888,7 @@ class GameViewModel {
                         globalTerrain: gameState.globalTerrain
                     )
 
-                    addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
+                    addLog("\(atkCard.name)(CP:\(result.attackerEffectiveCP)) → \(defCard.name)(CP:\(result.defenderEffectiveCP))")
                     gameState.players[idx].gainMomentum(1)
                     gameState.players[idx].didAttackThisTurn = true
                     gameState.players[idx].field.slots[plan.attackerSlot].hasAttacked = true
