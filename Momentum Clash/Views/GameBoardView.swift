@@ -187,6 +187,8 @@ struct GameBoardView: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
+                    .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                    .clipped()
                     .overlay(Color.black.opacity(0.4)) // 가독성을 위한 어둡게 처리
             }
         }
