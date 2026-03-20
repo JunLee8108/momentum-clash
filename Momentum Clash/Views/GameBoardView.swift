@@ -307,12 +307,12 @@ struct GameBoardView: View {
 
                 Divider().background(Color.white.opacity(0.2))
 
-                // 남은 턴
+                // 남은 라운드
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
                         .font(.system(size: 10))
                         .foregroundColor(.white.opacity(0.5))
-                    Text("남은 턴: \(remaining)")
+                    Text("남은 라운드: \(remaining)")
                         .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.6))
                     Spacer()
