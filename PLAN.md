@@ -4,6 +4,7 @@
 - **카드 소환/마법 발동**: 기력(Energy)으로만 비용 지불
 - **기세(Momentum)**: 기세 스킬 전용 자원으로 분리 (소환에 사용 불가)
 - **기력 밸런스 조정**: 기본 기력을 1 상향 (고비용 카드 소환 가능성 확보)
+- **카드 UI 개선**: 패/상세보기에서 비용 옆에 기력 아이콘 추가
 
 ## 기력 밸런스 변경
 
@@ -35,37 +36,37 @@
 - 주석 업데이트
 
 ### 3. `GameViewModel.swift` — 플레이어 비용 검사/로그 변경
-- **`useCardFromDetail()`** (라인 200~203):
-  - `player.energy + player.momentum` → `player.energy`
+- **`useCardFromDetail()`**: `player.energy + player.momentum` → `player.energy`
   - 로그: `"자원이 부족합니다!"` → `"기력이 부족합니다! (비용: X, 기력: Y)"`
-- **`canUseCard()`** (라인 234~235):
-  - `player.energy + player.momentum` → `player.energy`
-- **`summonToSlot()`** (라인 263):
-  - 로그: `[기력 -X, 기세 -Y]` → `[기력 -X]`
-  - `payment` 타입 변경에 맞춰 수정
-- **`executeSpell()`** (라인 286):
-  - 로그: `[기력 -X, 기세 -Y]` → `[기력 -X]`
-  - `payment` 타입 변경에 맞춰 수정
-- **AI 턴 소환** (`performAITurnAnimated()`, 라인 747~750):
-  - `TurnSystem.payCost` 호출부 반환값 타입 맞춤
+- **`canUseCard()`**: `player.energy + player.momentum` → `player.energy`
+- **`summonToSlot()`**: 로그 `[기력 -X, 기세 -Y]` → `[기력 -X]`, payment 타입 맞춤
+- **`executeSpell()`**: 로그 `[기력 -X, 기세 -Y]` → `[기력 -X]`, payment 타입 맞춤
+- **`performAITurnAnimated()`**: `TurnSystem.payCost` 반환값 타입 맞춤
 
 ### 4. `BasicAI.swift` — AI 비용 계산 변경
-- **`performMainPhase()`** (라인 83~86):
-  - `energy + momentum` → `energy`만 사용
-- **`planMainPhase()`** (라인 258~303):
+- **`performMainPhase()`**: `energy + momentum` → `energy`만 사용
+- **`planMainPhase()`**:
   - `simulatedMomentum` 변수 제거
   - `totalResource = simulatedEnergy + simulatedMomentum` → `simulatedEnergy`
   - 비용 시뮬레이션에서 momentum 차감 코드 제거
-  - `card.cost <= totalResource` → `card.cost <= simulatedEnergy`
+
+### 5. `CardView.swift` — 패 카드 비용 표시에 기력 아이콘 추가
+- 현재: 파란 원 안에 숫자만 (`Text("\(card.cost)")`)
+- 변경: 번개 아이콘(⚡ `bolt.circle.fill`) + 숫자를 함께 표시
+  - PlayerInfoView의 기력 아이콘과 동일한 `bolt.circle.fill` 사용 → 시각적 일관성
+  - 파란 원 배경 유지, 안에 아이콘+숫자 또는 아이콘을 옆에 배치
+
+### 6. `CardDetailView.swift` — 상세보기 비용 표시 개선
+- 현재: `bolt.circle.fill` 아이콘 + "비용: X" 텍스트 (이미 아이콘 있음)
+- 변경: "비용: X" → "기력: X" 으로 문구 변경 (자원 이름 명확화)
 
 ---
 
 ## 변경하지 않는 것
-- **기세 스킬 시스템**: 그대로 유지 (기세로만 발동)
+- **기세 스킬 시스템**: 그대로 유지 (기세로만 발동, UI 버튼은 별도 작업)
 - **기세 획득/감소 메커니즘**: 그대로 유지 (공격, 지형, 자연감소 등)
 - **카드 비용 범위 (1~5)**: 유지
 - **PlayerInfoView UI**: 기세/기력 모두 표시 유지 (역할만 분리)
-- **기세 스킬 비용/효과**: 유지
 - **Player.swift의 기세 메서드** (`gainMomentum`, `loseMomentum`): 유지
 
 ---
@@ -78,3 +79,5 @@
 | `TurnSystem.swift` | 함수 2개 시그니처/로직 |
 | `GameViewModel.swift` | 비용 검사 2곳 + 로그 2곳 + AI소환 1곳 |
 | `BasicAI.swift` | 비용 계산 2곳 (performMainPhase, planMainPhase) |
+| `CardView.swift` | 비용 배지에 기력 아이콘 추가 |
+| `CardDetailView.swift` | "비용" → "기력" 문구 변경 |
