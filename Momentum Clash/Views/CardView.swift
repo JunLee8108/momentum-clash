@@ -131,117 +131,129 @@ struct FieldSlotView: View {
                 .foregroundColor(.white.opacity(0.9))
 
             // 카드 내용
-            switch slot.content {
-            case .monster(let card, let shield):
-                VStack(spacing: 1) {
-                    Text(card.name)
-                        .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-
-                    if let terrain = globalTerrain, card.attribute == terrain {
-                        // 지형 보너스 적용: 기본 → (+보너스) → 합계
-                        let bonus = PlayerField.globalTerrainBonus
-                        Text("\(card.combatPower)")
-                            .font(.system(size: 8))
-                            .foregroundColor(.white.opacity(0.6))
-                        Text("(+\(bonus))")
-                            .font(.system(size: 7, weight: .semibold))
-                            .foregroundColor(.cyan)
-                        Text("\(card.combatPower + bonus)")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.orange)
-                    } else {
-                        Text("\(card.combatPower)")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.orange)
-                    }
-
-                    if shield > 0 {
-                        HStack(spacing: 1) {
-                            Image(systemName: "shield.fill")
-                                .font(.system(size: 6))
-                            Text("\(shield)")
-                                .font(.system(size: 8))
-                        }
-                        .foregroundColor(.cyan)
-                    }
-                }
-
-            case .spell(let card):
-                VStack(spacing: 1) {
-                    Image(systemName: "wand.and.stars")
-                        .font(.system(size: 10))
-                        .foregroundColor(.purple)
-                    Text(card.name)
-                        .font(.system(size: 7))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                }
-
-            case .empty:
-                Text("빈칸")
-                    .font(.system(size: 8))
-                    .foregroundColor(.gray.opacity(0.5))
-            }
+            slotContentView
         }
         .frame(width: slotWidth, height: slotHeight)
-        .background(
-            ZStack {
-                if let imageName = cardImageName, let uiImage = UIImage(named: imageName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: slotWidth, height: slotHeight)
-                        .clipped()
-
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.4),
-                            Color.black.opacity(0.2),
-                            Color.black.opacity(0.6)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                } else {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(slotBackground)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 6)
-                .stroke(
-                    aiHighlightColor ?? (isHighlighted ? Color.yellow : Color.gray.opacity(0.3)),
-                    lineWidth: aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : 1)
-                )
-        )
-        .overlay(
-            // AI 액션 글로우 효과
-            Group {
-                if let color = aiHighlightColor {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(color.opacity(0.2))
-                        .allowsHitTesting(false)
-                }
-            }
-        )
-        .overlay(
-            Group {
-                if hasAttacked {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.black.opacity(0.4))
-                        .allowsHitTesting(false)
-                }
-            }
-        )
+        .background(slotBackgroundView)
+        .overlay(borderOverlay)
+        .overlay(glowOverlay)
+        .overlay(attackedOverlay)
         .scaleEffect(aiHighlightColor != nil ? 1.05 : 1.0)
         .onTapGesture {
             onTap?()
+        }
+    }
+
+    @ViewBuilder
+    private var slotContentView: some View {
+        switch slot.content {
+        case .monster(let card, let shield):
+            monsterContentView(card: card, shield: shield)
+        case .spell(let card):
+            VStack(spacing: 1) {
+                Image(systemName: "wand.and.stars")
+                    .font(.system(size: 10))
+                    .foregroundColor(.purple)
+                Text(card.name)
+                    .font(.system(size: 7))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+        case .empty:
+            Text("빈칸")
+                .font(.system(size: 8))
+                .foregroundColor(.gray.opacity(0.5))
+        }
+    }
+
+    @ViewBuilder
+    private func monsterContentView(card: MonsterCard, shield: Int) -> some View {
+        VStack(spacing: 1) {
+            Text(card.name)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            if let terrain = globalTerrain, card.attribute == terrain {
+                let bonus = PlayerField.globalTerrainBonus
+                Text("\(card.combatPower)")
+                    .font(.system(size: 8))
+                    .foregroundColor(.white.opacity(0.6))
+                Text("(+\(bonus))")
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundColor(.cyan)
+                Text("\(card.combatPower + bonus)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.orange)
+            } else {
+                Text("\(card.combatPower)")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.orange)
+            }
+
+            if shield > 0 {
+                HStack(spacing: 1) {
+                    Image(systemName: "shield.fill")
+                        .font(.system(size: 6))
+                    Text("\(shield)")
+                        .font(.system(size: 8))
+                }
+                .foregroundColor(.cyan)
+            }
+        }
+    }
+
+    private var slotBackgroundView: some View {
+        ZStack {
+            if let imageName = cardImageName, let uiImage = UIImage(named: imageName) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: slotWidth, height: slotHeight)
+                    .clipped()
+
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.4),
+                        Color.black.opacity(0.2),
+                        Color.black.opacity(0.6)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(slotBackground)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+
+    private var borderOverlay: some View {
+        RoundedRectangle(cornerRadius: 6)
+            .stroke(
+                aiHighlightColor ?? (isHighlighted ? Color.yellow : Color.gray.opacity(0.3)),
+                lineWidth: aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : 1)
+            )
+    }
+
+    @ViewBuilder
+    private var glowOverlay: some View {
+        if let color = aiHighlightColor {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(color.opacity(0.2))
+                .allowsHitTesting(false)
+        }
+    }
+
+    @ViewBuilder
+    private var attackedOverlay: some View {
+        if hasAttacked {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.black.opacity(0.4))
+                .allowsHitTesting(false)
         }
     }
 
