@@ -141,6 +141,11 @@ enum AnyCard: Identifiable, Codable, Equatable {
         }
     }
 
+    var isSpell: Bool {
+        if case .spell = self { return true }
+        return false
+    }
+
     var rarity: Rarity {
         switch self {
         case .monster(let card): return card.rarity
