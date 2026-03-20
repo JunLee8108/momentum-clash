@@ -104,6 +104,12 @@ class GameViewModel {
 
     private let ai = BasicAI()
 
+    /// AI 덱 아키타입 이름
+    var aiDeckName: String = ""
+
+    /// 마지막으로 사용한 플레이어 덱 (재시작용)
+    private var lastPlayerDeck: [AnyCard] = []
+
     var player: Player { gameState.players[playerIndex] }
     var aiPlayer: Player { gameState.players[aiIndex] }
 
@@ -125,6 +131,31 @@ class GameViewModel {
     }
 
     // MARK: - 게임 시작
+
+    /// 커스텀 덱으로 게임 시작
+    func startGameWithDeck(playerDeck: [AnyCard], aiDeck: [AnyCard], aiDeckName: String) {
+        self.lastPlayerDeck = playerDeck
+        self.aiDeckName = aiDeckName
+
+        gameState = GameState(
+            player1Deck: playerDeck,
+            player2Deck: aiDeck,
+            firstPlayerIndex: 0
+        )
+        logs = []
+        uiState = .notStarted
+        selectedHandIndex = nil
+        showingCardDetail = nil
+        showingFieldCardDetail = nil
+        battleDisplay = nil
+        combatPreview = nil
+
+        addLog("⚔️ Momentum Clash 시작!")
+        addLog("상대 덱: \(aiDeckName)")
+        addLog("\(player.name)이 선공입니다. 기세 2로 시작!")
+        addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2라운드)")
+        startTurn()
+    }
 
     func startGame() {
         addLog("⚔️ Momentum Clash 시작!")
@@ -1089,11 +1120,17 @@ class GameViewModel {
     }
 
     func restartGame() {
-        let playerDeck = SampleCards.fireRushDeck()
-        let aiDeck = SampleCards.earthFortressDeck()
+        // 이전 덱이 있으면 재사용, 없으면 기본 덱
+        let playerDeck = lastPlayerDeck.isEmpty ? SampleCards.fireRushDeck() : lastPlayerDeck
+        var newPlayerDeck = playerDeck
+        newPlayerDeck.shuffle()
+
+        let aiDeckInfo = AIDeckTemplates.randomDeck()
+        aiDeckName = aiDeckInfo.name
+
         gameState = GameState(
-            player1Deck: playerDeck,
-            player2Deck: aiDeck,
+            player1Deck: newPlayerDeck,
+            player2Deck: aiDeckInfo.deck,
             firstPlayerIndex: 0
         )
         logs = []

@@ -232,6 +232,25 @@ enum SampleCards {
         imageName: "spell_holy_light"
     )
 
+    // MARK: - 카드 풀
+
+    /// 전체 몬스터 카드 목록 (21종)
+    static let allMonsters: [MonsterCard] = [
+        fireSlasher, fireImp, flameDragon, infernoKnight,
+        mistSpirit, waterShield, tidalSerpent, oceanLord,
+        windFairy, stormHawk, galeAssassin,
+        rockGolem, earthGuard, mountainGiant,
+        sparkSoldier, thunderBeast, raijuEmperor,
+        shadowRogue, deathKnight,
+        holyPriest, archangel
+    ]
+
+    /// 전체 마법 카드 목록 (7종)
+    static let allSpells: [SpellCard] = [
+        fireStorm, healingRain, earthEcho, windStorm,
+        thunderJudgment, darkVeil, holyLight
+    ]
+
     // MARK: - 테스트 덱
 
     /// 화염 러시 덱 (30장)

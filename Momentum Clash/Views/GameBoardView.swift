@@ -3,6 +3,7 @@ import SwiftUI
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
     var viewModel: GameViewModel
+    var onGoHome: (() -> Void)? = nil
     @State private var showTerrainTooltip = false
     @State private var showMomentumSkillPanel = false
 
@@ -83,6 +84,9 @@ struct GameBoardView: View {
                 Color.black.opacity(0.7).ignoresSafeArea()
                 GameResultView(winner: winner) {
                     viewModel.restartGame()
+                    viewModel.startGame()
+                } onGoHome: {
+                    onGoHome?()
                 }
             }
 
@@ -595,6 +599,7 @@ struct GameBoardView: View {
 struct GameResultView: View {
     let winner: String
     let onRestart: () -> Void
+    var onGoHome: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 20) {
@@ -611,6 +616,13 @@ struct GameResultView: View {
                 onRestart()
             }
             .buttonStyle(GameButtonStyle(color: .blue))
+
+            if let onGoHome {
+                Button("홈으로") {
+                    onGoHome()
+                }
+                .buttonStyle(GameButtonStyle(color: .gray))
+            }
         }
         .padding(40)
         .background(
