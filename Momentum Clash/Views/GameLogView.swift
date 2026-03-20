@@ -15,7 +15,7 @@ struct GameLogView: View {
                                 .id(log.id)
                         } else {
                             Text(log.message)
-                                .font(.system(size: 11, design: .monospaced))
+                                .font(.system(size: 12, design: .monospaced))
                                 .foregroundColor(logColor(log.message))
                                 .id(log.id)
                         }
@@ -32,7 +32,7 @@ struct GameLogView: View {
                 }
             }
         }
-        .frame(height: 80)
+        .frame(height: 120)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.black.opacity(0.5))
