@@ -24,6 +24,7 @@ protocol Card: Identifiable, Codable {
     var cost: Int { get }        // 소환 비용 (1~5)
     var rarity: Rarity { get }
     var flavorText: String { get }
+    var imageName: String { get } // 에셋 카탈로그 이미지 이름
 }
 
 /// 몬스터 카드
@@ -34,6 +35,7 @@ struct MonsterCard: Card, Equatable {
     let cost: Int
     let rarity: Rarity
     let flavorText: String
+    let imageName: String
 
     let combatPower: Int           // 전투력 (CP)
     let monsterType: MonsterType
@@ -51,7 +53,8 @@ struct MonsterCard: Card, Equatable {
         combatPower: Int,
         monsterType: MonsterType,
         effect: CardEffect? = nil,
-        flavorText: String = ""
+        flavorText: String = "",
+        imageName: String = ""
     ) {
         self.id = id
         self.name = name
@@ -62,6 +65,7 @@ struct MonsterCard: Card, Equatable {
         self.monsterType = monsterType
         self.effect = effect
         self.flavorText = flavorText
+        self.imageName = imageName
     }
 }
 
@@ -73,6 +77,7 @@ struct SpellCard: Card, Equatable {
     let cost: Int
     let rarity: Rarity
     let flavorText: String
+    let imageName: String
 
     let spellType: SpellType
     let effect: CardEffect
@@ -85,7 +90,8 @@ struct SpellCard: Card, Equatable {
         rarity: Rarity,
         spellType: SpellType,
         effect: CardEffect,
-        flavorText: String = ""
+        flavorText: String = "",
+        imageName: String = ""
     ) {
         self.id = id
         self.name = name
@@ -95,6 +101,7 @@ struct SpellCard: Card, Equatable {
         self.spellType = spellType
         self.effect = effect
         self.flavorText = flavorText
+        self.imageName = imageName
     }
 
     /// 이 마법이 필드 슬롯을 차지하는지
@@ -138,6 +145,20 @@ enum AnyCard: Identifiable, Codable, Equatable {
         switch self {
         case .monster(let card): return card.rarity
         case .spell(let card): return card.rarity
+        }
+    }
+
+    var imageName: String {
+        switch self {
+        case .monster(let card): return card.imageName
+        case .spell(let card): return card.imageName
+        }
+    }
+
+    var flavorText: String {
+        switch self {
+        case .monster(let card): return card.flavorText
+        case .spell(let card): return card.flavorText
         }
     }
 }

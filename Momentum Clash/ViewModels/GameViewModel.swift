@@ -28,6 +28,8 @@ class GameViewModel {
     var uiState: GameUIState = .notStarted
     var logs: [GameLog] = []
     var selectedHandIndex: Int? = nil
+    var showingCardDetail: (card: AnyCard, handIndex: Int)? = nil
+    var showingFieldCardDetail: AnyCard? = nil
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1
@@ -117,6 +119,16 @@ class GameViewModel {
         guard index >= 0, index < player.hand.count else { return }
 
         let card = player.hand[index]
+        // 카드 상세보기 표시
+        showingCardDetail = (card: card, handIndex: index)
+    }
+
+    /// 상세보기에서 "배치하기/사용하기" 눌렀을 때
+    func useCardFromDetail() {
+        guard let detail = showingCardDetail else { return }
+        let card = detail.card
+        let index = detail.handIndex
+        showingCardDetail = nil
 
         // 비용 확인
         let totalResource = player.energy + player.momentum
@@ -144,6 +156,24 @@ class GameViewModel {
                 executeSpell(spellCard, handIndex: index)
             }
         }
+    }
+
+    func closeCardDetail() {
+        showingCardDetail = nil
+    }
+
+    /// 패에서 카드 사용 가능 여부
+    func canUseCard(_ card: AnyCard) -> Bool {
+        guard isPlayerTurn, gameState.currentPhase == .main else { return false }
+        let totalResource = player.energy + player.momentum
+        guard card.cost <= totalResource else { return false }
+        if case .monster = card {
+            return !player.field.emptySlotIndices.isEmpty
+        }
+        if case .spell(let s) = card, s.spellType == .continuous {
+            return !player.field.emptySlotIndices.isEmpty
+        }
+        return true
     }
 
     func summonToSlot(_ slotIndex: Int) {
@@ -532,5 +562,7 @@ class GameViewModel {
         logs = []
         uiState = .notStarted
         selectedHandIndex = nil
+        showingCardDetail = nil
+        showingFieldCardDetail = nil
     }
 }

@@ -97,6 +97,27 @@ struct GameBoardView: View {
                     Spacer()
                 }
             }
+
+            // 오버레이: 카드 상세보기 (패에서)
+            if let detail = viewModel.showingCardDetail {
+                CardDetailView(
+                    card: detail.card,
+                    handIndex: detail.handIndex,
+                    canUse: viewModel.canUseCard(detail.card),
+                    onClose: { viewModel.closeCardDetail() },
+                    onUse: { viewModel.useCardFromDetail() }
+                )
+                .transition(.opacity)
+            }
+
+            // 오버레이: 필드 카드 상세보기
+            if let fieldCard = viewModel.showingFieldCardDetail {
+                FieldCardDetailView(
+                    card: fieldCard,
+                    onClose: { viewModel.showingFieldCardDetail = nil }
+                )
+                .transition(.opacity)
+            }
         }
     }
 
@@ -115,6 +136,9 @@ struct GameBoardView: View {
                     isHighlighted: highlighted
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
+                }
+                .onLongPressGesture {
+                    showFieldCardDetail(slot: slot)
                 }
             }
         }
@@ -164,6 +188,17 @@ struct GameBoardView: View {
                 }
                 return
             }
+        }
+    }
+
+    private func showFieldCardDetail(slot: FieldSlot) {
+        switch slot.content {
+        case .monster(let card, _):
+            viewModel.showingFieldCardDetail = .monster(card)
+        case .spell(let card):
+            viewModel.showingFieldCardDetail = .spell(card)
+        case .empty:
+            break
         }
     }
 
