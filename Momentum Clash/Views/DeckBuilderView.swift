@@ -209,6 +209,7 @@ struct DeckBuilderView: View {
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 6)
             .padding(.bottom, 8)
         }
     }
