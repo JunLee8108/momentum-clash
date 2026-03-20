@@ -131,6 +131,11 @@ struct GameBoardView: View {
                 VStack {
                     Spacer()
                     CombatPreviewView(preview: preview) {
+                        viewModel.executeAttack(
+                            attackerSlot: preview.attackerSlot,
+                            defenderSlot: preview.defenderSlot
+                        )
+                    } onClose: {
                         viewModel.combatPreview = nil
                     }
                     .padding(.horizontal, 24)
@@ -437,15 +442,8 @@ struct GameBoardView: View {
                     // 직접 공격
                     viewModel.executeAttack(attackerSlot: atkSlot, defenderSlot: nil)
                 } else if case .monster = viewModel.aiPlayer.field.slots[index].content {
-                    if let existing = viewModel.combatPreview,
-                       case .monster(let m, _) = viewModel.aiPlayer.field.slots[index].content,
-                       existing.defenderName == m.name {
-                        // 프리뷰가 이미 표시된 상태에서 같은 대상 재탭 → 공격 실행
-                        viewModel.executeAttack(attackerSlot: atkSlot, defenderSlot: index)
-                    } else {
-                        // 첫 탭 → 프리뷰 표시
-                        viewModel.updateCombatPreview(attackerSlot: atkSlot, defenderSlot: index)
-                    }
+                    // 프리뷰 표시 (공격은 프리뷰의 공격하기 버튼으로)
+                    viewModel.updateCombatPreview(attackerSlot: atkSlot, defenderSlot: index)
                 }
                 return
             }

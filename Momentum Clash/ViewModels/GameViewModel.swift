@@ -27,6 +27,9 @@ struct BattleDisplay: Equatable {
 
 /// 전투 프리뷰 데이터
 struct CombatPreviewData: Equatable {
+    let attackerSlot: Int
+    let defenderSlot: Int
+
     let attackerName: String
     let attackerAttribute: Attribute
     let attackerBaseCP: Int
@@ -463,6 +466,8 @@ class GameViewModel {
         )
 
         combatPreview = CombatPreviewData(
+            attackerSlot: attackerSlot,
+            defenderSlot: defenderSlot,
             attackerName: atkCard.name,
             attackerAttribute: atkCard.attribute,
             attackerBaseCP: atkCard.combatPower,
