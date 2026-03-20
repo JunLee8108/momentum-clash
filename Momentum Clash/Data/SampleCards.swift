@@ -208,7 +208,7 @@ enum SampleCards {
         imageName: "spell_thunder_strike"
     )
 
-    // MARK: - 지형 마법 카드 (4종)
+    // MARK: - 지형 마법 카드 (7종)
 
     static let fireStorm = SpellCard(
         name: "화염 폭풍", attribute: .fire, cost: 2, rarity: .rare,
@@ -242,6 +242,30 @@ enum SampleCards {
         imageName: "spell_wind_storm"
     )
 
+    static let thunderJudgment = SpellCard(
+        name: "번개의 심판", attribute: .thunder, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2턴 변경. 상대 몬스터 1체에 300 데미지"),
+        flavorText: "하늘의 심판이 전장을 뒤흔든다",
+        imageName: "spell_thunder_judgment"
+    )
+
+    static let darkVeil = SpellCard(
+        name: "암흑의 장막", attribute: .dark, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 암흑으로 2턴 변경. 상대 몬스터 전체 방어막 제거"),
+        flavorText: "어둠이 전장을 삼키며 방어를 무너뜨린다",
+        imageName: "spell_dark_veil"
+    )
+
+    static let holyLight = SpellCard(
+        name: "성스러운 빛", attribute: .light, cost: 2, rarity: .rare,
+        spellType: .terrain,
+        effect: CardEffect(timing: .onSummon, description: "지형을 빛으로 2턴 변경. 아군 몬스터 전체 HP 200 회복"),
+        flavorText: "성스러운 빛이 전장을 비추며 아군을 치유한다",
+        imageName: "spell_holy_light"
+    )
+
     // MARK: - 테스트 덱
 
     /// 화염 러시 덱 (30장)
@@ -259,7 +283,7 @@ enum SampleCards {
         for _ in 0..<2 { deck.append(.monster(shadowRogue)) }
         // 마법 8장 (지형 마법 포함)
         for _ in 0..<2 { deck.append(.spell(fireStorm)) }
-        for _ in 0..<2 { deck.append(.spell(windStorm)) }
+        for _ in 0..<2 { deck.append(.spell(thunderJudgment)) }
         for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
         for _ in 0..<2 { deck.append(.spell(thunderStrike)) }
         deck.shuffle()
@@ -281,8 +305,8 @@ enum SampleCards {
         for _ in 0..<2 { deck.append(.monster(oceanLord)) }
         // 마법 8장 (지형 마법 포함)
         for _ in 0..<2 { deck.append(.spell(earthEcho)) }
-        for _ in 0..<2 { deck.append(.spell(healingRain)) }
-        for _ in 0..<2 { deck.append(.spell(earthBarrier)) }
+        for _ in 0..<2 { deck.append(.spell(darkVeil)) }
+        for _ in 0..<2 { deck.append(.spell(holyLight)) }
         for _ in 0..<2 { deck.append(.spell(windBlade)) }
         deck.shuffle()
         return deck
