@@ -1041,6 +1041,7 @@ class GameViewModel {
         guard gameState.players[idx].momentum >= skill.cost else { return }
 
         gameState.players[idx].momentum -= skill.cost
+        gameState.players[idx].activeMomentumSkill = skill
 
         withAnimation(.easeInOut(duration: 0.3)) {
             battleDisplay = BattleDisplay(
