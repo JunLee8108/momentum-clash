@@ -32,20 +32,8 @@ struct HandView: View {
 struct DrawSelectionView: View {
     let choice1: AnyCard
     let choice2: AnyCard
-    let player: Player
     let onSelect: (AnyCard, AnyCard) -> Void
-
-    @State private var showHand = false
-    @State private var detailCard: AnyCard?
-
-    private var hand: [AnyCard] { player.hand }
-
-    private var lpColor: Color {
-        let ratio = Double(player.lp) / Double(TurnSystem.startingLP)
-        if ratio <= 0.25 { return .red }
-        if ratio <= 0.5 { return .orange }
-        return .white
-    }
+    let onPeek: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -71,79 +59,22 @@ struct DrawSelectionView: View {
                 }
             }
 
-            // 내 패 보기 버튼
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    showHand.toggle()
-                }
+                onPeek()
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: showHand ? "chevron.up" : "hand.raised")
-                        .font(.system(size: 12))
-                    Text("내 패 보기 (\(hand.count)장)")
+                HStack(spacing: 6) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 13))
+                    Text("전장 확인")
                         .font(.system(size: 13, weight: .medium))
                 }
                 .foregroundColor(.cyan)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
                 .background(
                     Capsule()
                         .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
                 )
-            }
-
-            // 현재 상태 & 패 목록
-            if showHand {
-                // 상태 요약 바
-                HStack(spacing: 16) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.red)
-                        Text("\(player.lp)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(lpColor)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.orange)
-                        Text("\(player.momentum)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(.orange)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: "bolt.circle.fill")
-                            .font(.system(size: 10))
-                            .foregroundColor(.cyan)
-                        Text("\(player.energy)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(.cyan)
-                    }
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
-                .background(
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                )
-                if hand.isEmpty {
-                    Text("패에 카드가 없습니다")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(Array(hand.enumerated()), id: \.element.id) { _, card in
-                                CardView(card: card, isSmall: true) {
-                                    detailCard = card
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 8)
-                    }
-                    .frame(height: 110)
-                }
             }
         }
         .padding(24)
@@ -151,10 +82,5 @@ struct DrawSelectionView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
         )
-        .fullScreenCover(item: $detailCard) { card in
-            FieldCardDetailView(card: card) {
-                detailCard = nil
-            }
-        }
     }
 }
