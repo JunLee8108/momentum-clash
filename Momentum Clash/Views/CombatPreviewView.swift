@@ -3,25 +3,15 @@ import SwiftUI
 /// 전투 프리뷰 오버레이 — 공격 대상 선택 시 예상 결과 표시
 struct CombatPreviewView: View {
     let preview: CombatPreviewData
+    var onAttack: () -> Void
     var onClose: () -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            // 헤더: 예상 결과 + 닫기 버튼
-            HStack {
-                Spacer()
-                Text(preview.predictedResult.displayText)
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundColor(preview.predictedResult.color)
-                Spacer()
-                Button {
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.gray)
-                }
-            }
+            // 헤더: 예상 결과
+            Text(preview.predictedResult.displayText)
+                .font(.system(size: 13, weight: .black))
+                .foregroundColor(preview.predictedResult.color)
 
             HStack(spacing: 12) {
                 // 공격자 (플레이어)
@@ -53,6 +43,38 @@ struct CombatPreviewView: View {
 
             // LP 데미지 예상
             lpDamageRow
+
+            // 액션 버튼
+            HStack(spacing: 12) {
+                Button {
+                    onClose()
+                } label: {
+                    Text("취소")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.gray.opacity(0.5))
+                        )
+                }
+
+                Button {
+                    onAttack()
+                } label: {
+                    Text("공격하기")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.red.opacity(0.8))
+                        )
+                }
+            }
+            .padding(.top, 4)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
