@@ -184,6 +184,70 @@ struct CardDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+
+            attributeMatchupSection(m)
+        }
+    }
+
+    private func attributeMatchupSection(_ m: MonsterCard) -> some View {
+        let attr = m.attribute
+        let strong = attr.strongAgainst
+        let weak = attr.weakAgainst
+        let strongCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: strong))
+        let weakCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: weak))
+        let isMutual = strong == weak // 암↔광
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+                Text("속성 상성")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.top, 2)
+
+            if isMutual {
+                // 암↔광: 상호 1.5배
+                HStack(spacing: 6) {
+                    Text(strong.emoji)
+                        .font(.system(size: 12))
+                    Text("\(strong.displayName)과 상호 강화")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.85))
+                    Spacer()
+                    Text("전투력 \(strongCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+            } else {
+                // 유리 상성
+                HStack(spacing: 6) {
+                    Text(strong.emoji)
+                        .font(.system(size: 12))
+                    Text("\(strong.displayName)에 강함")
+                        .font(.system(size: 13))
+                        .foregroundColor(.green.opacity(0.9))
+                    Spacer()
+                    Text("전투력 \(strongCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.green.opacity(0.9))
+                }
+
+                // 불리 상성
+                HStack(spacing: 6) {
+                    Text(weak.emoji)
+                        .font(.system(size: 12))
+                    Text("\(weak.displayName)에 약함")
+                        .font(.system(size: 13))
+                        .foregroundColor(.red.opacity(0.9))
+                    Spacer()
+                    Text("전투력 \(weakCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.red.opacity(0.9))
+                }
+            }
         }
     }
 
@@ -402,6 +466,67 @@ struct FieldCardDetailView: View {
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.85))
                         .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            fieldAttributeMatchupSection(m)
+        }
+    }
+
+    private func fieldAttributeMatchupSection(_ m: MonsterCard) -> some View {
+        let attr = m.attribute
+        let strong = attr.strongAgainst
+        let weak = attr.weakAgainst
+        let strongCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: strong))
+        let weakCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: weak))
+        let isMutual = strong == weak
+
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.7))
+                Text("속성 상성")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .padding(.top, 2)
+
+            if isMutual {
+                HStack(spacing: 6) {
+                    Text(strong.emoji)
+                        .font(.system(size: 12))
+                    Text("\(strong.displayName)과 상호 강화")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.85))
+                    Spacer()
+                    Text("전투력 \(strongCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+            } else {
+                HStack(spacing: 6) {
+                    Text(strong.emoji)
+                        .font(.system(size: 12))
+                    Text("\(strong.displayName)에 강함")
+                        .font(.system(size: 13))
+                        .foregroundColor(.green.opacity(0.9))
+                    Spacer()
+                    Text("전투력 \(strongCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.green.opacity(0.9))
+                }
+
+                HStack(spacing: 6) {
+                    Text(weak.emoji)
+                        .font(.system(size: 12))
+                    Text("\(weak.displayName)에 약함")
+                        .font(.system(size: 13))
+                        .foregroundColor(.red.opacity(0.9))
+                    Spacer()
+                    Text("전투력 \(weakCP)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.red.opacity(0.9))
                 }
             }
         }
