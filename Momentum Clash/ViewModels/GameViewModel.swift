@@ -112,6 +112,7 @@ class GameViewModel {
 
     private func proceedToStandby() {
         gameState.processStandbyPhase()
+        gameState.currentPlayer.field.resetAttackFlags()
 
         let p = gameState.currentPlayer
         addLog("기력: \(p.energy) / 기세: \(p.momentum)")
@@ -313,6 +314,10 @@ class GameViewModel {
     func selectAttacker(_ slotIndex: Int) {
         guard canAttack else { return }
         guard case .monster = player.field.slots[slotIndex].content else { return }
+        guard !player.field.slots[slotIndex].hasAttacked else {
+            addLog("이미 공격한 몬스터입니다!")
+            return
+        }
         uiState = .selectingAttackTarget(attackerSlot: slotIndex)
     }
 
@@ -366,6 +371,7 @@ class GameViewModel {
             addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
             gameState.players[playerIndex].gainMomentum(1)
             gameState.players[playerIndex].didAttackThisTurn = true
+            gameState.players[playerIndex].field.slots[attackerSlot].hasAttacked = true
 
             // 결과 연출
             if result.defenderDestroyed {
@@ -440,6 +446,7 @@ class GameViewModel {
             gameState.players[aiIndex].takeDamage(damage)
             gameState.players[playerIndex].gainMomentum(2)
             gameState.players[playerIndex].didAttackThisTurn = true
+            gameState.players[playerIndex].field.slots[attackerSlot].hasAttacked = true
 
             withAnimation(.easeInOut(duration: 0.2)) {
                 battleDisplay = BattleDisplay(
@@ -648,6 +655,7 @@ class GameViewModel {
                     addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
                     gameState.players[idx].gainMomentum(1)
                     gameState.players[idx].didAttackThisTurn = true
+                    gameState.players[idx].field.slots[plan.attackerSlot].hasAttacked = true
 
                     // 결과 연출
                     if result.defenderDestroyed {
@@ -710,6 +718,7 @@ class GameViewModel {
                     gameState.players[defIdx].takeDamage(damage)
                     gameState.players[idx].gainMomentum(2)
                     gameState.players[idx].didAttackThisTurn = true
+                    gameState.players[idx].field.slots[plan.attackerSlot].hasAttacked = true
 
                     withAnimation(.easeInOut(duration: 0.2)) {
                         battleDisplay = BattleDisplay(
