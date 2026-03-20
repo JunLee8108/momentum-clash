@@ -177,7 +177,19 @@ struct GameBoardView: View {
     private var terrainBackground: some View {
         let terrain = viewModel.gameState.globalTerrain
         let colors = terrainGradientColors(for: terrain)
-        LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+
+        ZStack {
+            // 폴백: 그라디언트 (항상 표시)
+            LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+
+            // 배경 이미지가 있으면 위에 오버레이
+            if let uiImage = UIImage(named: terrain.terrainBackgroundImageName) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .overlay(Color.black.opacity(0.4)) // 가독성을 위한 어둡게 처리
+            }
+        }
     }
 
     private func terrainGradientColors(for terrain: Attribute) -> [Color] {
