@@ -381,6 +381,8 @@ struct GameBoardView: View {
                     slot: slot,
                     index: i,
                     globalTerrain: viewModel.gameState.globalTerrain,
+                    activeMomentumSkill: isOpponent ? nil : player.activeMomentumSkill,
+                    momentumBonus: isOpponent ? 0 : player.momentumBonus,
                     isHighlighted: highlighted,
                     aiHighlightColor: battleHighlight,
                     hasAttacked: attacked

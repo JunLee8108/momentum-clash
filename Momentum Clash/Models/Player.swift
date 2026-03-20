@@ -16,6 +16,7 @@ struct Player: Equatable {
 
     var didAttackThisTurn: Bool    // 이번 턴 공격 여부
     var momentumBonus: Int         // 기세 스킬에 의한 전투력 증가 (턴 종료 시 리셋)
+    var activeMomentumSkill: MomentumSkill?  // 이번 턴 활성화된 기세 스킬
 
     init(
         id: UUID = UUID(),
@@ -33,6 +34,7 @@ struct Player: Equatable {
         self.field = PlayerField()
         self.didAttackThisTurn = false
         self.momentumBonus = 0
+        self.activeMomentumSkill = nil
     }
 
     // MARK: - LP
