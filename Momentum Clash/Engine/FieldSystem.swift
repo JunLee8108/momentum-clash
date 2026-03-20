@@ -98,6 +98,14 @@ struct PlayerField: Equatable {
         }
     }
 
+    /// 방어막 설정 (전투 후 잔여 방어막 반영)
+    mutating func setShield(_ amount: Int, at index: Int) {
+        guard index >= 0, index < PlayerField.slotCount else { return }
+        if case .monster(let card, _) = slots[index].content {
+            slots[index].content = .monster(card, shield: amount)
+        }
+    }
+
     /// 모든 슬롯의 공격 플래그 리셋 (턴 시작 시)
     mutating func resetAttackFlags() {
         for i in slots.indices {

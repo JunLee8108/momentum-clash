@@ -320,10 +320,8 @@ class GameViewModel {
                 }
             }
         case "바람의 칼날":
-            if let firstMonster = gameState.currentPlayer.field.monsterSlotIndices.first {
-                gameState.currentPlayer.field.applyShield(400, at: firstMonster)
-                addLog("몬스터에 전투력 +400 장착!")
-            }
+            gameState.currentPlayer.momentumBonus += 400
+            addLog("이번 턴 전투력 +400!")
         default:
             addLog("\(spell.name) 효과 발동!")
         }
@@ -457,12 +455,12 @@ class GameViewModel {
         let atkEffective = BattleEngine.calculateEffectiveCP(
             card: atkCard, slotIndex: attackerSlot,
             field: player.field, opponentAttribute: defCard.attribute,
-            momentumBonus: 0, globalTerrain: gameState.globalTerrain
+            momentumBonus: gameState.players[playerIndex].momentumBonus, globalTerrain: gameState.globalTerrain
         )
         let defEffective = BattleEngine.calculateEffectiveCP(
             card: defCard, slotIndex: defenderSlot,
             field: aiPlayer.field, opponentAttribute: atkCard.attribute,
-            momentumBonus: 0, globalTerrain: gameState.globalTerrain
+            momentumBonus: gameState.players[aiIndex].momentumBonus, globalTerrain: gameState.globalTerrain
         )
 
         combatPreview = CombatPreviewData(
@@ -529,8 +527,8 @@ class GameViewModel {
                 defenderCard: defCard,
                 defenderSlot: defSlot,
                 defenderField: gameState.players[aiIndex].field,
-                attackerMomentumBonus: 0,
-                defenderMomentumBonus: 0,
+                attackerMomentumBonus: gameState.players[playerIndex].momentumBonus,
+                defenderMomentumBonus: gameState.players[aiIndex].momentumBonus,
                 defenderShield: shield,
                 globalTerrain: gameState.globalTerrain
             )
@@ -539,6 +537,14 @@ class GameViewModel {
             gameState.players[playerIndex].gainMomentum(1)
             gameState.players[playerIndex].didAttackThisTurn = true
             gameState.players[playerIndex].field.slots[attackerSlot].hasAttacked = true
+
+            // 방어막 소모 반영 (파괴되지 않은 경우)
+            if !result.defenderDestroyed {
+                gameState.players[aiIndex].field.setShield(result.remainingShield, at: defSlot)
+                if shield > 0 && result.remainingShield < shield {
+                    addLog("\(defCard.name) 방어막 \(shield - result.remainingShield) 소모! (잔여: \(result.remainingShield))")
+                }
+            }
 
             // 결과 연출
             if result.defenderDestroyed {
@@ -607,7 +613,7 @@ class GameViewModel {
                 attackerCard: atkCard,
                 attackerSlot: attackerSlot,
                 attackerField: gameState.players[playerIndex].field,
-                momentumBonus: 0,
+                momentumBonus: gameState.players[playerIndex].momentumBonus,
                 globalTerrain: gameState.globalTerrain
             )
 
@@ -647,26 +653,17 @@ class GameViewModel {
 
         switch skill {
         case .fighting:
-            // 첫 번째 몬스터 전투력 +500 (방어막으로 근사 구현)
-            if let slot = player.field.monsterSlotIndices.first {
-                gameState.currentPlayer.field.applyShield(500, at: slot)
-                addLog("몬스터 전투력 +500!")
-            }
+            // 이번 턴 전투력 +500
+            gameState.currentPlayer.momentumBonus += 500
+            addLog("몬스터 전투력 +500!")
         case .terrainMastery:
-            // 지형 보너스 2배: 해당 속성 몬스터 전체에 추가 +300 (합계 +600)
+            // 지형 보너스 2배: 추가 +300 (합계 +600)
+            gameState.currentPlayer.momentumBonus += PlayerField.globalTerrainBonus
             let terrain = gameState.globalTerrain
-            for slot in gameState.currentPlayer.field.monsterSlotIndices {
-                if case .monster(let m, _) = gameState.currentPlayer.field.slots[slot].content,
-                   m.attribute == terrain {
-                    gameState.currentPlayer.field.applyShield(PlayerField.globalTerrainBonus, at: slot)
-                }
-            }
             addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
             // 모든 몬스터 +300
-            for slot in player.field.monsterSlotIndices {
-                gameState.currentPlayer.field.applyShield(300, at: slot)
-            }
+            gameState.currentPlayer.momentumBonus += 300
             addLog("전 몬스터 전투력 +300!")
         case .explosion:
             // 상대 전체에 기세 × 100 데미지
@@ -829,8 +826,8 @@ class GameViewModel {
                         defenderCard: defCard,
                         defenderSlot: defSlot,
                         defenderField: gameState.players[defIdx].field,
-                        attackerMomentumBonus: 0,
-                        defenderMomentumBonus: 0,
+                        attackerMomentumBonus: gameState.players[idx].momentumBonus,
+                        defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
                         defenderShield: shield,
                         globalTerrain: gameState.globalTerrain
                     )
@@ -839,6 +836,14 @@ class GameViewModel {
                     gameState.players[idx].gainMomentum(1)
                     gameState.players[idx].didAttackThisTurn = true
                     gameState.players[idx].field.slots[plan.attackerSlot].hasAttacked = true
+
+                    // 방어막 소모 반영
+                    if !result.defenderDestroyed {
+                        gameState.players[defIdx].field.setShield(result.remainingShield, at: defSlot)
+                        if shield > 0 && result.remainingShield < shield {
+                            addLog("  → \(defCard.name) 방어막 \(shield - result.remainingShield) 소모! (잔여: \(result.remainingShield))")
+                        }
+                    }
 
                     // 결과 연출
                     if result.defenderDestroyed {
@@ -885,7 +890,7 @@ class GameViewModel {
                         attackerCard: atkCard,
                         attackerSlot: plan.attackerSlot,
                         attackerField: gameState.players[idx].field,
-                        momentumBonus: 0,
+                        momentumBonus: gameState.players[idx].momentumBonus,
                         globalTerrain: gameState.globalTerrain
                     )
 
@@ -960,30 +965,14 @@ class GameViewModel {
 
         switch skill {
         case .fighting:
-            if let slot = gameState.players[idx].field.monsterSlotIndices.max(by: { a, b in
-                guard case .monster(let ma, _) = gameState.players[idx].field.slots[a].content,
-                      case .monster(let mb, _) = gameState.players[idx].field.slots[b].content
-                else { return false }
-                return ma.combatPower < mb.combatPower
-            }) {
-                gameState.players[idx].field.applyShield(500, at: slot)
-                if case .monster(let m, _) = gameState.players[idx].field.slots[slot].content {
-                    addLog("\(m.name) 전투력 +500!")
-                }
-            }
+            gameState.players[idx].momentumBonus += 500
+            addLog("몬스터 전투력 +500!")
         case .terrainMastery:
             let terrain = gameState.globalTerrain
-            for slot in gameState.players[idx].field.monsterSlotIndices {
-                if case .monster(let m, _) = gameState.players[idx].field.slots[slot].content,
-                   m.attribute == terrain {
-                    gameState.players[idx].field.applyShield(PlayerField.globalTerrainBonus, at: slot)
-                }
-            }
+            gameState.players[idx].momentumBonus += PlayerField.globalTerrainBonus
             addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
-            for slot in gameState.players[idx].field.monsterSlotIndices {
-                gameState.players[idx].field.applyShield(300, at: slot)
-            }
+            gameState.players[idx].momentumBonus += 300
             addLog("전 몬스터 전투력 +300!")
         case .explosion:
             let dmg = BattleEngine.explosionDamage(momentum: skill.cost)

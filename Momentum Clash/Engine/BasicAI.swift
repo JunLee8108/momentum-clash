@@ -144,7 +144,9 @@ struct BasicAI {
         let attackPlan = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
             defenderField: gameState.players[defIdx].field,
-            globalTerrain: gameState.globalTerrain
+            globalTerrain: gameState.globalTerrain,
+            attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
+            defenderMomentumBonus: gameState.players[defIdx].momentumBonus
         )
 
         var usedAttackers = Set<Int>()
@@ -165,8 +167,8 @@ struct BasicAI {
                     defenderCard: defCard,
                     defenderSlot: defSlot,
                     defenderField: gameState.players[defIdx].field,
-                    attackerMomentumBonus: 0,
-                    defenderMomentumBonus: 0,
+                    attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
+                    defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
                     defenderShield: shield,
                     globalTerrain: gameState.globalTerrain
                 )
@@ -175,6 +177,14 @@ struct BasicAI {
                 gameState.players[atkIdx].gainMomentum(1)
                 gameState.players[atkIdx].didAttackThisTurn = true
                 usedAttackers.insert(plan.attackerSlot)
+
+                // 방어막 소모 반영
+                if !result.defenderDestroyed {
+                    gameState.players[defIdx].field.setShield(result.remainingShield, at: defSlot)
+                    if shield > 0 && result.remainingShield < shield {
+                        logs.append("  → \(defCard.name) 방어막 \(shield - result.remainingShield) 소모! (잔여: \(result.remainingShield))")
+                    }
+                }
 
                 if result.defenderDestroyed {
                     gameState.players[defIdx].field.removeCard(at: defSlot)
@@ -202,7 +212,7 @@ struct BasicAI {
                     attackerCard: atkCard,
                     attackerSlot: plan.attackerSlot,
                     attackerField: gameState.players[atkIdx].field,
-                    momentumBonus: 0,
+                    momentumBonus: gameState.players[atkIdx].momentumBonus,
                     globalTerrain: gameState.globalTerrain
                 )
                 gameState.players[defIdx].takeDamage(damage)
@@ -230,7 +240,7 @@ struct BasicAI {
                         attackerCard: atkCard,
                         attackerSlot: atkSlot,
                         attackerField: gameState.players[atkIdx].field,
-                        momentumBonus: 0,
+                        momentumBonus: gameState.players[atkIdx].momentumBonus,
                         globalTerrain: gameState.globalTerrain
                     )
                     gameState.players[defIdx].takeDamage(damage)
@@ -328,7 +338,9 @@ struct BasicAI {
         var plans = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
             defenderField: gameState.players[defIdx].field,
-            globalTerrain: gameState.globalTerrain
+            globalTerrain: gameState.globalTerrain,
+            attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
+            defenderMomentumBonus: gameState.players[defIdx].momentumBonus
         )
 
         // 파괴 시뮬레이션: 적이 전멸하면 남은 공격자로 직접 공격 추가
@@ -347,8 +359,8 @@ struct BasicAI {
                         defenderCard: defCard,
                         defenderSlot: defSlot,
                         defenderField: gameState.players[defIdx].field,
-                        attackerMomentumBonus: 0,
-                        defenderMomentumBonus: 0,
+                        attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
+                        defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
                         defenderShield: shield,
                         globalTerrain: gameState.globalTerrain
                     )
@@ -380,7 +392,9 @@ struct BasicAI {
     private func buildOptimalAttackPlan(
         attackerField: PlayerField,
         defenderField: PlayerField,
-        globalTerrain: Attribute
+        globalTerrain: Attribute,
+        attackerMomentumBonus: Int = 0,
+        defenderMomentumBonus: Int = 0
     ) -> [(attackerSlot: Int, defenderSlot: Int?)] {
         let atkSlots = attackerField.monsterSlotIndices
         let defSlots = defenderField.monsterSlotIndices
@@ -411,12 +425,12 @@ struct BasicAI {
                 let atkCP = BattleEngine.calculateEffectiveCP(
                     card: atkCard, slotIndex: atkSlot,
                     field: attackerField, opponentAttribute: defCard.attribute,
-                    momentumBonus: 0, globalTerrain: globalTerrain
+                    momentumBonus: attackerMomentumBonus, globalTerrain: globalTerrain
                 )
                 let defCP = BattleEngine.calculateEffectiveCP(
                     card: defCard, slotIndex: defSlot,
                     field: defenderField, opponentAttribute: atkCard.attribute,
-                    momentumBonus: 0, globalTerrain: globalTerrain
+                    momentumBonus: defenderMomentumBonus, globalTerrain: globalTerrain
                 )
 
                 allMatches.append(MatchScore(
@@ -633,7 +647,9 @@ struct BasicAI {
         attackerField: PlayerField,
         defenderSlots: [Int],
         defenderField: PlayerField,
-        globalTerrain: Attribute
+        globalTerrain: Attribute,
+        attackerMomentumBonus: Int = 0,
+        defenderMomentumBonus: Int = 0
     ) -> Int? {
         struct TargetInfo {
             let slot: Int
@@ -653,7 +669,7 @@ struct BasicAI {
                 slotIndex: attackerSlot,
                 field: attackerField,
                 opponentAttribute: defCard.attribute,
-                momentumBonus: 0,
+                momentumBonus: attackerMomentumBonus,
                 globalTerrain: globalTerrain
             )
 
@@ -662,7 +678,7 @@ struct BasicAI {
                 slotIndex: defSlot,
                 field: defenderField,
                 opponentAttribute: attacker.attribute,
-                momentumBonus: 0,
+                momentumBonus: defenderMomentumBonus,
                 globalTerrain: globalTerrain
             )
 
