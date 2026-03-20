@@ -87,4 +87,9 @@ enum Attribute: String, CaseIterable, Codable {
         case .light:   return .orange
         }
     }
+
+    /// 지형 배경 이미지 에셋 이름
+    var terrainBackgroundImageName: String {
+        "terrain_bg_\(rawValue)"
+    }
 }
