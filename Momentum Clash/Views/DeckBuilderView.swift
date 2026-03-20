@@ -68,38 +68,9 @@ struct DeckBuilderView: View {
 
     private var deckStatusBar: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("덱 빌딩")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-
-                Text("\(deckVM.deck.count)/\(DeckConstants.deckSize)장")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(deckVM.isDeckValid ? .green : .orange)
-            }
-
-            Spacer()
-
-            // 몬스터/마법 카운트
-            HStack(spacing: 12) {
-                VStack(spacing: 2) {
-                    Text("몬스터")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                    Text("\(deckVM.monsterCount)/\(DeckConstants.monsterLimit)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(deckVM.monsterCount == DeckConstants.monsterLimit ? .green : .white)
-                }
-
-                VStack(spacing: 2) {
-                    Text("마법")
-                        .font(.system(size: 10))
-                        .foregroundColor(.gray)
-                    Text("\(deckVM.spellCount)/\(DeckConstants.spellLimit)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(deckVM.spellCount == DeckConstants.spellLimit ? .green : .white)
-                }
-            }
+            Text("덱 빌딩")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
 
             Spacer()
 
@@ -138,20 +109,30 @@ struct DeckBuilderView: View {
     private var cardTypePicker: some View {
         HStack(spacing: 0) {
             ForEach(CardTypeFilter.allCases, id: \.self) { filter in
+                let isSelected = deckVM.selectedCardType == filter
+                let count = filter == .monster ? deckVM.monsterCount : deckVM.spellCount
+                let limit = filter == .monster ? DeckConstants.monsterLimit : DeckConstants.spellLimit
+                let isFull = count == limit
+
                 Button {
                     deckVM.selectedCardType = filter
                     deckVM.selectedAttribute = nil
                 } label: {
-                    Text(filter.rawValue)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(deckVM.selectedCardType == filter ? .white : .gray)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(
-                            deckVM.selectedCardType == filter
-                                ? Color.white.opacity(0.15)
-                                : Color.clear
-                        )
+                    HStack(spacing: 4) {
+                        Text(filter.rawValue)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(isSelected ? .white : .gray)
+                        Text("\(count)/\(limit)")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(isFull ? .green : (isSelected ? .white.opacity(0.7) : .gray.opacity(0.6)))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(
+                        isSelected
+                            ? Color.white.opacity(0.15)
+                            : Color.clear
+                    )
                 }
             }
         }
