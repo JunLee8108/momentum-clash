@@ -7,6 +7,8 @@ struct BattleResult {
     let lpDamageToDefender: Int  // 방어 측 플레이어 LP 데미지
     let lpDamageToAttacker: Int  // 공격 측 플레이어 LP 데미지
     let remainingShield: Int     // 전투 후 방어자에게 남은 방어막
+    let attackerEffectiveCP: Int // 효과 반영된 공격자 전투력
+    let defenderEffectiveCP: Int // 효과 반영된 방어자 전투력
 }
 
 /// 전투 계산 엔진
@@ -56,7 +58,9 @@ struct BattleEngine {
                 defenderDestroyed: true,
                 lpDamageToDefender: attackDamage - defenderCP,
                 lpDamageToAttacker: 0,
-                remainingShield: 0
+                remainingShield: 0,
+                attackerEffectiveCP: attackerCP,
+                defenderEffectiveCP: defenderCP
             )
         } else if attackDamage < defenderCP {
             // 방어자 승리: 공격자 파괴, 차이만큼 LP 데미지
@@ -65,7 +69,9 @@ struct BattleEngine {
                 defenderDestroyed: false,
                 lpDamageToDefender: 0,
                 lpDamageToAttacker: defenderCP - attackDamage,
-                remainingShield: shieldAfterHit
+                remainingShield: shieldAfterHit,
+                attackerEffectiveCP: attackerCP,
+                defenderEffectiveCP: defenderCP
             )
         } else {
             // 동일: 양쪽 파괴
@@ -74,7 +80,9 @@ struct BattleEngine {
                 defenderDestroyed: true,
                 lpDamageToDefender: 0,
                 lpDamageToAttacker: 0,
-                remainingShield: 0
+                remainingShield: 0,
+                attackerEffectiveCP: attackerCP,
+                defenderEffectiveCP: defenderCP
             )
         }
     }
