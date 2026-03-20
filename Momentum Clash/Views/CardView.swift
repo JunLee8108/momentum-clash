@@ -12,13 +12,18 @@ struct CardView: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            // 상단: 비용 + 속성
+            // 상단: 기력 비용 + 속성
             HStack {
-                Text("\(card.cost)")
-                    .font(.system(size: isSmall ? 10 : 12, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: isSmall ? 16 : 20, height: isSmall ? 16 : 20)
-                    .background(Circle().fill(Color.blue))
+                HStack(spacing: 1) {
+                    Image(systemName: "bolt.circle.fill")
+                        .font(.system(size: isSmall ? 8 : 10))
+                    Text("\(card.cost)")
+                        .font(.system(size: isSmall ? 10 : 12, weight: .bold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, isSmall ? 3 : 4)
+                .padding(.vertical, isSmall ? 1 : 2)
+                .background(Capsule().fill(Color.cyan.opacity(0.8)))
 
                 Spacer()
 

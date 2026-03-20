@@ -66,32 +66,26 @@ struct TurnSystem {
         player.deck.append(rejected) // 덱 맨 아래로
     }
 
-    /// 카드 소환 비용 지불 가능 여부
+    /// 카드 소환 비용 지불 가능 여부 (기력으로만 지불)
     static func canPayCost(
         cost: Int,
-        currentEnergy: Int,
-        currentMomentum: Int
+        currentEnergy: Int
     ) -> Bool {
-        return currentEnergy + currentMomentum >= cost
+        return currentEnergy >= cost
     }
 
-    /// 비용 지불 (기력 우선 소모, 부족하면 기세 소모)
-    /// - Returns: (소모된 기력, 소모된 기세)
+    /// 비용 지불 (기력으로만 소모)
+    /// - Returns: 소모된 기력, 기력 부족 시 nil
     static func payCost(
         cost: Int,
         player: inout Player
-    ) -> (energySpent: Int, momentumSpent: Int)? {
-        guard canPayCost(cost: cost, currentEnergy: player.energy, currentMomentum: player.momentum) else {
+    ) -> Int? {
+        guard canPayCost(cost: cost, currentEnergy: player.energy) else {
             return nil
         }
 
-        let energySpent = min(player.energy, cost)
-        let momentumSpent = cost - energySpent
-
-        player.energy -= energySpent
-        player.momentum -= momentumSpent
-
-        return (energySpent, momentumSpent)
+        player.energy -= cost
+        return cost
     }
 
     /// 엔드 페이즈 패 제한 확인

@@ -1,19 +1,20 @@
 import Foundation
 
 /// 기세(Momentum) 시스템
-/// - 기세는 전투와 행동으로 쌓이며, 카드 소환 비용이자 기세 스킬 자원
+/// - 기세는 전투와 행동으로 쌓이며, 기세 스킬 전용 자원
+/// - 기력(Energy)은 카드 소환/마법 발동 전용 자원
 /// - 최대 10, 턴 간 누적
 struct MomentumSystem {
     static let maxMomentum = 10
-    static let baseEnergy = 2
+    static let baseEnergy = 3
 
     /// LP 비율에 따른 위기 보정 기본 기력 계산
     static func baseEnergy(currentLP: Int, maxLP: Int) -> Int {
         let ratio = Double(currentLP) / Double(maxLP)
         if ratio <= 0.25 {
-            return 4
+            return 5
         } else if ratio <= 0.5 {
-            return 3
+            return 4
         }
         return baseEnergy
     }
