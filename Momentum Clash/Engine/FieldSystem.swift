@@ -17,9 +17,10 @@ struct FieldSlot: Equatable {
     var terrain: Attribute?      // nil이면 중립 지형
     var content: SlotContent     // 배치된 카드
     var terrainRetainTurns: Int  // 카드 제거 후 지형 유지 남은 턴 수
+    var hasAttacked: Bool = false // 이번 턴에 공격했는지
 
     static var empty: FieldSlot {
-        FieldSlot(terrain: nil, content: .empty, terrainRetainTurns: 0)
+        FieldSlot(terrain: nil, content: .empty, terrainRetainTurns: 0, hasAttacked: false)
     }
 }
 
@@ -94,6 +95,13 @@ struct PlayerField: Equatable {
         guard index >= 0, index < PlayerField.slotCount else { return }
         if case .monster(let card, let currentShield) = slots[index].content {
             slots[index].content = .monster(card, shield: currentShield + amount)
+        }
+    }
+
+    /// 모든 슬롯의 공격 플래그 리셋 (턴 시작 시)
+    mutating func resetAttackFlags() {
+        for i in slots.indices {
+            slots[i].hasAttacked = false
         }
     }
 

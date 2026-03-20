@@ -116,6 +116,7 @@ struct FieldSlotView: View {
     let index: Int
     var isHighlighted: Bool = false
     var aiHighlightColor: Color? = nil
+    var hasAttacked: Bool = false
     var onTap: (() -> Void)? = nil
 
     private let slotWidth: CGFloat = 75
@@ -212,6 +213,15 @@ struct FieldSlotView: View {
                 if let color = aiHighlightColor {
                     RoundedRectangle(cornerRadius: 6)
                         .fill(color.opacity(0.2))
+                        .allowsHitTesting(false)
+                }
+            }
+        )
+        .overlay(
+            Group {
+                if hasAttacked {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.4))
                         .allowsHitTesting(false)
                 }
             }
