@@ -6,6 +6,7 @@ struct DeckBuilderView: View {
     @State private var showDeckList = false
     @State private var selectedCard: AnyCard? = nil
     @State private var showPresetSheet = false
+    @State private var showSavedDeckSheet = false
 
     var body: some View {
         ZStack {
@@ -47,6 +48,16 @@ struct DeckBuilderView: View {
             .presentationDetents([.medium])
             .presentationBackground(Color(red: 0.06, green: 0.06, blue: 0.14))
         }
+        .sheet(isPresented: $showSavedDeckSheet) {
+            SavedDeckSheet(
+                currentDeck: deckVM.deck,
+                isDeckValid: deckVM.isDeckValid
+            ) { cards in
+                deckVM.deck = cards
+            }
+            .presentationDetents([.medium, .large])
+            .presentationBackground(Color(red: 0.06, green: 0.06, blue: 0.14))
+        }
         .fullScreenCover(item: $selectedCard) { card in
             DeckCardDetailView(
                 card: card,
@@ -85,6 +96,20 @@ struct DeckBuilderView: View {
                     .padding(.vertical, 6)
                     .background(
                         Capsule().stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                    )
+            }
+
+            // 나의 덱 버튼
+            Button {
+                showSavedDeckSheet = true
+            } label: {
+                Text("나의 덱")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule().stroke(Color.cyan.opacity(0.5), lineWidth: 1)
                     )
             }
 
