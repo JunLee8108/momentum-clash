@@ -146,7 +146,7 @@ struct FieldSlotView: View {
                     .foregroundColor(.gray.opacity(0.5))
             }
         }
-        .frame(width: 60, height: 70)
+        .frame(width: 75, height: 90)
         .background(
             RoundedRectangle(cornerRadius: 6)
                 .fill(slotBackground)
