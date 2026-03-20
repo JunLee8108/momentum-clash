@@ -137,9 +137,6 @@ struct GameBoardView: View {
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
-                .onLongPressGesture {
-                    showFieldCardDetail(slot: slot)
-                }
             }
         }
     }
@@ -189,6 +186,12 @@ struct GameBoardView: View {
                 return
             }
         }
+
+        // 게임 액션이 없으면 → 카드 상세보기
+        let slot = isOpponent
+            ? viewModel.aiPlayer.field.slots[index]
+            : viewModel.player.field.slots[index]
+        showFieldCardDetail(slot: slot)
     }
 
     private func showFieldCardDetail(slot: FieldSlot) {

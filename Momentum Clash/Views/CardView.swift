@@ -117,11 +117,15 @@ struct FieldSlotView: View {
     var isHighlighted: Bool = false
     var onTap: (() -> Void)? = nil
 
+    private let slotWidth: CGFloat = 75
+    private let slotHeight: CGFloat = 90
+
     var body: some View {
         VStack(spacing: 2) {
             // 지형 표시
             Text(slot.terrain?.emoji ?? "·")
                 .font(.system(size: 10))
+                .foregroundColor(.white.opacity(0.9))
 
             // 카드 내용
             switch slot.content {
@@ -129,6 +133,7 @@ struct FieldSlotView: View {
                 VStack(spacing: 1) {
                     Text(card.name)
                         .font(.system(size: 8, weight: .bold))
+                        .foregroundColor(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
 
@@ -156,6 +161,7 @@ struct FieldSlotView: View {
                         .foregroundColor(.purple)
                     Text(card.name)
                         .font(.system(size: 7))
+                        .foregroundColor(.white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                 }
@@ -166,10 +172,31 @@ struct FieldSlotView: View {
                     .foregroundColor(.gray.opacity(0.5))
             }
         }
-        .frame(width: 75, height: 90)
+        .frame(width: slotWidth, height: slotHeight)
         .background(
-            RoundedRectangle(cornerRadius: 6)
-                .fill(slotBackground)
+            ZStack {
+                if let imageName = cardImageName, let uiImage = UIImage(named: imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: slotWidth, height: slotHeight)
+                        .clipped()
+
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.4),
+                            Color.black.opacity(0.2),
+                            Color.black.opacity(0.6)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(slotBackground)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6)
@@ -177,6 +204,14 @@ struct FieldSlotView: View {
         )
         .onTapGesture {
             onTap?()
+        }
+    }
+
+    private var cardImageName: String? {
+        switch slot.content {
+        case .monster(let card, _): return card.imageName
+        case .spell(let card): return card.imageName
+        case .empty: return nil
         }
     }
 
