@@ -45,6 +45,7 @@ struct DeckBuilderView: View {
                 deckVM.loadPreset(preset)
             }
             .presentationDetents([.medium])
+            .presentationBackground(Color(red: 0.06, green: 0.06, blue: 0.14))
         }
         .fullScreenCover(item: $selectedCard) { card in
             DeckCardDetailView(
