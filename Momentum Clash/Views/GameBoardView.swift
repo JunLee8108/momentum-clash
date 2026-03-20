@@ -563,7 +563,7 @@ struct GameBoardView: View {
             if viewModel.isPlayerTurn {
                 switch viewModel.uiState {
                 case .mainPhase:
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Button {
                             showMomentumSkillPanel.toggle()
                         } label: {
@@ -576,20 +576,23 @@ struct GameBoardView: View {
                         Button {
                             viewModel.enterSacrificeMode()
                         } label: {
-                            Label("릴리즈", systemImage: "arrow.uturn.down")
+                            Label("희생", systemImage: "arrow.uturn.down")
                         }
                         .buttonStyle(GameButtonStyle(color: .purple))
                         .disabled(!viewModel.hasSacrifiableMonster)
                         .opacity(viewModel.hasSacrifiableMonster ? 1.0 : 0.4)
-                    }
-                    HStack(spacing: 8) {
-                        Button("배틀 페이즈") {
+
+                        Button {
                             viewModel.enterBattlePhase()
+                        } label: {
+                            Label("배틀", systemImage: "bolt.fill")
                         }
                         .buttonStyle(GameButtonStyle(color: .red))
 
-                        Button("턴 종료") {
+                        Button {
                             viewModel.endTurn()
+                        } label: {
+                            Label("턴 종료", systemImage: "stop.circle")
                         }
                         .buttonStyle(GameButtonStyle(color: .gray))
                     }
@@ -693,9 +696,11 @@ struct GameButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .bold))
+            .font(.system(size: 12, weight: .bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundColor(.white)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
                 Capsule()
