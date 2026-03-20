@@ -30,6 +30,7 @@ struct CardView: View {
             // 이름
             Text(card.name)
                 .font(.system(size: isSmall ? 9 : 11, weight: .bold))
+                .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
@@ -38,7 +39,7 @@ struct CardView: View {
             case .monster(let m):
                 Text(m.monsterType.displayName)
                     .font(.system(size: isSmall ? 7 : 9))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.7))
 
                 Spacer()
 
@@ -61,7 +62,7 @@ struct CardView: View {
             case .spell(let s):
                 Text(s.spellType.displayName)
                     .font(.system(size: isSmall ? 7 : 9))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.7))
 
                 Spacer()
 
@@ -73,8 +74,31 @@ struct CardView: View {
         .padding(4)
         .frame(width: width, height: height)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(cardBackground)
+            ZStack {
+                // 카드 이미지 썸네일
+                if let uiImage = UIImage(named: card.imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: width, height: height)
+                        .clipped()
+
+                    // 어두운 오버레이 (텍스트 가독성)
+                    LinearGradient(
+                        colors: [
+                            Color.black.opacity(0.4),
+                            Color.black.opacity(0.2),
+                            Color.black.opacity(0.6)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                } else {
+                    // 이미지 없으면 기존 속성 색상 배경
+                    attributeColor(card.attribute).opacity(0.15)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -83,10 +107,6 @@ struct CardView: View {
         .onTapGesture {
             onTap?()
         }
-    }
-
-    private var cardBackground: Color {
-        attributeColor(card.attribute).opacity(0.15)
     }
 }
 

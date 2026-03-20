@@ -11,40 +11,40 @@ struct CardDetailView: View {
     @State private var appeared = false
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // 배경 이미지 (정확히 화면 크기)
+        ZStack {
+            // 배경 이미지 — safe area 무시하여 전체 화면 채움
+            GeometryReader { geo in
                 cardBackground(size: geo.size)
-
-                // 그라데이션 오버레이
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.3),
-                        Color.clear,
-                        Color.black.opacity(0.7)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                // 콘텐츠
-                VStack(spacing: 0) {
-                    topBadges
-                        .padding(.top, geo.safeAreaInsets.top + 12)
-
-                    Spacer()
-
-                    infoPanel
-
-                    actionButtons
-                        .padding(.top, 12)
-                        .padding(.bottom, geo.safeAreaInsets.bottom + 16)
-                }
-                .padding(.horizontal, 20)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
+            .ignoresSafeArea()
+
+            // 그라데이션 오버레이 — 역시 전체 화면
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.black.opacity(0.7)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            // 콘텐츠 — safe area 존중
+            VStack(spacing: 0) {
+                topBadges
+                    .padding(.top, 12)
+
+                Spacer()
+
+                infoPanel
+
+                actionButtons
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+            }
+            .padding(.horizontal, 20)
         }
-        .ignoresSafeArea()
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.easeOut(duration: 0.25)) {
@@ -260,83 +260,85 @@ struct FieldCardDetailView: View {
     @State private var appeared = false
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                // 배경 이미지
+        ZStack {
+            // 배경 이미지 — safe area 무시하여 전체 화면 채움
+            GeometryReader { geo in
                 cardBackground(size: geo.size)
+            }
+            .ignoresSafeArea()
 
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.3),
-                        Color.clear,
-                        Color.black.opacity(0.7)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            // 그라데이션 오버레이
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.black.opacity(0.7)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    HStack {
-                        Text(card.attribute.emoji + " " + card.attribute.displayName)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .liquidGlass(cornerRadius: 20, opacity: 0.5)
-
-                        Spacer()
-
-                        Text(card.rarity.displayName)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(rarityColor)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .liquidGlass(cornerRadius: 20, opacity: 0.5)
-                    }
-                    .padding(.top, geo.safeAreaInsets.top + 12)
+            // 콘텐츠 — safe area 존중
+            VStack(spacing: 0) {
+                HStack {
+                    Text(card.attribute.emoji + " " + card.attribute.displayName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .liquidGlass(cornerRadius: 20, opacity: 0.5)
 
                     Spacer()
 
-                    // 정보 패널
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(card.name)
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.7)
-
-                        switch card {
-                        case .monster(let m):
-                            monsterInfo(m)
-                        case .spell(let s):
-                            spellInfo(s)
-                        }
-
-                        if !card.flavorText.isEmpty {
-                            Text(card.flavorText)
-                                .font(.system(size: 13))
-                                .italic()
-                                .foregroundColor(.white.opacity(0.6))
-                                .lineLimit(3)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .liquidGlass(cornerRadius: 16, opacity: 0.5)
-
-                    Button("닫기") {
-                        onClose()
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(color: .white))
-                    .padding(.top, 12)
-                    .padding(.bottom, geo.safeAreaInsets.bottom + 16)
+                    Text(card.rarity.displayName)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(rarityColor)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .liquidGlass(cornerRadius: 20, opacity: 0.5)
                 }
-                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+                Spacer()
+
+                // 정보 패널
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(card.name)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+
+                    switch card {
+                    case .monster(let m):
+                        monsterInfo(m)
+                    case .spell(let s):
+                        spellInfo(s)
+                    }
+
+                    if !card.flavorText.isEmpty {
+                        Text(card.flavorText)
+                            .font(.system(size: 13))
+                            .italic()
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .liquidGlass(cornerRadius: 16, opacity: 0.5)
+
+                Button("닫기") {
+                    onClose()
+                }
+                .buttonStyle(LiquidGlassButtonStyle(color: .white))
+                .padding(.top, 12)
+                .padding(.bottom, 16)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
+            .padding(.horizontal, 20)
         }
-        .ignoresSafeArea()
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.easeOut(duration: 0.25)) {
