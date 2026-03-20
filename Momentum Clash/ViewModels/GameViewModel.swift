@@ -196,10 +196,9 @@ class GameViewModel {
         let index = detail.handIndex
         showingCardDetail = nil
 
-        // 비용 확인
-        let totalResource = player.energy + player.momentum
-        if card.cost > totalResource {
-            addLog("자원이 부족합니다! (비용: \(card.cost), 보유: \(totalResource))")
+        // 비용 확인 (기력으로만 지불)
+        if card.cost > player.energy {
+            addLog("기력이 부족합니다! (비용: \(card.cost), 기력: \(player.energy))")
             return
         }
 
@@ -231,8 +230,7 @@ class GameViewModel {
     /// 패에서 카드 사용 가능 여부
     func canUseCard(_ card: AnyCard) -> Bool {
         guard isPlayerTurn, gameState.currentPhase == .main else { return false }
-        let totalResource = player.energy + player.momentum
-        guard card.cost <= totalResource else { return false }
+        guard card.cost <= player.energy else { return false }
         if case .monster = card {
             return !player.field.emptySlotIndices.isEmpty
         }
@@ -245,7 +243,7 @@ class GameViewModel {
     func summonToSlot(_ slotIndex: Int) {
         guard case .selectingSummonSlot(let card, let handIndex) = uiState else { return }
 
-        guard let payment = TurnSystem.payCost(
+        guard let energySpent = TurnSystem.payCost(
             cost: card.cost,
             player: &gameState.players[gameState.currentPlayerIndex]
         ) else {
@@ -260,7 +258,7 @@ class GameViewModel {
         if case .monster(let monsterCard) = card {
             let success = gameState.currentPlayer.field.summonMonster(monsterCard, at: slotIndex)
             if success {
-                addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(payment.energySpent), 기세 -\(payment.momentumSpent)]")
+                addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
             }
         } else if case .spell(let spellCard) = card {
             let success = gameState.currentPlayer.field.placeSpell(spellCard, at: slotIndex)
@@ -277,13 +275,13 @@ class GameViewModel {
     }
 
     private func executeSpell(_ spell: SpellCard, handIndex: Int) {
-        guard let payment = TurnSystem.payCost(
+        guard let energySpent = TurnSystem.payCost(
             cost: spell.cost,
             player: &gameState.players[gameState.currentPlayerIndex]
         ) else { return }
         gameState.currentPlayer.hand.remove(at: handIndex)
 
-        addLog("\(spell.name) 발동! [기력 -\(payment.energySpent), 기세 -\(payment.momentumSpent)]")
+        addLog("\(spell.name) 발동! [기력 -\(energySpent)]")
 
         // 간단한 효과 처리
         applySpellEffect(spell)
@@ -743,7 +741,7 @@ class GameViewModel {
         }
 
         for plan in summonPlans {
-            // 비용 지불
+            // 비용 지불 (기력으로만)
             guard TurnSystem.payCost(
                 cost: plan.card.cost,
                 player: &gameState.players[idx]

@@ -80,10 +80,9 @@ struct BasicAI {
             keepGoing = false
 
             let hand = gameState.players[idx].hand
-            let totalResource = gameState.players[idx].energy + gameState.players[idx].momentum
 
             let summonCandidates = hand.enumerated().compactMap { (i, card) -> (index: Int, card: AnyCard, priority: Int)? in
-                guard card.cost <= totalResource else { return nil }
+                guard card.cost <= gameState.players[idx].energy else { return nil }
 
                 switch card {
                 case .monster(let m):
@@ -256,7 +255,6 @@ struct BasicAI {
         let opponentIdx = 1 - idx
         var simulatedHand = gameState.players[idx].hand
         var simulatedEnergy = gameState.players[idx].energy
-        var simulatedMomentum = gameState.players[idx].momentum
         var occupiedSlots = Set<Int>()
         // 지형 정보를 시뮬레이션용으로 복사
         var simulatedTerrains: [Attribute?] = gameState.players[idx].field.slots.map { $0.terrain }
@@ -270,10 +268,8 @@ struct BasicAI {
         var keepGoing = true
         while keepGoing {
             keepGoing = false
-            let totalResource = simulatedEnergy + simulatedMomentum
-
             let candidates = simulatedHand.enumerated().compactMap { (i, card) -> (index: Int, card: AnyCard, priority: Int)? in
-                guard card.cost <= totalResource else { return nil }
+                guard card.cost <= simulatedEnergy else { return nil }
                 switch card {
                 case .monster(let m):
                     let hasEmpty = (0..<PlayerField.slotCount).contains { !occupiedSlots.contains($0) }
@@ -296,11 +292,7 @@ struct BasicAI {
             }.sorted { $0.priority > $1.priority }
 
             if let best = candidates.first {
-                let cost = best.card.cost
-                let energySpent = min(simulatedEnergy, cost)
-                let momentumSpent = cost - energySpent
-                simulatedEnergy -= energySpent
-                simulatedMomentum -= momentumSpent
+                simulatedEnergy -= best.card.cost
 
                 simulatedHand.remove(at: best.index)
 

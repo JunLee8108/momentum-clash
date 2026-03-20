@@ -132,7 +132,7 @@ struct CardDetailView: View {
                 Image(systemName: "bolt.circle.fill")
                     .font(.system(size: 14))
                     .foregroundColor(.cyan)
-                Text("비용: \(card.cost)")
+                Text("기력: \(card.cost)")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.9))
             }
