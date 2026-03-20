@@ -11,6 +11,7 @@ enum GameUIState: Equatable {
     case selectingAttackTarget(attackerSlot: Int)
     case selectingSummonSlot(card: AnyCard, handIndex: Int)
     case selectingSacrificeSlot
+    case selectingFightingTarget
     case aiTurn
     case gameOver(winner: String)
 }
@@ -525,12 +526,12 @@ class GameViewModel {
         let atkEffective = BattleEngine.calculateEffectiveCP(
             card: atkCard, slotIndex: attackerSlot,
             field: player.field, opponentAttribute: defCard.attribute,
-            momentumBonus: gameState.players[playerIndex].momentumBonus, globalTerrain: gameState.globalTerrain
+            momentumBonus: effectiveMomentumBonus(forPlayerAt: playerIndex, slotIndex: attackerSlot), globalTerrain: gameState.globalTerrain
         )
         let defEffective = BattleEngine.calculateEffectiveCP(
             card: defCard, slotIndex: defenderSlot,
             field: aiPlayer.field, opponentAttribute: atkCard.attribute,
-            momentumBonus: gameState.players[aiIndex].momentumBonus, globalTerrain: gameState.globalTerrain
+            momentumBonus: effectiveMomentumBonus(forPlayerAt: aiIndex, slotIndex: defenderSlot), globalTerrain: gameState.globalTerrain
         )
 
         combatPreview = CombatPreviewData(
@@ -597,8 +598,8 @@ class GameViewModel {
                 defenderCard: defCard,
                 defenderSlot: defSlot,
                 defenderField: gameState.players[aiIndex].field,
-                attackerMomentumBonus: gameState.players[playerIndex].momentumBonus,
-                defenderMomentumBonus: gameState.players[aiIndex].momentumBonus,
+                attackerMomentumBonus: effectiveMomentumBonus(forPlayerAt: playerIndex, slotIndex: attackerSlot),
+                defenderMomentumBonus: effectiveMomentumBonus(forPlayerAt: aiIndex, slotIndex: defSlot),
                 defenderShield: shield,
                 globalTerrain: gameState.globalTerrain
             )
@@ -683,7 +684,7 @@ class GameViewModel {
                 attackerCard: atkCard,
                 attackerSlot: attackerSlot,
                 attackerField: gameState.players[playerIndex].field,
-                momentumBonus: gameState.players[playerIndex].momentumBonus,
+                momentumBonus: effectiveMomentumBonus(forPlayerAt: playerIndex, slotIndex: attackerSlot),
                 globalTerrain: gameState.globalTerrain
             )
 
@@ -709,12 +710,44 @@ class GameViewModel {
         }
     }
 
+    // MARK: - 기세 보너스 계산
+
+    /// 특정 플레이어의 특정 슬롯에 적용되는 기세 보너스 계산
+    /// 투지는 타겟 슬롯에만, 돌파 등은 전체에 적용
+    func effectiveMomentumBonus(forPlayerAt playerIdx: Int, slotIndex: Int) -> Int {
+        let p = gameState.players[playerIdx]
+        guard let skill = p.activeMomentumSkill else { return 0 }
+        switch skill {
+        case .fighting:
+            return p.fightingTargetSlot == slotIndex ? 500 : 0
+        case .breakthrough:
+            return 300
+        case .terrainMastery:
+            return p.momentumBonus  // 이미 전체 적용
+        default:
+            return p.momentumBonus
+        }
+    }
+
     // MARK: - 기세 스킬
 
     func useMomentumSkill(_ skill: MomentumSkill) {
         guard isPlayerTurn, gameState.currentPhase == .main else { return }
         guard player.momentum >= skill.cost else {
             addLog("기세가 부족합니다! (필요: \(skill.cost), 보유: \(player.momentum))")
+            return
+        }
+
+        // 투지: 필드에 몬스터가 있어야 하고, 타겟 선택 모드로 전환
+        if skill == .fighting {
+            guard player.field.monsterCount > 0 else {
+                addLog("필드에 몬스터가 없습니다!")
+                return
+            }
+            gameState.currentPlayer.momentum -= skill.cost
+            gameState.currentPlayer.activeMomentumSkill = skill
+            addLog("기세 스킬 [\(skill.displayName)] 발동! 대상 몬스터를 선택하세요.")
+            uiState = .selectingFightingTarget
             return
         }
 
@@ -739,10 +772,6 @@ class GameViewModel {
         }
 
         switch skill {
-        case .fighting:
-            // 이번 턴 전투력 +500
-            gameState.currentPlayer.momentumBonus += 500
-            addLog("몬스터 전투력 +500!")
         case .terrainMastery:
             // 지형 보너스 2배: 추가 +300 (합계 +600)
             gameState.currentPlayer.momentumBonus += PlayerField.globalTerrainBonus
@@ -768,6 +797,34 @@ class GameViewModel {
         default:
             break
         }
+    }
+
+    /// 투지 스킬 타겟 선택 완료
+    func applyFightingSkill(toSlot slotIndex: Int) {
+        guard case .selectingFightingTarget = uiState else { return }
+        guard case .monster(let m, _) = player.field.slots[slotIndex].content else { return }
+
+        gameState.currentPlayer.fightingTargetSlot = slotIndex
+        gameState.currentPlayer.momentumBonus += 500
+        addLog("\(m.name)에 투지 적용! 전투력 +500!")
+
+        // 배너 애니메이션
+        withAnimation(.easeInOut(duration: 0.3)) {
+            battleDisplay = BattleDisplay(
+                message: "\(m.name) 전투력 +500!",
+                isPlayerAction: true
+            )
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(0.8))
+            await MainActor.run {
+                withAnimation {
+                    battleDisplay = nil
+                }
+            }
+        }
+
+        uiState = .mainPhase
     }
 
     // MARK: - 턴 종료
@@ -913,8 +970,8 @@ class GameViewModel {
                         defenderCard: defCard,
                         defenderSlot: defSlot,
                         defenderField: gameState.players[defIdx].field,
-                        attackerMomentumBonus: gameState.players[idx].momentumBonus,
-                        defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
+                        attackerMomentumBonus: effectiveMomentumBonus(forPlayerAt: idx, slotIndex: plan.attackerSlot),
+                        defenderMomentumBonus: effectiveMomentumBonus(forPlayerAt: defIdx, slotIndex: defSlot),
                         defenderShield: shield,
                         globalTerrain: gameState.globalTerrain
                     )
@@ -977,7 +1034,7 @@ class GameViewModel {
                         attackerCard: atkCard,
                         attackerSlot: plan.attackerSlot,
                         attackerField: gameState.players[idx].field,
-                        momentumBonus: gameState.players[idx].momentumBonus,
+                        momentumBonus: effectiveMomentumBonus(forPlayerAt: idx, slotIndex: plan.attackerSlot),
                         globalTerrain: gameState.globalTerrain
                     )
 
@@ -1053,8 +1110,25 @@ class GameViewModel {
 
         switch skill {
         case .fighting:
-            gameState.players[idx].momentumBonus += 500
-            addLog("몬스터 전투력 +500!")
+            // AI: 가장 전투력 높은 몬스터를 타겟으로 자동 선택
+            let bestSlot = gameState.players[idx].field.monsterSlotIndices.max { a, b in
+                let cpA: Int = {
+                    if case .monster(let m, _) = gameState.players[idx].field.slots[a].content { return m.combatPower }
+                    return 0
+                }()
+                let cpB: Int = {
+                    if case .monster(let m, _) = gameState.players[idx].field.slots[b].content { return m.combatPower }
+                    return 0
+                }()
+                return cpA < cpB
+            }
+            if let targetSlot = bestSlot {
+                gameState.players[idx].fightingTargetSlot = targetSlot
+                gameState.players[idx].momentumBonus += 500
+                if case .monster(let m, _) = gameState.players[idx].field.slots[targetSlot].content {
+                    addLog("\(m.name)에 투지 적용! 전투력 +500!")
+                }
+            }
         case .terrainMastery:
             let terrain = gameState.globalTerrain
             gameState.players[idx].momentumBonus += PlayerField.globalTerrainBonus

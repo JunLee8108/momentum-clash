@@ -121,6 +121,7 @@ struct FieldSlotView: View {
     let index: Int
     var globalTerrain: Attribute? = nil
     var activeMomentumSkill: MomentumSkill? = nil
+    var fightingTargetSlot: Int? = nil
     var momentumBonus: Int = 0
     var isHighlighted: Bool = false
     var aiHighlightColor: Color? = nil
@@ -238,7 +239,7 @@ struct FieldSlotView: View {
         guard let skill = activeMomentumSkill else { return 0 }
         switch skill {
         case .fighting:
-            return 500
+            return fightingTargetSlot == index ? 500 : 0
         case .terrainMastery:
             // 지형 일치 몬스터만 추가 보너스
             if let terrain = globalTerrain, card.attribute == terrain {
@@ -306,8 +307,12 @@ struct FieldSlotView: View {
     private var hasMomentumGlow: Bool {
         guard let skill = activeMomentumSkill else { return false }
         switch skill {
-        case .fighting, .breakthrough:
-            // 몬스터가 있는 슬롯에만 glow
+        case .fighting:
+            // 투지: 타겟 슬롯에만 glow
+            if fightingTargetSlot == index, case .monster = slot.content { return true }
+            return false
+        case .breakthrough:
+            // 돌파: 모든 몬스터 슬롯에 glow
             if case .monster = slot.content { return true }
             return false
         case .terrainMastery:
