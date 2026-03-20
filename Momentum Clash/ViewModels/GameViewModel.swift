@@ -125,6 +125,7 @@ class GameViewModel {
     func startGame() {
         addLog("⚔️ Momentum Clash 시작!")
         addLog("\(player.name)이 선공입니다. 기세 2로 시작!")
+        addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2턴)")
         startTurn()
     }
 
@@ -292,30 +293,19 @@ class GameViewModel {
     }
 
     private func applySpellEffect(_ spell: SpellCard) {
+        // 지형 마법 처리
+        if spell.spellType == .terrain {
+            applyTerrainSpell(spell)
+            return
+        }
+
         switch spell.name {
         case "대지의 방벽":
-            // 아군 몬스터 1체에 방어막 600
             if let firstMonster = gameState.currentPlayer.field.monsterSlotIndices.first {
                 gameState.currentPlayer.field.applyShield(600, at: firstMonster)
                 addLog("방어막 600 부여!")
             }
-        case "화염 폭풍":
-            // 상대 몬스터 전체에 400 데미지 (CP 이하면 파괴)
-            let opponentIdx = gameState.opponentIndex
-            for i in gameState.players[opponentIdx].field.monsterSlotIndices.reversed() {
-                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[i].content {
-                    if m.combatPower <= 400 {
-                        gameState.players[opponentIdx].field.removeCard(at: i)
-                        gameState.players[opponentIdx].graveyard.append(.monster(m))
-                        addLog("\(m.name) 파괴!")
-                    }
-                }
-            }
-        case "치유의 비":
-            gameState.currentPlayer.lp = min(TurnSystem.startingLP, gameState.currentPlayer.lp + 500)
-            addLog("LP 500 회복! (현재 LP: \(gameState.currentPlayer.lp))")
         case "낙뢰":
-            // 상대 몬스터 1체에 800 데미지
             let opponentIdx = gameState.opponentIndex
             if let target = gameState.players[opponentIdx].field.monsterSlotIndices.first {
                 if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
@@ -328,22 +318,61 @@ class GameViewModel {
                     }
                 }
             }
-        case "대지의 울림":
-            // 빈 슬롯 2개를 지(地) 속성으로 변경
-            var changed = 0
-            for i in 0..<PlayerField.slotCount where changed < 2 {
-                gameState.currentPlayer.field.setTerrain(.earth, at: i)
-                changed += 1
-            }
-            addLog("슬롯 \(changed)개를 지(地) 지형으로 변경!")
         case "바람의 칼날":
-            // 장착: 첫 번째 몬스터 전투력 +400 (방어막으로 구현)
             if let firstMonster = gameState.currentPlayer.field.monsterSlotIndices.first {
                 gameState.currentPlayer.field.applyShield(400, at: firstMonster)
                 addLog("몬스터에 전투력 +400 장착!")
             }
         default:
             addLog("\(spell.name) 효과 발동!")
+        }
+    }
+
+    /// 지형 마법카드 효과 처리
+    private func applyTerrainSpell(_ spell: SpellCard) {
+        let prevTerrain = gameState.globalTerrain
+        gameState.setSpellTerrain(spell.attribute)
+        addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2턴)")
+
+        // 속성별 부가효과
+        switch spell.attribute {
+        case .fire:
+            // 상대 몬스터 전체에 200 데미지
+            let opponentIdx = gameState.opponentIndex
+            for i in gameState.players[opponentIdx].field.monsterSlotIndices.reversed() {
+                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[i].content {
+                    if m.combatPower <= 200 {
+                        gameState.players[opponentIdx].field.removeCard(at: i)
+                        gameState.players[opponentIdx].graveyard.append(.monster(m))
+                        addLog("\(m.name) 파괴! (화염 데미지)")
+                    }
+                }
+            }
+            addLog("상대 전체에 200 데미지!")
+
+        case .water:
+            // LP 300 회복
+            gameState.currentPlayer.lp = min(TurnSystem.startingLP, gameState.currentPlayer.lp + 300)
+            addLog("LP 300 회복! (현재 LP: \(gameState.currentPlayer.lp))")
+
+        case .earth:
+            // 아군 몬스터 전체에 방어막 200
+            for slot in gameState.currentPlayer.field.monsterSlotIndices {
+                gameState.currentPlayer.field.applyShield(200, at: slot)
+            }
+            addLog("아군 전체 방어막 200 부여!")
+
+        case .wind:
+            // 상대 몬스터 1체 CP -200 (방어막 -200으로 구현, 최소 0)
+            let opponentIdx = gameState.opponentIndex
+            if let target = gameState.players[opponentIdx].field.monsterSlotIndices.first {
+                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
+                    addLog("\(m.name) 전투력 -200!")
+                }
+            }
+
+        default:
+            break
         }
     }
 
@@ -383,8 +412,8 @@ class GameViewModel {
             return
         }
 
-        let atkTerrainBonus = player.field.terrainBonus(at: attackerSlot)
-        let defTerrainBonus = aiPlayer.field.terrainBonus(at: defenderSlot)
+        let atkTerrainBonus = player.field.terrainBonus(at: attackerSlot, globalTerrain: gameState.globalTerrain)
+        let defTerrainBonus = aiPlayer.field.terrainBonus(at: defenderSlot, globalTerrain: gameState.globalTerrain)
 
         let atkMultiplier = atkCard.attribute.damageMultiplier(against: defCard.attribute)
         let defMultiplier = defCard.attribute.damageMultiplier(against: atkCard.attribute)
@@ -392,12 +421,12 @@ class GameViewModel {
         let atkEffective = BattleEngine.calculateEffectiveCP(
             card: atkCard, slotIndex: attackerSlot,
             field: player.field, opponentAttribute: defCard.attribute,
-            momentumBonus: 0
+            momentumBonus: 0, globalTerrain: gameState.globalTerrain
         )
         let defEffective = BattleEngine.calculateEffectiveCP(
             card: defCard, slotIndex: defenderSlot,
             field: aiPlayer.field, opponentAttribute: atkCard.attribute,
-            momentumBonus: 0
+            momentumBonus: 0, globalTerrain: gameState.globalTerrain
         )
 
         combatPreview = CombatPreviewData(
@@ -464,7 +493,8 @@ class GameViewModel {
                 defenderField: gameState.players[aiIndex].field,
                 attackerMomentumBonus: 0,
                 defenderMomentumBonus: 0,
-                defenderShield: shield
+                defenderShield: shield,
+                globalTerrain: gameState.globalTerrain
             )
 
             addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
@@ -539,7 +569,8 @@ class GameViewModel {
                 attackerCard: atkCard,
                 attackerSlot: attackerSlot,
                 attackerField: gameState.players[playerIndex].field,
-                momentumBonus: 0
+                momentumBonus: 0,
+                globalTerrain: gameState.globalTerrain
             )
 
             gameState.players[aiIndex].takeDamage(damage)
@@ -583,16 +614,16 @@ class GameViewModel {
                 gameState.currentPlayer.field.applyShield(500, at: slot)
                 addLog("몬스터 전투력 +500!")
             }
-        case .terrainShift:
-            // 슬롯 2개를 현재 플레이어 주력 속성으로 변경
-            var changed = 0
-            for i in 0..<PlayerField.slotCount where changed < 2 {
-                if gameState.currentPlayer.field.slots[i].terrain == nil {
-                    gameState.currentPlayer.field.setTerrain(.fire, at: i)
-                    changed += 1
+        case .terrainMastery:
+            // 지형 보너스 2배: 해당 속성 몬스터 전체에 추가 +300 (합계 +600)
+            let terrain = gameState.globalTerrain
+            for slot in gameState.currentPlayer.field.monsterSlotIndices {
+                if case .monster(let m, _) = gameState.currentPlayer.field.slots[slot].content,
+                   m.attribute == terrain {
+                    gameState.currentPlayer.field.applyShield(PlayerField.globalTerrainBonus, at: slot)
                 }
             }
-            addLog("지형 2개 변경!")
+            addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
             // 모든 몬스터 +300
             for slot in player.field.monsterSlotIndices {
@@ -628,13 +659,22 @@ class GameViewModel {
             gameState.currentPlayer.graveyard.append(discarded)
         }
 
+        let prevTerrain = gameState.globalTerrain
         gameState.nextTurn()
+        announceTerrainChangeIfNeeded(from: prevTerrain)
 
         // AI 턴
         if !isPlayerTurn {
             uiState = .aiTurn
             addLog("")
             startTurn()
+        }
+    }
+
+    /// 지형 변경 시 로그 출력
+    private func announceTerrainChangeIfNeeded(from previous: Attribute) {
+        if gameState.globalTerrain != previous {
+            addLog("\(gameState.globalTerrain.emoji) 지형 변경! → \(gameState.globalTerrain.displayName) (2턴)")
         }
     }
 
@@ -753,7 +793,8 @@ class GameViewModel {
                         defenderField: gameState.players[defIdx].field,
                         attackerMomentumBonus: 0,
                         defenderMomentumBonus: 0,
-                        defenderShield: shield
+                        defenderShield: shield,
+                        globalTerrain: gameState.globalTerrain
                     )
 
                     addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
@@ -806,7 +847,8 @@ class GameViewModel {
                         attackerCard: atkCard,
                         attackerSlot: plan.attackerSlot,
                         attackerField: gameState.players[idx].field,
-                        momentumBonus: 0
+                        momentumBonus: 0,
+                        globalTerrain: gameState.globalTerrain
                     )
 
                     // 직접 공격 연출
@@ -854,7 +896,9 @@ class GameViewModel {
         }
 
         // 턴 종료
+        let prevTerrain = gameState.globalTerrain
         gameState.nextTurn()
+        announceTerrainChangeIfNeeded(from: prevTerrain)
 
         // 잠시 대기 후 플레이어 턴 시작
         try? await Task.sleep(for: .seconds(0.7))
@@ -889,6 +933,15 @@ class GameViewModel {
                     addLog("\(m.name) 전투력 +500!")
                 }
             }
+        case .terrainMastery:
+            let terrain = gameState.globalTerrain
+            for slot in gameState.players[idx].field.monsterSlotIndices {
+                if case .monster(let m, _) = gameState.players[idx].field.slots[slot].content,
+                   m.attribute == terrain {
+                    gameState.players[idx].field.applyShield(PlayerField.globalTerrainBonus, at: slot)
+                }
+            }
+            addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
             for slot in gameState.players[idx].field.monsterSlotIndices {
                 gameState.players[idx].field.applyShield(300, at: slot)

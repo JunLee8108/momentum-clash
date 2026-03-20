@@ -126,52 +126,15 @@ struct PlayerField: Equatable {
         }
     }
 
-    // MARK: - 지형 계산
+    // MARK: - 글로벌 지형 보너스
 
-    /// 특정 속성의 지형 수
-    func terrainCount(for attribute: Attribute) -> Int {
-        slots.filter { $0.terrain == attribute }.count
-    }
+    /// 글로벌 지형 보너스 계산 (해당 속성 몬스터 +300 CP)
+    static let globalTerrainBonus = 300
 
-    /// 속성 지배 상태 확인 (3개 이상 같은 속성)
-    func attributeDominance() -> Attribute? {
-        for attr in Attribute.allCases {
-            if terrainCount(for: attr) >= 3 {
-                return attr
-            }
-        }
-        return nil
-    }
-
-    /// 완전 지배 확인 (5개 전부 같은 속성)
-    func isFullDominance() -> Bool {
-        guard let dominant = attributeDominance() else { return false }
-        return terrainCount(for: dominant) == PlayerField.slotCount
-    }
-
-    /// 지형 보너스 계산 (특정 슬롯의 몬스터에 대해)
-    func terrainBonus(at index: Int) -> Int {
+    /// 특정 슬롯 몬스터의 글로벌 지형 보너스
+    func terrainBonus(at index: Int, globalTerrain: Attribute) -> Int {
         guard index >= 0, index < PlayerField.slotCount,
               case .monster(let card, _) = slots[index].content else { return 0 }
-
-        var bonus = 0
-        let terrain = slots[index].terrain
-
-        // 같은 속성 지형 위의 몬스터: +200
-        if terrain == card.attribute {
-            bonus += 200
-        }
-
-        // 속성 지배 보너스
-        if let dominant = attributeDominance(), dominant == card.attribute {
-            if isFullDominance() {
-                bonus += 500  // 완전 지배: +500 (기본 200 대신)
-                bonus -= 200  // 위에서 이미 200 더했으므로 조정
-            } else {
-                bonus += 300  // 속성 지배: +300
-            }
-        }
-
-        return bonus
+        return card.attribute == globalTerrain ? PlayerField.globalTerrainBonus : 0
     }
 }
