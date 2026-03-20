@@ -61,10 +61,16 @@ struct GameBoardView: View {
                 // 내 패
                 HandView(
                     hand: viewModel.player.hand,
-                    selectedIndex: viewModel.selectedHandIndex,
-                    canInteract: viewModel.isPlayerTurn && viewModel.gameState.currentPhase == .main
+                    selectedIndex: isPeekingField ? nil : viewModel.selectedHandIndex,
+                    canInteract: isPeekingField || (viewModel.isPlayerTurn && viewModel.gameState.currentPhase == .main)
                 ) { index in
-                    viewModel.selectCardFromHand(index)
+                    if isPeekingField {
+                        // 전장 확인 중: 읽기 전용 상세보기
+                        let card = viewModel.player.hand[index]
+                        viewModel.showingFieldCardDetail = card
+                    } else {
+                        viewModel.selectCardFromHand(index)
+                    }
                 }
 
                 // 액션 버튼
