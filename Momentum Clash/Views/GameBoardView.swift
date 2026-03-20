@@ -130,12 +130,13 @@ struct GameBoardView: View {
             if let preview = viewModel.combatPreview {
                 VStack {
                     Spacer()
-                    CombatPreviewView(preview: preview)
-                        .padding(.horizontal, 24)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    CombatPreviewView(preview: preview) {
+                        viewModel.combatPreview = nil
+                    }
+                    .padding(.horizontal, 24)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                     Spacer().frame(height: 60)
                 }
-                .allowsHitTesting(false)
                 .animation(.easeOut(duration: 0.2), value: viewModel.combatPreview)
             }
 

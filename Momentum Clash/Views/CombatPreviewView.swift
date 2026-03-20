@@ -3,13 +3,25 @@ import SwiftUI
 /// 전투 프리뷰 오버레이 — 공격 대상 선택 시 예상 결과 표시
 struct CombatPreviewView: View {
     let preview: CombatPreviewData
+    var onClose: () -> Void
 
     var body: some View {
         VStack(spacing: 6) {
-            // 예상 결과 헤더
-            Text(preview.predictedResult.displayText)
-                .font(.system(size: 13, weight: .black))
-                .foregroundColor(preview.predictedResult.color)
+            // 헤더: 예상 결과 + 닫기 버튼
+            HStack {
+                Spacer()
+                Text(preview.predictedResult.displayText)
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundColor(preview.predictedResult.color)
+                Spacer()
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.gray)
+                }
+            }
 
             HStack(spacing: 12) {
                 // 공격자 (플레이어)
