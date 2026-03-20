@@ -74,7 +74,7 @@ struct GameBoardView: View {
             // 오버레이: 드로우 선택
             if case .drawSelection(let c1, let c2) = viewModel.uiState {
                 Color.black.opacity(0.6).ignoresSafeArea()
-                DrawSelectionView(choice1: c1, choice2: c2) { chosen, rejected in
+                DrawSelectionView(choice1: c1, choice2: c2, hand: viewModel.player.hand) { chosen, rejected in
                     viewModel.selectDrawCard(chosen, rejected: rejected)
                 }
             }
