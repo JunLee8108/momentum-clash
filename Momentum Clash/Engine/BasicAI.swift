@@ -242,26 +242,48 @@ struct BasicAI {
         let atkIdx = gameState.currentPlayerIndex
         let defIdx = 1 - atkIdx
 
-        // 현재 필드 상태를 시뮬레이션 하지 않고, 각 공격자에 대해 타겟만 결정
         let attackerSlots = gameState.players[atkIdx].field.monsterSlotIndices
+
+        // 파괴 시뮬레이션용: 살아있는 적 슬롯 추적
+        var aliveDefSlots = Set(gameState.players[defIdx].field.monsterSlotIndices)
 
         for atkSlot in attackerSlots {
             guard case .monster(let atkCard, _) = gameState.players[atkIdx].field.slots[atkSlot].content
             else { continue }
 
-            let currentDefSlots = gameState.players[defIdx].field.monsterSlotIndices
-            if currentDefSlots.isEmpty {
+            // 적 몬스터가 모두 파괴됐으면 직접 공격
+            if aliveDefSlots.isEmpty {
                 plans.append((attackerSlot: atkSlot, defenderSlot: nil))
-            } else {
-                let bestTarget = chooseBestTarget(
-                    attacker: atkCard,
-                    attackerSlot: atkSlot,
-                    attackerField: gameState.players[atkIdx].field,
-                    defenderSlots: currentDefSlots,
-                    defenderField: gameState.players[defIdx].field
-                )
-                if let target = bestTarget {
-                    plans.append((attackerSlot: atkSlot, defenderSlot: target))
+                continue
+            }
+
+            let bestTarget = chooseBestTarget(
+                attacker: atkCard,
+                attackerSlot: atkSlot,
+                attackerField: gameState.players[atkIdx].field,
+                defenderSlots: Array(aliveDefSlots),
+                defenderField: gameState.players[defIdx].field
+            )
+
+            if let target = bestTarget {
+                plans.append((attackerSlot: atkSlot, defenderSlot: target))
+
+                // 시뮬레이션: 이 공격으로 적이 파괴되는지 예측
+                if case .monster(let defCard, let shield) = gameState.players[defIdx].field.slots[target].content {
+                    let result = BattleEngine.resolveCombat(
+                        attackerCard: atkCard,
+                        attackerSlot: atkSlot,
+                        attackerField: gameState.players[atkIdx].field,
+                        defenderCard: defCard,
+                        defenderSlot: target,
+                        defenderField: gameState.players[defIdx].field,
+                        attackerMomentumBonus: 0,
+                        defenderMomentumBonus: 0,
+                        defenderShield: shield
+                    )
+                    if result.defenderDestroyed {
+                        aliveDefSlots.remove(target)
+                    }
                 }
             }
         }
@@ -277,17 +299,13 @@ struct BasicAI {
         defenderSlots: [Int],
         defenderField: PlayerField
     ) -> Int? {
-        let atkCP = BattleEngine.calculateEffectiveCP(
-            card: attacker,
-            slotIndex: attackerSlot,
-            field: attackerField,
-            opponentAttribute: nil,
-            momentumBonus: 0
-        )
+        struct TargetInfo {
+            let slot: Int
+            let atkCP: Int
+            let defCP: Int
+        }
 
-        // 이길 수 있는 상대 중 가장 강한 적 선택
-        var bestSlot: Int? = nil
-        var bestDefCP = -1
+        var targets: [TargetInfo] = []
 
         for defSlot in defenderSlots {
             guard case .monster(let defCard, _) = defenderField.slots[defSlot].content else { continue }
@@ -308,27 +326,24 @@ struct BasicAI {
                 momentumBonus: 0
             )
 
-            // 이길 수 있는 상대만 공격
-            if effectiveAtkCP >= defCP && defCP > bestDefCP {
-                bestSlot = defSlot
-                bestDefCP = defCP
-            }
+            targets.append(TargetInfo(slot: defSlot, atkCP: effectiveAtkCP, defCP: defCP))
         }
 
-        // 이길 수 있는 상대가 없으면, CP가 충분히 높을 때 가장 약한 적 공격
-        if bestSlot == nil && atkCP >= 1000 {
-            var weakestSlot: Int? = nil
-            var weakestCP = Int.max
-            for defSlot in defenderSlots {
-                guard case .monster(let defCard, _) = defenderField.slots[defSlot].content else { continue }
-                if defCard.combatPower < weakestCP {
-                    weakestCP = defCard.combatPower
-                    weakestSlot = defSlot
-                }
-            }
-            bestSlot = weakestSlot
+        guard !targets.isEmpty else { return nil }
+
+        // 1순위: 이길 수 있는 상대 중 가장 강한 적
+        let winnable = targets.filter { $0.atkCP >= $0.defCP }
+        if let best = winnable.max(by: { $0.defCP < $1.defCP }) {
+            return best.slot
         }
 
-        return bestSlot
+        // 2순위: 동귀어진 가능 (CP 차이 200 이내) 중 가장 약한 적
+        let tradeTargets = targets.filter { $0.defCP - $0.atkCP <= 200 }
+        if let best = tradeTargets.min(by: { $0.defCP < $1.defCP }) {
+            return best.slot
+        }
+
+        // 3순위: 무조건 가장 약한 적 공격
+        return targets.min(by: { $0.defCP < $1.defCP })?.slot
     }
 }
