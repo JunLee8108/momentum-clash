@@ -39,8 +39,17 @@ struct TurnSystem {
         if card1.isSpell && card2.isSpell {
             if let monsterIdx = player.deck.firstIndex(where: { !$0.isSpell }) {
                 let monsterCard = player.deck.remove(at: monsterIdx)
-                player.deck.insert(card2, at: monsterIdx) // 마법을 원래 위치에 되돌림
+                player.deck.insert(card2, at: monsterIdx)
                 card2 = monsterCard
+            }
+        }
+
+        // 같은 카드 2장이면 → 덱에서 다른 이름의 카드를 찾아 card2와 교체
+        if card1.name == card2.name {
+            if let diffIdx = player.deck.firstIndex(where: { $0.name != card1.name }) {
+                let diffCard = player.deck.remove(at: diffIdx)
+                player.deck.insert(card2, at: diffIdx)
+                card2 = diffCard
             }
         }
 
