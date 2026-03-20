@@ -4,6 +4,7 @@ import SwiftUI
 struct GameBoardView: View {
     var viewModel: GameViewModel
     @State private var showTerrainTooltip = false
+    @State private var showMomentumSkillPanel = false
 
     var body: some View {
         ZStack {
@@ -143,6 +144,28 @@ struct GameBoardView: View {
                     Spacer().frame(height: 60)
                 }
                 .animation(.easeOut(duration: 0.2), value: viewModel.combatPreview)
+            }
+
+            // 오버레이: 기세 스킬 패널
+            if showMomentumSkillPanel, case .mainPhase = viewModel.uiState {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture { showMomentumSkillPanel = false }
+
+                VStack {
+                    Spacer()
+                    MomentumSkillPanel(
+                        currentMomentum: viewModel.player.momentum
+                    ) { skill in
+                        viewModel.useMomentumSkill(skill)
+                        showMomentumSkillPanel = false
+                    } onClose: {
+                        showMomentumSkillPanel = false
+                    }
+                    .padding(.bottom, 80)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.easeOut(duration: 0.25), value: showMomentumSkillPanel)
             }
 
             // LP 데미지 플래시
@@ -475,6 +498,15 @@ struct GameBoardView: View {
             if viewModel.isPlayerTurn {
                 switch viewModel.uiState {
                 case .mainPhase:
+                    Button {
+                        showMomentumSkillPanel.toggle()
+                    } label: {
+                        Label("기세 스킬", systemImage: "flame.fill")
+                    }
+                    .buttonStyle(GameButtonStyle(color: .orange))
+                    .disabled(viewModel.player.momentum == 0)
+                    .opacity(viewModel.player.momentum == 0 ? 0.4 : 1.0)
+
                     Button("배틀 페이즈") {
                         viewModel.enterBattlePhase()
                     }
