@@ -40,12 +40,6 @@ struct ContentView: View {
                 .tag(2)
         }
         .tint(.orange)
-        .onChange(of: selectedTab) { _, newTab in
-            // 게임 중이 아닌데 게임 탭 선택 시 홈으로 되돌림
-            if newTab == 2 && !isGameActive {
-                selectedTab = 0
-            }
-        }
     }
 
     // MARK: - 홈 화면
@@ -180,8 +174,66 @@ struct ContentView: View {
                 selectedTab = 0
             }
         } else {
-            // 빈 뷰 — onChange에서 홈으로 돌아감
-            Color.clear
+            // 게임 미진행 시 안내 화면
+            gameInactiveView
+        }
+    }
+
+    // MARK: - 게임 미진행 안내
+
+    private var gameInactiveView: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(red: 0.06, green: 0.06, blue: 0.14), Color.black],
+                startPoint: .top, endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 20) {
+                Image(systemName: "gamecontroller")
+                    .font(.system(size: 48))
+                    .foregroundColor(.gray.opacity(0.4))
+
+                Text("진행 중인 게임이 없습니다")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.gray)
+
+                if deckVM.isDeckValid {
+                    Button {
+                        startGameWithCustomDeck()
+                    } label: {
+                        Text("게임 시작")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 160, height: 44)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.orange, .red],
+                                            startPoint: .leading, endPoint: .trailing
+                                        )
+                                    )
+                            )
+                    }
+                } else {
+                    Text("덱을 먼저 완성하세요")
+                        .font(.system(size: 14))
+                        .foregroundColor(.orange.opacity(0.8))
+
+                    Button {
+                        selectedTab = 1
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "rectangle.stack.fill")
+                                .font(.system(size: 13))
+                            Text("덱 빌딩으로 이동")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(.cyan)
+                    }
+                }
+            }
         }
     }
 
