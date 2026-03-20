@@ -953,8 +953,8 @@ class GameViewModel {
         }
 
         // -- 기세 스킬 --
-        if let skill = ai.chooseMomentumSkill(gameState: gameState) {
-            await executeAIMomentumSkill(skill)
+        if let choice = ai.chooseMomentumSkill(gameState: gameState) {
+            await executeAIMomentumSkill(choice)
         }
 
         // -- 배틀 페이즈 --
@@ -1118,8 +1118,9 @@ class GameViewModel {
         startTurn()
     }
 
-    private func executeAIMomentumSkill(_ skill: MomentumSkill) async {
+    private func executeAIMomentumSkill(_ choice: BasicAI.MomentumSkillChoice) async {
         let idx = gameState.currentPlayerIndex
+        let skill = choice.skill
         guard gameState.players[idx].momentum >= skill.cost else { return }
 
         gameState.players[idx].momentum -= skill.cost
@@ -1135,19 +1136,8 @@ class GameViewModel {
 
         switch skill {
         case .fighting:
-            // AI: 가장 전투력 높은 몬스터를 타겟으로 자동 선택
-            let bestSlot = gameState.players[idx].field.monsterSlotIndices.max { a, b in
-                let cpA: Int = {
-                    if case .monster(let m, _) = gameState.players[idx].field.slots[a].content { return m.combatPower }
-                    return 0
-                }()
-                let cpB: Int = {
-                    if case .monster(let m, _) = gameState.players[idx].field.slots[b].content { return m.combatPower }
-                    return 0
-                }()
-                return cpA < cpB
-            }
-            if let targetSlot = bestSlot {
+            // 시뮬레이션에서 미리 결정된 최적 타겟 사용
+            if let targetSlot = choice.fightingTargetSlot {
                 gameState.players[idx].fightingTargetSlot = targetSlot
                 gameState.players[idx].momentumBonus += 500
                 if case .monster(let m, _) = gameState.players[idx].field.slots[targetSlot].content {
