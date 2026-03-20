@@ -4,6 +4,7 @@ import SwiftUI
 struct DeckBuilderView: View {
     @Bindable var deckVM: DeckViewModel
     @State private var showDeckList = false
+    @State private var selectedCard: AnyCard? = nil
 
     var body: some View {
         ZStack {
@@ -32,11 +33,25 @@ struct DeckBuilderView: View {
                 // 카드 풀 그리드
                 cardPoolGrid
                     .padding(.top, 8)
-
-                Spacer(minLength: 0)
+                    .padding(.bottom, 4)
 
                 // 하단: 내 덱 목록 (접기/펼치기)
                 deckListSection
+            }
+        }
+        .fullScreenCover(item: $selectedCard) { card in
+            DeckCardDetailView(
+                card: card,
+                currentCount: deckVM.countInDeck(name: card.name),
+                canAdd: deckVM.canAdd(card: card)
+            ) {
+                selectedCard = nil
+            } onAdd: {
+                switch card {
+                case .monster(let m): deckVM.addMonster(m)
+                case .spell(let s): deckVM.addSpell(s)
+                }
+                selectedCard = nil
             }
         }
     }
@@ -176,7 +191,7 @@ struct DeckBuilderView: View {
                             card: .monster(monster),
                             count: deckVM.countInDeck(name: monster.name)
                         ) {
-                            deckVM.addMonster(monster)
+                            selectedCard = .monster(monster)
                         }
                     }
                 } else {
@@ -185,12 +200,13 @@ struct DeckBuilderView: View {
                             card: .spell(spell),
                             count: deckVM.countInDeck(name: spell.name)
                         ) {
-                            deckVM.addSpell(spell)
+                            selectedCard = .spell(spell)
                         }
                     }
                 }
             }
             .padding(.horizontal)
+            .padding(.bottom, 8)
         }
     }
 
@@ -201,7 +217,7 @@ struct DeckBuilderView: View {
             : deckVM.monsterCount >= DeckConstants.monsterLimit
 
         return ZStack(alignment: .topTrailing) {
-            CardView(card: card, isSelected: count > 0, onTap: (maxed || typeMaxed) ? nil : onTap)
+            CardView(card: card, isSelected: count > 0, onTap: onTap)
                 .opacity(maxed || typeMaxed ? 0.5 : 1.0)
 
             // 장수 뱃지
