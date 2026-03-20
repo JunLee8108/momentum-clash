@@ -1,5 +1,15 @@
 import Foundation
 
+/// AI가 수행할 개별 액션
+enum AIAction {
+    case draw(card: AnyCard)
+    case summon(card: AnyCard, slotIndex: Int)
+    case attack(attackerSlot: Int, defenderSlot: Int, attackerName: String, defenderName: String)
+    case directAttack(attackerSlot: Int, attackerName: String, damage: Int)
+    case cardDestroyed(cardName: String, ownerIsAI: Bool)
+    case lpDamage(targetName: String, amount: Int)
+}
+
 /// 규칙 기반 기본 AI
 struct BasicAI {
 
@@ -165,6 +175,97 @@ struct BasicAI {
         }
 
         return logs
+    }
+
+    // MARK: - 액션 계획 (애니메이션용)
+
+    /// 메인 페이즈에서 AI가 할 소환 액션들을 계획만 하고 반환
+    func planMainPhase(gameState: GameState) -> [(card: AnyCard, handIndex: Int, slotIndex: Int)] {
+        var plans: [(card: AnyCard, handIndex: Int, slotIndex: Int)] = []
+        var simulatedHand = gameState.players[gameState.currentPlayerIndex].hand
+        var simulatedEnergy = gameState.players[gameState.currentPlayerIndex].energy
+        var simulatedMomentum = gameState.players[gameState.currentPlayerIndex].momentum
+        var occupiedSlots = Set<Int>()
+        for i in 0..<PlayerField.slotCount {
+            if gameState.players[gameState.currentPlayerIndex].field.slots[i].content.isOccupied {
+                occupiedSlots.insert(i)
+            }
+        }
+
+        var keepGoing = true
+        while keepGoing {
+            keepGoing = false
+            let totalResource = simulatedEnergy + simulatedMomentum
+
+            let candidates = simulatedHand.enumerated().compactMap { (i, card) -> (index: Int, card: AnyCard, priority: Int)? in
+                guard card.cost <= totalResource else { return nil }
+                switch card {
+                case .monster:
+                    let hasEmpty = (0..<PlayerField.slotCount).contains { !occupiedSlots.contains($0) }
+                    guard hasEmpty else { return nil }
+                    return (i, card, card.cost * 100)
+                case .spell(let s):
+                    if s.spellType == .continuous {
+                        let hasEmpty = (0..<PlayerField.slotCount).contains { !occupiedSlots.contains($0) }
+                        guard hasEmpty else { return nil }
+                    }
+                    return (i, card, s.cost * 200)
+                }
+            }.sorted { $0.priority > $1.priority }
+
+            if let best = candidates.first {
+                let cost = best.card.cost
+                let energySpent = min(simulatedEnergy, cost)
+                let momentumSpent = cost - energySpent
+                simulatedEnergy -= energySpent
+                simulatedMomentum -= momentumSpent
+
+                simulatedHand.remove(at: best.index)
+
+                let slotIndex: Int
+                switch best.card {
+                case .monster, .spell:
+                    slotIndex = (0..<PlayerField.slotCount).first { !occupiedSlots.contains($0) } ?? 0
+                    occupiedSlots.insert(slotIndex)
+                }
+
+                plans.append((card: best.card, handIndex: best.index, slotIndex: slotIndex))
+                keepGoing = true
+            }
+        }
+        return plans
+    }
+
+    /// 배틀 페이즈에서 AI가 할 공격 액션들을 계획만 하고 반환
+    func planBattlePhase(gameState: GameState) -> [(attackerSlot: Int, defenderSlot: Int?)] {
+        var plans: [(attackerSlot: Int, defenderSlot: Int?)] = []
+        let atkIdx = gameState.currentPlayerIndex
+        let defIdx = 1 - atkIdx
+
+        // 현재 필드 상태를 시뮬레이션 하지 않고, 각 공격자에 대해 타겟만 결정
+        let attackerSlots = gameState.players[atkIdx].field.monsterSlotIndices
+
+        for atkSlot in attackerSlots {
+            guard case .monster(let atkCard, _) = gameState.players[atkIdx].field.slots[atkSlot].content
+            else { continue }
+
+            let currentDefSlots = gameState.players[defIdx].field.monsterSlotIndices
+            if currentDefSlots.isEmpty {
+                plans.append((attackerSlot: atkSlot, defenderSlot: nil))
+            } else {
+                let bestTarget = chooseBestTarget(
+                    attacker: atkCard,
+                    attackerSlot: atkSlot,
+                    attackerField: gameState.players[atkIdx].field,
+                    defenderSlots: currentDefSlots,
+                    defenderField: gameState.players[defIdx].field
+                )
+                if let target = bestTarget {
+                    plans.append((attackerSlot: atkSlot, defenderSlot: target))
+                }
+            }
+        }
+        return plans
     }
 
     // MARK: - 타겟 선택

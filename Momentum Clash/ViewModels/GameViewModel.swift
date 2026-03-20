@@ -14,6 +14,16 @@ enum GameUIState: Equatable {
     case gameOver(winner: String)
 }
 
+/// AI 액션 연출 상태
+struct AIActionDisplay: Equatable {
+    var message: String = ""
+    var highlightedSlot: Int? = nil          // AI 필드에서 강조할 슬롯
+    var attackingSlot: Int? = nil             // 공격 중인 AI 슬롯
+    var targetSlot: Int? = nil               // 공격 대상 (플레이어) 슬롯
+    var isDirectAttack: Bool = false         // 직접 공격 여부
+    var showLPFlash: Bool = false            // LP 데미지 플래시
+}
+
 /// 로그 메시지
 struct GameLog: Identifiable {
     let id = UUID()
@@ -30,6 +40,7 @@ class GameViewModel {
     var selectedHandIndex: Int? = nil
     var showingCardDetail: (card: AnyCard, handIndex: Int)? = nil
     var showingFieldCardDetail: AnyCard? = nil
+    var aiActionDisplay: AIActionDisplay? = nil
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1
@@ -487,23 +498,194 @@ class GameViewModel {
         let chosen = ai.chooseDrawCard(choice1: choices.choice1, choice2: choices.choice2)
         let rejected = (chosen.id == choices.choice1.id) ? choices.choice2 : choices.choice1
         gameState.resolveDrawChoice(chosen: chosen, rejected: rejected)
+        addLog("\(cardName(chosen))을(를) 드로우했습니다.")
         proceedToStandby()
     }
 
     private func performAITurn() {
         uiState = .aiTurn
 
-        // 메인 페이즈: AI 소환
-        gameState.currentPhase = .main
-        ai.performMainPhase(gameState: &gameState)
+        Task {
+            await performAITurnAnimated()
+        }
+    }
 
-        // 배틀 페이즈: AI 공격
+    private func performAITurnAnimated() async {
+        let idx = gameState.currentPlayerIndex
+
+        // -- 메인 페이즈 --
+        gameState.currentPhase = .main
+        let summonPlans = ai.planMainPhase(gameState: gameState)
+
+        if !summonPlans.isEmpty {
+            await showAIBanner("메인 페이즈", duration: 0.6)
+        }
+
+        for plan in summonPlans {
+            // 비용 지불
+            guard TurnSystem.payCost(
+                cost: plan.card.cost,
+                player: &gameState.players[idx]
+            ) != nil else { continue }
+
+            // 패에서 제거 (인덱스가 변할 수 있으므로 id 기반 검색)
+            if let handIdx = gameState.players[idx].hand.firstIndex(where: { $0.id == plan.card.id }) {
+                gameState.players[idx].hand.remove(at: handIdx)
+            }
+
+            // 빈 슬롯 찾기
+            guard let slotIdx = gameState.players[idx].field.emptySlotIndices.first else { continue }
+
+            // 소환 연출
+            withAnimation(.easeInOut(duration: 0.3)) {
+                aiActionDisplay = AIActionDisplay(
+                    message: "\(plan.card.name) 소환!",
+                    highlightedSlot: slotIdx
+                )
+            }
+
+            // 실제 소환
+            switch plan.card {
+            case .monster(let m):
+                _ = gameState.players[idx].field.summonMonster(m, at: slotIdx)
+                addLog("\(m.name) 소환! (슬롯 \(slotIdx + 1))")
+            case .spell(let s):
+                if s.spellType == .continuous {
+                    _ = gameState.players[idx].field.placeSpell(s, at: slotIdx)
+                    addLog("\(s.name) 배치! (슬롯 \(slotIdx + 1))")
+                } else {
+                    gameState.players[idx].graveyard.append(.spell(s))
+                    addLog("\(s.name) 발동!")
+                }
+            }
+
+            try? await Task.sleep(for: .seconds(1.0))
+        }
+
+        // -- 배틀 페이즈 --
         gameState.currentPhase = .battle
         if !gameState.isFirstTurn {
-            let battleLogs = ai.performBattlePhase(gameState: &gameState)
-            for log in battleLogs {
-                addLog(log)
+            let attackPlans = ai.planBattlePhase(gameState: gameState)
+
+            if !attackPlans.isEmpty {
+                await showAIBanner("배틀 페이즈", duration: 0.6)
             }
+
+            for plan in attackPlans {
+                guard case .monster(let atkCard, _) = gameState.players[idx].field.slots[plan.attackerSlot].content
+                else { continue }
+
+                let defIdx = 1 - idx
+
+                if let defSlot = plan.defenderSlot {
+                    // 몬스터 vs 몬스터
+                    guard case .monster(let defCard, let shield) = gameState.players[defIdx].field.slots[defSlot].content
+                    else { continue }
+
+                    // 공격 연출: 공격자 강조
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        aiActionDisplay = AIActionDisplay(
+                            message: "\(atkCard.name) → \(defCard.name)!",
+                            attackingSlot: plan.attackerSlot,
+                            targetSlot: defSlot
+                        )
+                    }
+                    try? await Task.sleep(for: .seconds(0.8))
+
+                    // 전투 실행
+                    let result = BattleEngine.resolveCombat(
+                        attackerCard: atkCard,
+                        attackerSlot: plan.attackerSlot,
+                        attackerField: gameState.players[idx].field,
+                        defenderCard: defCard,
+                        defenderSlot: defSlot,
+                        defenderField: gameState.players[defIdx].field,
+                        attackerMomentumBonus: 0,
+                        defenderMomentumBonus: 0,
+                        defenderShield: shield
+                    )
+
+                    addLog("\(atkCard.name)(CP:\(atkCard.combatPower)) → \(defCard.name)(CP:\(defCard.combatPower))")
+                    gameState.players[idx].gainMomentum(1)
+                    gameState.players[idx].didAttackThisTurn = true
+
+                    // 결과 연출
+                    if result.defenderDestroyed {
+                        gameState.players[defIdx].field.removeCard(at: defSlot)
+                        gameState.players[defIdx].graveyard.append(.monster(defCard))
+                        gameState.players[idx].gainMomentum(1)
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            aiActionDisplay = AIActionDisplay(message: "\(defCard.name) 파괴!")
+                        }
+                        addLog("  → \(defCard.name) 파괴!")
+                        try? await Task.sleep(for: .seconds(0.6))
+                    }
+                    if result.attackerDestroyed {
+                        gameState.players[idx].field.removeCard(at: plan.attackerSlot)
+                        gameState.players[idx].graveyard.append(.monster(atkCard))
+                        gameState.players[defIdx].gainMomentum(1)
+                        addLog("  → \(atkCard.name) 파괴!")
+                    }
+                    if result.lpDamageToDefender > 0 {
+                        gameState.players[defIdx].takeDamage(result.lpDamageToDefender)
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            aiActionDisplay = AIActionDisplay(
+                                message: "\(gameState.players[defIdx].name)에게 \(result.lpDamageToDefender) 데미지!",
+                                showLPFlash: true
+                            )
+                        }
+                        addLog("  → \(gameState.players[defIdx].name)에게 \(result.lpDamageToDefender) LP 데미지!")
+                        try? await Task.sleep(for: .seconds(0.6))
+                    }
+                    if result.lpDamageToAttacker > 0 {
+                        gameState.players[idx].takeDamage(result.lpDamageToAttacker)
+                        addLog("  → \(gameState.players[idx].name)에게 \(result.lpDamageToAttacker) LP 데미지!")
+                    }
+
+                    if gameState.players[defIdx].isDefeated { break }
+
+                } else {
+                    // 직접 공격
+                    let damage = BattleEngine.resolveDirectAttack(
+                        attackerCard: atkCard,
+                        attackerSlot: plan.attackerSlot,
+                        attackerField: gameState.players[idx].field,
+                        momentumBonus: 0
+                    )
+
+                    // 직접 공격 연출
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        aiActionDisplay = AIActionDisplay(
+                            message: "\(atkCard.name) 직접 공격!",
+                            attackingSlot: plan.attackerSlot,
+                            isDirectAttack: true
+                        )
+                    }
+                    try? await Task.sleep(for: .seconds(0.8))
+
+                    gameState.players[defIdx].takeDamage(damage)
+                    gameState.players[idx].gainMomentum(2)
+                    gameState.players[idx].didAttackThisTurn = true
+
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        aiActionDisplay = AIActionDisplay(
+                            message: "\(damage) LP 데미지!",
+                            showLPFlash: true
+                        )
+                    }
+                    addLog("\(atkCard.name)이(가) 직접 공격! \(damage) LP 데미지!")
+                    try? await Task.sleep(for: .seconds(0.6))
+
+                    if gameState.players[defIdx].isDefeated { break }
+                }
+
+                try? await Task.sleep(for: .seconds(0.3))
+            }
+        }
+
+        // 클린업
+        withAnimation {
+            aiActionDisplay = nil
         }
 
         if checkGameEnd() { return }
@@ -517,9 +699,17 @@ class GameViewModel {
         // 턴 종료
         gameState.nextTurn()
 
-        // 플레이어 턴 시작
+        // 잠시 대기 후 플레이어 턴 시작
+        try? await Task.sleep(for: .seconds(0.5))
         addLog("")
         startTurn()
+    }
+
+    private func showAIBanner(_ text: String, duration: Double) async {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            aiActionDisplay = AIActionDisplay(message: "── \(text) ──")
+        }
+        try? await Task.sleep(for: .seconds(duration))
     }
 
     // MARK: - 게임 종료
@@ -564,5 +754,6 @@ class GameViewModel {
         selectedHandIndex = nil
         showingCardDetail = nil
         showingFieldCardDetail = nil
+        aiActionDisplay = nil
     }
 }
