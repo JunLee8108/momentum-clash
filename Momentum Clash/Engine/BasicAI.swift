@@ -44,19 +44,20 @@ struct BasicAI {
             let hand = gameState.players[idx].hand
             let totalResource = gameState.players[idx].energy + gameState.players[idx].momentum
 
-            // 소환할 몬스터 찾기 (비용 대비 CP 높은 순)
+            // 소환할 카드 찾기 (몬스터 우선, 마법은 유용성 판단)
             let summonCandidates = hand.enumerated().compactMap { (i, card) -> (index: Int, card: AnyCard, priority: Int)? in
                 guard card.cost <= totalResource else { return nil }
 
                 switch card {
                 case .monster(let m):
                     guard !gameState.players[idx].field.emptySlotIndices.isEmpty else { return nil }
-                    return (i, card, m.combatPower)
+                    return (i, card, m.combatPower + 1000)  // 몬스터 우선
                 case .spell(let s):
+                    guard shouldPlaySpell(s, gameState: gameState) else { return nil }
                     if s.spellType == .continuous {
                         guard !gameState.players[idx].field.emptySlotIndices.isEmpty else { return nil }
                     }
-                    return (i, card, s.cost * 200)
+                    return (i, card, s.cost * 100)
                 }
             }.sorted { $0.priority > $1.priority }
 
@@ -203,13 +204,15 @@ struct BasicAI {
                 case .monster:
                     let hasEmpty = (0..<PlayerField.slotCount).contains { !occupiedSlots.contains($0) }
                     guard hasEmpty else { return nil }
-                    return (i, card, card.cost * 100)
+                    return (i, card, card.cost * 200)  // 몬스터 우선
                 case .spell(let s):
+                    // 마법 유용성 판단
+                    guard shouldPlaySpell(s, gameState: gameState) else { return nil }
                     if s.spellType == .continuous {
                         let hasEmpty = (0..<PlayerField.slotCount).contains { !occupiedSlots.contains($0) }
                         guard hasEmpty else { return nil }
                     }
-                    return (i, card, s.cost * 200)
+                    return (i, card, s.cost * 100)  // 마법은 몬스터 후순위
                 }
             }.sorted { $0.priority > $1.priority }
 
@@ -290,6 +293,68 @@ struct BasicAI {
         return plans
     }
 
+    // MARK: - 마법 유용성 판단
+
+    /// 현재 게임 상태에서 이 마법을 사용할 가치가 있는지 판단
+    private func shouldPlaySpell(_ spell: SpellCard, gameState: GameState) -> Bool {
+        let idx = gameState.currentPlayerIndex
+        let opponentIdx = 1 - idx
+        let myField = gameState.players[idx].field
+        let opponentField = gameState.players[opponentIdx].field
+        let myMonsterCount = myField.monsterCount
+        let opponentMonsterCount = opponentField.monsterCount
+        let desc = spell.effect.description
+
+        switch spell.spellType {
+        case .equipment:
+            // 장착 대상 몬스터가 필요
+            return myMonsterCount > 0
+
+        case .continuous:
+            // 지속 마법: 관련 속성 몬스터가 필드나 핸드에 있어야 의미 있음
+            let hasRelevantMonster = myField.monsterSlotIndices.contains { i in
+                if case .monster(let m, _) = myField.slots[i].content {
+                    return m.attribute == spell.attribute
+                }
+                return false
+            }
+            let hasRelevantInHand = gameState.players[idx].hand.contains { card in
+                if case .monster(let m) = card { return m.attribute == spell.attribute }
+                return false
+            }
+            return hasRelevantMonster || hasRelevantInHand
+
+        case .terrain:
+            // 지형 마법: 관련 속성 몬스터가 있어야 지형 보너스 활용 가능
+            let hasRelevantMonster = myField.monsterSlotIndices.contains { i in
+                if case .monster(let m, _) = myField.slots[i].content {
+                    return m.attribute == spell.attribute
+                }
+                return false
+            }
+            let hasRelevantInHand = gameState.players[idx].hand.contains { card in
+                if case .monster(let m) = card { return m.attribute == spell.attribute }
+                return false
+            }
+            return hasRelevantMonster || hasRelevantInHand
+
+        case .normal:
+            // 키워드 기반 판단
+            if desc.contains("방어막") || desc.contains("장착") {
+                return myMonsterCount > 0
+            }
+            if desc.contains("상대") && (desc.contains("데미지") || desc.contains("파괴")) {
+                return opponentMonsterCount > 0
+            }
+            if desc.contains("회복") {
+                // LP가 70% 미만일 때만
+                return gameState.players[idx].lp < Int(Double(TurnSystem.startingLP) * 0.7)
+            }
+            // 그 외 일반 마법은 허용
+            return true
+        }
+    }
+
     // MARK: - 타겟 선택
 
     private func chooseBestTarget(
@@ -331,9 +396,9 @@ struct BasicAI {
 
         guard !targets.isEmpty else { return nil }
 
-        // 1순위: 이길 수 있는 상대 중 가장 강한 적
+        // 1순위: 이길 수 있는 상대 중 가장 약한 적 (확실한 킬 우선)
         let winnable = targets.filter { $0.atkCP >= $0.defCP }
-        if let best = winnable.max(by: { $0.defCP < $1.defCP }) {
+        if let best = winnable.min(by: { $0.defCP < $1.defCP }) {
             return best.slot
         }
 
