@@ -641,7 +641,7 @@ class GameViewModel {
     // MARK: - AI
 
     private func performAIDraw(choices: (choice1: AnyCard, choice2: AnyCard)) {
-        let chosen = ai.chooseDrawCard(choice1: choices.choice1, choice2: choices.choice2)
+        let chosen = ai.chooseDrawCard(choice1: choices.choice1, choice2: choices.choice2, gameState: gameState)
         let rejected = (chosen.id == choices.choice1.id) ? choices.choice2 : choices.choice1
         gameState.resolveDrawChoice(chosen: chosen, rejected: rejected)
         addLog("\(cardName(chosen))을(를) 드로우했습니다.")
@@ -706,6 +706,11 @@ class GameViewModel {
             }
 
             try? await Task.sleep(for: .seconds(1.4))
+        }
+
+        // -- 기세 스킬 --
+        if let skill = ai.chooseMomentumSkill(gameState: gameState) {
+            await executeAIMomentumSkill(skill)
         }
 
         // -- 배틀 페이즈 --
@@ -855,6 +860,60 @@ class GameViewModel {
         try? await Task.sleep(for: .seconds(0.7))
         addLog("")
         startTurn()
+    }
+
+    private func executeAIMomentumSkill(_ skill: MomentumSkill) async {
+        let idx = gameState.currentPlayerIndex
+        guard gameState.players[idx].momentum >= skill.cost else { return }
+
+        gameState.players[idx].momentum -= skill.cost
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            battleDisplay = BattleDisplay(
+                message: "기세 스킬: \(skill.displayName)!"
+            )
+        }
+        addLog("기세 스킬 [\(skill.displayName)] 발동! (기세 -\(skill.cost))")
+        try? await Task.sleep(for: .seconds(1.0))
+
+        switch skill {
+        case .fighting:
+            if let slot = gameState.players[idx].field.monsterSlotIndices.max(by: { a, b in
+                guard case .monster(let ma, _) = gameState.players[idx].field.slots[a].content,
+                      case .monster(let mb, _) = gameState.players[idx].field.slots[b].content
+                else { return false }
+                return ma.combatPower < mb.combatPower
+            }) {
+                gameState.players[idx].field.applyShield(500, at: slot)
+                if case .monster(let m, _) = gameState.players[idx].field.slots[slot].content {
+                    addLog("\(m.name) 전투력 +500!")
+                }
+            }
+        case .breakthrough:
+            for slot in gameState.players[idx].field.monsterSlotIndices {
+                gameState.players[idx].field.applyShield(300, at: slot)
+            }
+            addLog("전 몬스터 전투력 +300!")
+        case .explosion:
+            let dmg = BattleEngine.explosionDamage(momentum: skill.cost)
+            let opIdx = 1 - idx
+            for i in gameState.players[opIdx].field.monsterSlotIndices.reversed() {
+                if case .monster(let m, _) = gameState.players[opIdx].field.slots[i].content {
+                    if m.combatPower <= dmg {
+                        gameState.players[opIdx].field.removeCard(at: i)
+                        gameState.players[opIdx].graveyard.append(.monster(m))
+                        addLog("\(m.name) 파괴! (\(dmg) 데미지)")
+                    }
+                }
+            }
+        default:
+            break
+        }
+
+        try? await Task.sleep(for: .seconds(0.6))
+        withAnimation {
+            battleDisplay = nil
+        }
     }
 
     private func showAIBanner(_ text: String, duration: Double) async {
