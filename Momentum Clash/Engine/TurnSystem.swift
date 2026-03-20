@@ -32,7 +32,7 @@ struct TurnSystem {
     /// 둘 다 마법이면 덱에서 가장 가까운 몬스터를 찾아 교체
     static func selectiveDraw(player: inout Player) -> (choice1: AnyCard, choice2: AnyCard)? {
         guard player.deck.count >= 2 else { return nil }
-        var card1 = player.deck.removeFirst()
+        let card1 = player.deck.removeFirst()
         var card2 = player.deck.removeFirst()
 
         // 둘 다 마법이면 → 덱에서 가장 가까운 몬스터를 찾아 card2와 교체
