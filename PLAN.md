@@ -1,83 +1,69 @@
-# A안: 기력 전용 소환 시스템 구현 계획
+# 덱 빌더 UI 개선 계획
 
-## 핵심 변경 사항
-- **카드 소환/마법 발동**: 기력(Energy)으로만 비용 지불
-- **기세(Momentum)**: 기세 스킬 전용 자원으로 분리 (소환에 사용 불가)
-- **기력 밸런스 조정**: 기본 기력을 1 상향 (고비용 카드 소환 가능성 확보)
-- **카드 UI 개선**: 패/상세보기에서 비용 옆에 기력 아이콘 추가
+## 1. 상단 패딩 겹침 수정
 
-## 기력 밸런스 변경
+### 문제
+- `DeckBuilderView`가 `TabView` 내부에 직접 배치됨 (NavigationStack 없음)
+- `deckStatusBar`의 상단 패딩이 `8pt`로 너무 작아 상단 safe area와 겹침
 
-| LP 비율 | 현재 기력 | 변경 후 기력 |
-|---------|----------|------------|
-| 50% 초과 | 2 | **3** |
-| 25~50% | 3 | **4** |
-| 25% 이하 | 4 | **5** |
+### 해결
+- `DeckBuilderView.swift`의 VStack 콘텐츠 영역에 `.safeAreaInset` 또는 상단 패딩 증가
+- `deckStatusBar`의 `.padding(.top, 8)` → `.padding(.top, 16)` 이상으로 조정
+- 또는 VStack 전체에 `.padding(.top)` 추가하여 safe area 확보
 
-> 비용 5 카드는 LP 25% 이하(위기 상황)에서만 1턴에 소환 가능 → 역전 메커니즘 유지
+### 변경 파일
+- `Momentum Clash/Views/DeckBuilderView.swift` — deckStatusBar 상단 패딩 조정
 
 ---
 
-## 파일별 변경 계획
+## 2. 프리셋 덱 선택 기능
 
-### 1. `MomentumSystem.swift` — 기력 상수 조정
-- `baseEnergy` 상수: `2` → `3`
-- `baseEnergy(currentLP:maxLP:)` 함수:
-  - LP ≤ 25%: `4` → `5`
-  - LP 25~50%: `3` → `4`
-  - LP > 50%: `2` → `3` (baseEnergy 반환)
-- 주석 수정: "카드 소환 비용이자" → "기세 스킬 자원" (기세는 소환에 미사용)
+### 개요
+사용자가 빠르게 덱을 구성할 수 있도록 미리 정의된 덱 프리셋을 제공하는 기능 추가.
 
-### 2. `TurnSystem.swift` — 비용 지불 로직 변경
-- **`canPayCost`**: 파라미터에서 `currentMomentum` 제거, `currentEnergy >= cost`로 변경
-- **`payCost`**: 기력만 차감하도록 단순화
-  - 반환 타입: `(energySpent: Int, momentumSpent: Int)?` → `Int?` (소모된 기력만 반환)
-  - `player.momentum` 차감 코드 제거
-- 주석 업데이트
+### UI 흐름
+1. 덱 현황 바 영역에 **"프리셋"** 버튼 추가 (초기화 버튼 옆)
+2. 버튼 탭 → `.sheet`로 프리셋 목록 표시
+3. 프리셋 선택 시 기존 덱을 해당 프리셋으로 교체 (확인 다이얼로그)
+4. sheet 닫힘
 
-### 3. `GameViewModel.swift` — 플레이어 비용 검사/로그 변경
-- **`useCardFromDetail()`**: `player.energy + player.momentum` → `player.energy`
-  - 로그: `"자원이 부족합니다!"` → `"기력이 부족합니다! (비용: X, 기력: Y)"`
-- **`canUseCard()`**: `player.energy + player.momentum` → `player.energy`
-- **`summonToSlot()`**: 로그 `[기력 -X, 기세 -Y]` → `[기력 -X]`, payment 타입 맞춤
-- **`executeSpell()`**: 로그 `[기력 -X, 기세 -Y]` → `[기력 -X]`, payment 타입 맞춤
-- **`performAITurnAnimated()`**: `TurnSystem.payCost` 반환값 타입 맞춤
+### 프리셋 덱 구성 (기존 SampleCards 데이터 활용)
 
-### 4. `BasicAI.swift` — AI 비용 계산 변경
-- **`performMainPhase()`**: `energy + momentum` → `energy`만 사용
-- **`planMainPhase()`**:
-  - `simulatedMomentum` 변수 제거
-  - `totalResource = simulatedEnergy + simulatedMomentum` → `simulatedEnergy`
-  - 비용 시뮬레이션에서 momentum 차감 코드 제거
+이미 코드베이스에 `SampleDecks.fireRush`와 `SampleDecks.earthFortress`가 정의되어 있음. 추가로 1~2개 더 만들어 총 4개 프리셋 제공:
 
-### 5. `CardView.swift` — 패 카드 비용 표시에 기력 아이콘 추가
-- 현재: 파란 원 안에 숫자만 (`Text("\(card.cost)")`)
-- 변경: 번개 아이콘(⚡ `bolt.circle.fill`) + 숫자를 함께 표시
-  - PlayerInfoView의 기력 아이콘과 동일한 `bolt.circle.fill` 사용 → 시각적 일관성
-  - 파란 원 배경 유지, 안에 아이콘+숫자 또는 아이콘을 옆에 배치
+| 프리셋 이름 | 컨셉 | 주요 속성 |
+|------------|------|----------|
+| 화염 러시 (기존) | 공격적 저코스트 러시 | 화/풍/뇌 |
+| 대지 요새 (기존) | 방어적 고체력 지구전 | 지/수/광 |
+| 뇌광 폭풍 (신규) | 뇌+광 시너지, 테라인 장악 | 뇌/광/수 |
+| 암흑 지배 (신규) | 암+화 공격, 실드 제거 | 암/화/지 |
 
-### 6. `CardDetailView.swift` — 상세보기 비용 표시 개선
-- 현재: `bolt.circle.fill` 아이콘 + "비용: X" 텍스트 (이미 아이콘 있음)
-- 변경: "비용: X" → "기력: X" 으로 문구 변경 (자원 이름 명확화)
+### 구현 파일
 
----
+#### `Momentum Clash/Data/SampleCards.swift` (또는 별도 파일)
+- 신규 프리셋 2개 추가 (`thunderStorm`, `darkDomination`)
+- 프리셋 메타데이터 (이름, 설명, 아이콘/컬러) 추가
 
-## 변경하지 않는 것
-- **기세 스킬 시스템**: 그대로 유지 (기세로만 발동, UI 버튼은 별도 작업)
-- **기세 획득/감소 메커니즘**: 그대로 유지 (공격, 지형, 자연감소 등)
-- **카드 비용 범위 (1~5)**: 유지
-- **PlayerInfoView UI**: 기세/기력 모두 표시 유지 (역할만 분리)
-- **Player.swift의 기세 메서드** (`gainMomentum`, `loseMomentum`): 유지
+#### `Momentum Clash/ViewModels/DeckViewModel.swift`
+- `loadPreset(_ preset: [AnyCard])` 메서드 추가
+- 기존 덱 교체 로직
+
+#### `Momentum Clash/Views/DeckBuilderView.swift`
+- `@State private var showPresetSheet = false` 추가
+- deckStatusBar에 "프리셋" 버튼 추가
+- `.sheet` modifier로 프리셋 선택 UI 연결
+
+#### `Momentum Clash/Views/PresetDeckSheet.swift` (신규)
+- 프리셋 목록 표시 (이름, 설명, 속성 아이콘, 카드 수)
+- 선택 시 콜백으로 프리셋 반환
 
 ---
 
-## 수정 영향 범위 요약
+## 변경 요약
 
-| 파일 | 변경 규모 |
+| 파일 | 변경 내용 |
 |------|----------|
-| `MomentumSystem.swift` | 상수 3개 + 주석 |
-| `TurnSystem.swift` | 함수 2개 시그니처/로직 |
-| `GameViewModel.swift` | 비용 검사 2곳 + 로그 2곳 + AI소환 1곳 |
-| `BasicAI.swift` | 비용 계산 2곳 (performMainPhase, planMainPhase) |
-| `CardView.swift` | 비용 배지에 기력 아이콘 추가 |
-| `CardDetailView.swift` | "비용" → "기력" 문구 변경 |
+| `DeckBuilderView.swift` | 상단 패딩 증가 + 프리셋 버튼 + sheet 연결 |
+| `DeckViewModel.swift` | `loadPreset()` 메서드 추가 |
+| `SampleCards.swift` | 신규 프리셋 2개 + 프리셋 메타데이터 |
+| `PresetDeckSheet.swift` (신규) | 프리셋 선택 UI |
