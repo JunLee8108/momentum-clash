@@ -259,7 +259,7 @@ enum SampleCards {
         let description: String
         let emoji: String
         let accentColorName: String // "red", "brown", "yellow", "purple"
-        let build: () -> [AnyCard]
+        let build: @MainActor () -> [AnyCard]
     }
 
     static let presetDecks: [PresetDeck] = [
