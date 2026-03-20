@@ -505,70 +505,81 @@ struct GameBoardView: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        HStack(spacing: 8) {
+        VStack(spacing: 4) {
             if viewModel.isPlayerTurn {
                 switch viewModel.uiState {
                 case .mainPhase:
-                    Button {
-                        showMomentumSkillPanel.toggle()
-                    } label: {
-                        Label("기세 스킬", systemImage: "flame.fill")
-                    }
-                    .buttonStyle(GameButtonStyle(color: .orange))
-                    .disabled(viewModel.player.momentum == 0)
-                    .opacity(viewModel.player.momentum == 0 ? 0.4 : 1.0)
+                    HStack(spacing: 8) {
+                        Button {
+                            showMomentumSkillPanel.toggle()
+                        } label: {
+                            Label("기세 스킬", systemImage: "flame.fill")
+                        }
+                        .buttonStyle(GameButtonStyle(color: .orange))
+                        .disabled(viewModel.player.momentum == 0)
+                        .opacity(viewModel.player.momentum == 0 ? 0.4 : 1.0)
 
-                    Button {
-                        viewModel.enterSacrificeMode()
-                    } label: {
-                        Label("릴리즈", systemImage: "arrow.uturn.down")
+                        Button {
+                            viewModel.enterSacrificeMode()
+                        } label: {
+                            Label("릴리즈", systemImage: "arrow.uturn.down")
+                        }
+                        .buttonStyle(GameButtonStyle(color: .purple))
+                        .disabled(!viewModel.hasSacrifiableMonster)
+                        .opacity(viewModel.hasSacrifiableMonster ? 1.0 : 0.4)
                     }
-                    .buttonStyle(GameButtonStyle(color: .purple))
-                    .disabled(!viewModel.hasSacrifiableMonster)
-                    .opacity(viewModel.hasSacrifiableMonster ? 1.0 : 0.4)
+                    HStack(spacing: 8) {
+                        Button("배틀 페이즈") {
+                            viewModel.enterBattlePhase()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .red))
 
-                    Button("배틀 페이즈") {
-                        viewModel.enterBattlePhase()
+                        Button("턴 종료") {
+                            viewModel.endTurn()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .gray))
                     }
-                    .buttonStyle(GameButtonStyle(color: .red))
-
-                    Button("턴 종료") {
-                        viewModel.endTurn()
-                    }
-                    .buttonStyle(GameButtonStyle(color: .gray))
 
                 case .battlePhase:
-                    Button("턴 종료") {
-                        viewModel.endTurn()
+                    HStack(spacing: 8) {
+                        Button("턴 종료") {
+                            viewModel.endTurn()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .gray))
                     }
-                    .buttonStyle(GameButtonStyle(color: .gray))
 
                 case .selectingSummonSlot:
-                    Text("슬롯을 선택하세요")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                    Button("취소") {
-                        viewModel.cancelSlotSelection()
+                    HStack(spacing: 8) {
+                        Text("슬롯을 선택하세요")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                        Button("취소") {
+                            viewModel.cancelSlotSelection()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .gray))
                     }
-                    .buttonStyle(GameButtonStyle(color: .gray))
 
                 case .selectingSacrificeSlot:
-                    Text("희생할 몬스터를 선택하세요")
-                        .font(.caption)
-                        .foregroundColor(.purple)
-                    Button("취소") {
-                        viewModel.cancelSlotSelection()
+                    HStack(spacing: 8) {
+                        Text("희생할 몬스터를 선택하세요")
+                            .font(.caption)
+                            .foregroundColor(.purple)
+                        Button("취소") {
+                            viewModel.cancelSlotSelection()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .gray))
                     }
-                    .buttonStyle(GameButtonStyle(color: .gray))
 
                 case .selectingAttackTarget:
-                    Text("공격 대상을 선택하세요")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                    Button("취소") {
-                        viewModel.cancelAttack()
+                    HStack(spacing: 8) {
+                        Text("공격 대상을 선택하세요")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Button("취소") {
+                            viewModel.cancelAttack()
+                        }
+                        .buttonStyle(GameButtonStyle(color: .gray))
                     }
-                    .buttonStyle(GameButtonStyle(color: .gray))
 
                 default:
                     EmptyView()
@@ -577,7 +588,6 @@ struct GameBoardView: View {
         }
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
-        .frame(height: 36)
     }
 }
 
