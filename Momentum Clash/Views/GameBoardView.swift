@@ -126,6 +126,19 @@ struct GameBoardView: View {
                 .allowsHitTesting(false)
             }
 
+            // 오버레이: 전투 프리뷰
+            if let preview = viewModel.combatPreview {
+                VStack {
+                    Spacer()
+                    CombatPreviewView(preview: preview)
+                        .padding(.horizontal, 24)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    Spacer().frame(height: 60)
+                }
+                .allowsHitTesting(false)
+                .animation(.easeOut(duration: 0.2), value: viewModel.combatPreview)
+            }
+
             // LP 데미지 플래시
             if let display = viewModel.battleDisplay, display.showLPFlash {
                 Color.red.opacity(0.15)
@@ -259,7 +272,15 @@ struct GameBoardView: View {
                     // 직접 공격
                     viewModel.executeAttack(attackerSlot: atkSlot, defenderSlot: nil)
                 } else if case .monster = viewModel.aiPlayer.field.slots[index].content {
-                    viewModel.executeAttack(attackerSlot: atkSlot, defenderSlot: index)
+                    if let existing = viewModel.combatPreview,
+                       case .monster(let m, _) = viewModel.aiPlayer.field.slots[index].content,
+                       existing.defenderName == m.name {
+                        // 프리뷰가 이미 표시된 상태에서 같은 대상 재탭 → 공격 실행
+                        viewModel.executeAttack(attackerSlot: atkSlot, defenderSlot: index)
+                    } else {
+                        // 첫 탭 → 프리뷰 표시
+                        viewModel.updateCombatPreview(attackerSlot: atkSlot, defenderSlot: index)
+                    }
                 }
                 return
             }
