@@ -95,6 +95,11 @@ class DeckViewModel {
         }
     }
 
+    /// 프리셋 덱 불러오기
+    func loadPreset(_ preset: SampleCards.PresetDeck) {
+        deck = preset.build()
+    }
+
     /// 덱 초기화
     func clearDeck() {
         deck = []
