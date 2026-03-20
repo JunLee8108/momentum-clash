@@ -141,12 +141,18 @@ struct BasicAI {
         let defIdx = 1 - atkIdx
 
         // 최적 공격 순서 계획
+        let simAtkFighting = gameState.players[atkIdx].activeMomentumSkill == .fighting
+            ? gameState.players[atkIdx].fightingTargetSlot : nil
+        let simDefFighting = gameState.players[defIdx].activeMomentumSkill == .fighting
+            ? gameState.players[defIdx].fightingTargetSlot : nil
         let attackPlan = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
             defenderField: gameState.players[defIdx].field,
             globalTerrain: gameState.globalTerrain,
             attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
-            defenderMomentumBonus: gameState.players[defIdx].momentumBonus
+            defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
+            attackerFightingSlot: simAtkFighting,
+            defenderFightingSlot: simDefFighting
         )
 
         var usedAttackers = Set<Int>()
@@ -335,12 +341,18 @@ struct BasicAI {
         let defIdx = 1 - atkIdx
 
         // 최적 매칭 기반 공격 계획
+        let atkFighting = gameState.players[atkIdx].activeMomentumSkill == .fighting
+            ? gameState.players[atkIdx].fightingTargetSlot : nil
+        let defFighting = gameState.players[defIdx].activeMomentumSkill == .fighting
+            ? gameState.players[defIdx].fightingTargetSlot : nil
         var plans = buildOptimalAttackPlan(
             attackerField: gameState.players[atkIdx].field,
             defenderField: gameState.players[defIdx].field,
             globalTerrain: gameState.globalTerrain,
             attackerMomentumBonus: gameState.players[atkIdx].momentumBonus,
-            defenderMomentumBonus: gameState.players[defIdx].momentumBonus
+            defenderMomentumBonus: gameState.players[defIdx].momentumBonus,
+            attackerFightingSlot: atkFighting,
+            defenderFightingSlot: defFighting
         )
 
         // 파괴 시뮬레이션: 적이 전멸하면 남은 공격자로 직접 공격 추가
@@ -394,7 +406,9 @@ struct BasicAI {
         defenderField: PlayerField,
         globalTerrain: Attribute,
         attackerMomentumBonus: Int = 0,
-        defenderMomentumBonus: Int = 0
+        defenderMomentumBonus: Int = 0,
+        attackerFightingSlot: Int? = nil,
+        defenderFightingSlot: Int? = nil
     ) -> [(attackerSlot: Int, defenderSlot: Int?)] {
         let atkSlots = attackerField.monsterSlotIndices
         let defSlots = defenderField.monsterSlotIndices
@@ -422,15 +436,21 @@ struct BasicAI {
             for defSlot in defSlots {
                 guard case .monster(let defCard, _) = defenderField.slots[defSlot].content else { continue }
 
+                let atkBonus = (attackerFightingSlot != nil)
+                    ? (atkSlot == attackerFightingSlot ? attackerMomentumBonus : 0)
+                    : attackerMomentumBonus
+                let defBonus = (defenderFightingSlot != nil)
+                    ? (defSlot == defenderFightingSlot ? defenderMomentumBonus : 0)
+                    : defenderMomentumBonus
                 let atkCP = BattleEngine.calculateEffectiveCP(
                     card: atkCard, slotIndex: atkSlot,
                     field: attackerField, opponentAttribute: defCard.attribute,
-                    momentumBonus: attackerMomentumBonus, globalTerrain: globalTerrain
+                    momentumBonus: atkBonus, globalTerrain: globalTerrain
                 )
                 let defCP = BattleEngine.calculateEffectiveCP(
                     card: defCard, slotIndex: defSlot,
                     field: defenderField, opponentAttribute: atkCard.attribute,
-                    momentumBonus: defenderMomentumBonus, globalTerrain: globalTerrain
+                    momentumBonus: defBonus, globalTerrain: globalTerrain
                 )
 
                 allMatches.append(MatchScore(

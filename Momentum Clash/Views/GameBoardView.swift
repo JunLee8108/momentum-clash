@@ -386,6 +386,7 @@ struct GameBoardView: View {
                     index: i,
                     globalTerrain: viewModel.gameState.globalTerrain,
                     activeMomentumSkill: player.activeMomentumSkill,
+                    fightingTargetSlot: player.fightingTargetSlot,
                     momentumBonus: player.momentumBonus,
                     isHighlighted: highlighted,
                     aiHighlightColor: battleHighlight,
@@ -433,6 +434,11 @@ struct GameBoardView: View {
 
     private func slotHighlighted(index: Int, isOpponent: Bool) -> Bool {
         if !isOpponent {
+            if case .selectingFightingTarget = viewModel.uiState {
+                if case .monster = viewModel.player.field.slots[index].content {
+                    return true
+                }
+            }
             if case .selectingSummonSlot = viewModel.uiState {
                 return !viewModel.player.field.slots[index].content.isOccupied
             }
@@ -458,6 +464,11 @@ struct GameBoardView: View {
 
     private func handleSlotTap(index: Int, isOpponent: Bool) {
         if !isOpponent {
+            // 투지 타겟 선택
+            if case .selectingFightingTarget = viewModel.uiState {
+                viewModel.applyFightingSkill(toSlot: index)
+                return
+            }
             // 내 필드 슬롯 탭
             if case .selectingSummonSlot = viewModel.uiState {
                 viewModel.summonToSlot(index)
@@ -573,6 +584,11 @@ struct GameBoardView: View {
                         }
                         .buttonStyle(GameButtonStyle(color: .gray))
                     }
+
+                case .selectingFightingTarget:
+                    Text("투지를 적용할 몬스터를 선택하세요")
+                        .font(.caption)
+                        .foregroundColor(.orange)
 
                 case .selectingAttackTarget:
                     HStack(spacing: 8) {
