@@ -201,9 +201,8 @@ struct DeckBuilderView: View {
             : deckVM.monsterCount >= DeckConstants.monsterLimit
 
         return ZStack(alignment: .topTrailing) {
-            CardView(card: card, isSelected: count > 0)
+            CardView(card: card, isSelected: count > 0, onTap: (maxed || typeMaxed) ? nil : onTap)
                 .opacity(maxed || typeMaxed ? 0.5 : 1.0)
-                .onTapGesture { onTap() }
 
             // 장수 뱃지
             Text("\(count)/\(DeckConstants.sameCardLimit)")
