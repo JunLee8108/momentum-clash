@@ -6,6 +6,7 @@ struct GameBoardView: View {
     var onGoHome: (() -> Void)? = nil
     @State private var showTerrainTooltip = false
     @State private var showMomentumSkillPanel = false
+    @State private var isPeekingField = false
 
     var body: some View {
         ZStack {
@@ -72,10 +73,42 @@ struct GameBoardView: View {
             .padding(.vertical, 8)
 
             // 오버레이: 드로우 선택
-            if case .drawSelection(let c1, let c2) = viewModel.uiState {
+            if case .drawSelection(let c1, let c2) = viewModel.uiState, !isPeekingField {
                 Color.black.opacity(0.6).ignoresSafeArea()
-                DrawSelectionView(choice1: c1, choice2: c2, hand: viewModel.player.hand) { chosen, rejected in
+                DrawSelectionView(choice1: c1, choice2: c2, onSelect: { chosen, rejected in
                     viewModel.selectDrawCard(chosen, rejected: rejected)
+                }, onPeek: {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isPeekingField = true
+                    }
+                })
+            }
+
+            // 플로팅 버튼: 드로우로 돌아가기
+            if case .drawSelection = viewModel.uiState, isPeekingField {
+                VStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isPeekingField = false
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("드로우로 돌아가기")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(Color.cyan)
+                        )
+                        .shadow(color: .cyan.opacity(0.5), radius: 8, y: 2)
+                    }
+                    .padding(.bottom, 24)
                 }
             }
 

@@ -32,11 +32,8 @@ struct HandView: View {
 struct DrawSelectionView: View {
     let choice1: AnyCard
     let choice2: AnyCard
-    let hand: [AnyCard]
     let onSelect: (AnyCard, AnyCard) -> Void
-
-    @State private var showHand = false
-    @State private var detailCard: AnyCard?
+    let onPeek: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -62,46 +59,22 @@ struct DrawSelectionView: View {
                 }
             }
 
-            // 내 패 보기 버튼
             Button {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    showHand.toggle()
-                }
+                onPeek()
             } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: showHand ? "chevron.up" : "hand.raised")
-                        .font(.system(size: 12))
-                    Text("내 패 보기 (\(hand.count)장)")
+                HStack(spacing: 6) {
+                    Image(systemName: "eye")
+                        .font(.system(size: 13))
+                    Text("전장 확인")
                         .font(.system(size: 13, weight: .medium))
                 }
                 .foregroundColor(.cyan)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
                 .background(
                     Capsule()
                         .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
                 )
-            }
-
-            // 현재 패 목록
-            if showHand {
-                if hand.isEmpty {
-                    Text("패에 카드가 없습니다")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                } else {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(Array(hand.enumerated()), id: \.element.id) { _, card in
-                                CardView(card: card, isSmall: true) {
-                                    detailCard = card
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 8)
-                    }
-                    .frame(height: 110)
-                }
             }
         }
         .padding(24)
@@ -109,10 +82,5 @@ struct DrawSelectionView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
         )
-        .fullScreenCover(item: $detailCard) { card in
-            FieldCardDetailView(card: card) {
-                detailCard = nil
-            }
-        }
     }
 }
