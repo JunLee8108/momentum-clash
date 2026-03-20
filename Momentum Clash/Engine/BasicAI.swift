@@ -463,9 +463,17 @@ struct BasicAI {
         }
 
         // 이길 수 있는 매칭만 필터 (advantage > 0, 또는 동귀어진 허용 조건)
+        let myMonsterCount = atkSlots.count
+        let opMonsterCount = defSlots.count
         let profitable = allMatches.filter { match in
             if match.advantage > 0 { return true }
-            if match.advantage == 0 && match.defBaseCP >= 800 { return true }
+            // 동귀어진 허용 조건: 고가치 타겟 + 필드가 비지 않아야 함
+            if match.advantage == 0 && match.defBaseCP >= 800 {
+                // AI 몬스터가 1체뿐이고 상대도 1체뿐이면 동귀어진 금지
+                // (양쪽 빈 필드 → 상대 턴에 소환 후 직접 공격당함)
+                if myMonsterCount <= 1 && opMonsterCount <= 1 { return false }
+                return true
+            }
             return false
         }
 
