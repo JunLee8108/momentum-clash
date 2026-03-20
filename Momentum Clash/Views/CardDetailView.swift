@@ -11,46 +11,40 @@ struct CardDetailView: View {
     @State private var appeared = false
 
     var body: some View {
-        ZStack {
-            // 배경 이미지 (풀스크린)
-            cardImage
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                // 배경 이미지 (정확히 화면 크기)
+                cardBackground(size: geo.size)
 
-            // 상단~중단 그라데이션 (이미지 가독성)
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.3),
-                    Color.clear,
-                    Color.black.opacity(0.7)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+                // 그라데이션 오버레이
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.3),
+                        Color.clear,
+                        Color.black.opacity(0.7)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
-            // 콘텐츠 오버레이
-            VStack(spacing: 0) {
-                // 상단 레어리티 & 속성 배지
-                topBadges
-                    .padding(.top, 60)
+                // 콘텐츠
+                VStack(spacing: 0) {
+                    topBadges
+                        .padding(.top, geo.safeAreaInsets.top + 12)
 
-                Spacer()
+                    Spacer()
 
-                // 하단 카드 정보 패널
-                infoPanel
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
+                    infoPanel
 
-                // 하단 버튼
-                actionButtons
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    actionButtons
+                        .padding(.top, 12)
+                        .padding(.bottom, geo.safeAreaInsets.bottom + 16)
+                }
+                .padding(.horizontal, 20)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .ignoresSafeArea()
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.easeOut(duration: 0.25)) {
@@ -59,20 +53,39 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: - 카드 이미지
+    // MARK: - 배경 이미지
 
-    private var cardImage: Image {
+    @ViewBuilder
+    private func cardBackground(size: CGSize) -> some View {
         if let uiImage = UIImage(named: card.imageName) {
-            return Image(uiImage: uiImage)
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size.width, height: size.height)
+                .clipped()
+        } else {
+            // placeholder 배경
+            attributeGradient
         }
-        // placeholder: 속성 기반 그라데이션 대신 SF Symbol
-        return Image(systemName: placeholderSymbol)
     }
 
-    private var placeholderSymbol: String {
-        switch card {
-        case .monster: return "shield.fill"
-        case .spell: return "wand.and.stars"
+    private var attributeGradient: some View {
+        LinearGradient(
+            colors: [attributeColor.opacity(0.8), Color.black],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var attributeColor: Color {
+        switch card.attribute {
+        case .fire: return .red
+        case .water: return .blue
+        case .wind: return .green
+        case .earth: return .brown
+        case .thunder: return .yellow
+        case .dark: return .purple
+        case .light: return .orange
         }
     }
 
@@ -80,7 +93,6 @@ struct CardDetailView: View {
 
     private var topBadges: some View {
         HStack {
-            // 속성
             Text(card.attribute.emoji + " " + card.attribute.displayName)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white)
@@ -90,7 +102,6 @@ struct CardDetailView: View {
 
             Spacer()
 
-            // 레어리티
             Text(card.rarity.displayName)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(rarityColor)
@@ -98,19 +109,18 @@ struct CardDetailView: View {
                 .padding(.vertical, 6)
                 .liquidGlass(cornerRadius: 20, opacity: 0.5)
         }
-        .padding(.horizontal, 20)
     }
 
     // MARK: - 정보 패널
 
     private var infoPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // 카드 이름
             Text(card.name)
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
 
-            // 카드 타입별 정보
             switch card {
             case .monster(let m):
                 monsterInfo(m)
@@ -118,7 +128,6 @@ struct CardDetailView: View {
                 spellInfo(s)
             }
 
-            // 비용
             HStack(spacing: 6) {
                 Image(systemName: "bolt.circle.fill")
                     .font(.system(size: 14))
@@ -128,13 +137,13 @@ struct CardDetailView: View {
                     .foregroundColor(.white.opacity(0.9))
             }
 
-            // 플레이버 텍스트
             if !card.flavorText.isEmpty {
                 Text(card.flavorText)
                     .font(.system(size: 13, weight: .regular))
                     .italic()
                     .foregroundColor(.white.opacity(0.6))
-                    .padding(.top, 4)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,7 +153,6 @@ struct CardDetailView: View {
 
     private func monsterInfo(_ m: MonsterCard) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            // 타입 + 전투력
             HStack(spacing: 16) {
                 HStack(spacing: 4) {
                     Image(systemName: "person.fill")
@@ -165,7 +173,6 @@ struct CardDetailView: View {
                 }
             }
 
-            // 효과
             if let effect = m.effect {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "sparkles")
@@ -174,6 +181,7 @@ struct CardDetailView: View {
                     Text(effect.description)
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -181,7 +189,6 @@ struct CardDetailView: View {
 
     private func spellInfo(_ s: SpellCard) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            // 마법 타입
             HStack(spacing: 4) {
                 Image(systemName: "wand.and.stars")
                     .font(.system(size: 12))
@@ -191,7 +198,6 @@ struct CardDetailView: View {
                     .foregroundColor(.white.opacity(0.8))
             }
 
-            // 효과
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 12))
@@ -199,6 +205,7 @@ struct CardDetailView: View {
                 Text(s.effect.description)
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -253,83 +260,83 @@ struct FieldCardDetailView: View {
     @State private var appeared = false
 
     var body: some View {
-        ZStack {
-            // 배경 이미지
-            cardImage
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                // 배경 이미지
+                cardBackground(size: geo.size)
 
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.3),
-                    Color.clear,
-                    Color.black.opacity(0.7)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.3),
+                        Color.clear,
+                        Color.black.opacity(0.7)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
-            VStack(spacing: 0) {
-                HStack {
-                    Text(card.attribute.emoji + " " + card.attribute.displayName)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .liquidGlass(cornerRadius: 20, opacity: 0.5)
+                VStack(spacing: 0) {
+                    HStack {
+                        Text(card.attribute.emoji + " " + card.attribute.displayName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .liquidGlass(cornerRadius: 20, opacity: 0.5)
+
+                        Spacer()
+
+                        Text(card.rarity.displayName)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(rarityColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .liquidGlass(cornerRadius: 20, opacity: 0.5)
+                    }
+                    .padding(.top, geo.safeAreaInsets.top + 12)
 
                     Spacer()
 
-                    Text(card.rarity.displayName)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(rarityColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .liquidGlass(cornerRadius: 20, opacity: 0.5)
+                    // 정보 패널
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(card.name)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.7)
+
+                        switch card {
+                        case .monster(let m):
+                            monsterInfo(m)
+                        case .spell(let s):
+                            spellInfo(s)
+                        }
+
+                        if !card.flavorText.isEmpty {
+                            Text(card.flavorText)
+                                .font(.system(size: 13))
+                                .italic()
+                                .foregroundColor(.white.opacity(0.6))
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .liquidGlass(cornerRadius: 16, opacity: 0.5)
+
+                    Button("닫기") {
+                        onClose()
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle(color: .white))
+                    .padding(.top, 12)
+                    .padding(.bottom, geo.safeAreaInsets.bottom + 16)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 60)
-
-                Spacer()
-
-                // 정보 패널
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(card.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-
-                    switch card {
-                    case .monster(let m):
-                        monsterInfo(m)
-                    case .spell(let s):
-                        spellInfo(s)
-                    }
-
-                    if !card.flavorText.isEmpty {
-                        Text(card.flavorText)
-                            .font(.system(size: 13))
-                            .italic()
-                            .foregroundColor(.white.opacity(0.6))
-                            .padding(.top, 4)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .liquidGlass(cornerRadius: 16, opacity: 0.5)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-
-                Button("닫기") {
-                    onClose()
-                }
-                .buttonStyle(LiquidGlassButtonStyle(color: .white))
-                .padding(.bottom, 40)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
+        .ignoresSafeArea()
         .opacity(appeared ? 1 : 0)
         .onAppear {
             withAnimation(.easeOut(duration: 0.25)) {
@@ -338,11 +345,21 @@ struct FieldCardDetailView: View {
         }
     }
 
-    private var cardImage: Image {
+    @ViewBuilder
+    private func cardBackground(size: CGSize) -> some View {
         if let uiImage = UIImage(named: card.imageName) {
-            return Image(uiImage: uiImage)
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: size.width, height: size.height)
+                .clipped()
+        } else {
+            LinearGradient(
+                colors: [Color.gray.opacity(0.6), Color.black],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
-        return Image(systemName: card.imageName.isEmpty ? "photo" : card.imageName)
     }
 
     private var rarityColor: Color {
@@ -382,6 +399,7 @@ struct FieldCardDetailView: View {
                     Text(effect.description)
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -404,6 +422,7 @@ struct FieldCardDetailView: View {
                 Text(s.effect.description)
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
