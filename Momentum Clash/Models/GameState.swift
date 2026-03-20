@@ -18,10 +18,11 @@ struct GameState {
     var turnNumber: Int
     var currentPhase: TurnPhase
     var isFirstTurn: Bool          // 선공 첫 턴 (공격 불가)
+    let firstPlayerIndex: Int      // 선공 플레이어 인덱스 (라운드 판정용)
 
     // MARK: - 글로벌 지형 시스템
     var globalTerrain: Attribute           // 현재 활성 지형 속성
-    var terrainTurnsRemaining: Int         // 지형 유지 남은 턴 수
+    var terrainTurnsRemaining: Int         // 지형 유지 남은 라운드 수 (1라운드 = 양쪽 턴)
     var isSpellTerrain: Bool               // 마법카드에 의한 지형인지
 
     var currentPlayer: Player {
@@ -43,6 +44,7 @@ struct GameState {
             Player(name: "Player 2", deck: player2Deck)
         ]
         self.currentPlayerIndex = firstPlayerIndex
+        self.firstPlayerIndex = firstPlayerIndex
         self.turnNumber = 1
         self.currentPhase = .draw
         self.isFirstTurn = true
@@ -79,12 +81,21 @@ struct GameState {
         // 엔드 페이즈 정리
         endPhaseCleanup()
 
-        // 지형 카운트다운
-        terrainTurnsRemaining -= 1
-        if terrainTurnsRemaining <= 0 {
-            isSpellTerrain = false
-            globalTerrain = Attribute.allCases.randomElement()!
-            terrainTurnsRemaining = 2
+        // 라운드 완료 판정: 후공 플레이어 턴이 끝날 때 = 1라운드 종료
+        let isRoundComplete = (currentPlayerIndex != firstPlayerIndex)
+
+        if isRoundComplete {
+            // 지형 카운트다운 (라운드 단위)
+            terrainTurnsRemaining -= 1
+            if terrainTurnsRemaining <= 0 {
+                isSpellTerrain = false
+                globalTerrain = Attribute.allCases.randomElement()!
+                terrainTurnsRemaining = 2
+            }
+
+            // 로컬 슬롯 지형 유지도 라운드 단위로 감소
+            players[0].field.tickTerrainRetention()
+            players[1].field.tickTerrainRetention()
         }
 
         // 턴 전환
@@ -100,7 +111,7 @@ struct GameState {
 
     // MARK: - 지형 마법
 
-    /// 마법카드로 지형 강제 변경 (2턴 지속)
+    /// 마법카드로 지형 강제 변경 (2라운드 지속)
     mutating func setSpellTerrain(_ attribute: Attribute) {
         globalTerrain = attribute
         terrainTurnsRemaining = 2
@@ -144,8 +155,7 @@ struct GameState {
             currentPlayer.loseMomentum(1)
         }
 
-        // 지형 유지 턴 감소
-        currentPlayer.field.tickTerrainRetention()
+        // 로컬 지형 유지 감소는 nextTurn()에서 라운드 완료 시 처리
     }
 
     // MARK: - 드로우 페이즈

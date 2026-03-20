@@ -125,7 +125,7 @@ class GameViewModel {
     func startGame() {
         addLog("⚔️ Momentum Clash 시작!")
         addLog("\(player.name)이 선공입니다. 기세 2로 시작!")
-        addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2턴)")
+        addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2라운드)")
         startTurn()
     }
 
@@ -332,7 +332,7 @@ class GameViewModel {
     private func applyTerrainSpell(_ spell: SpellCard) {
         let prevTerrain = gameState.globalTerrain
         gameState.setSpellTerrain(spell.attribute)
-        addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2턴)")
+        addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2라운드)")
 
         // 속성별 부가효과
         switch spell.attribute {
@@ -709,7 +709,7 @@ class GameViewModel {
     /// 지형 변경 시 로그 출력
     private func announceTerrainChangeIfNeeded(from previous: Attribute) {
         if gameState.globalTerrain != previous {
-            addLog("\(gameState.globalTerrain.emoji) 지형 변경! → \(gameState.globalTerrain.displayName) (2턴)")
+            addLog("\(gameState.globalTerrain.emoji) 지형 변경! → \(gameState.globalTerrain.displayName) (2라운드)")
         }
     }
 

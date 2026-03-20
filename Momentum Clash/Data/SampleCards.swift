@@ -179,7 +179,7 @@ enum SampleCards {
     static let fireStorm = SpellCard(
         name: "화염 폭풍", attribute: .fire, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 화염으로 2턴 변경. 상대 몬스터 전체에 200 데미지"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 화염으로 2라운드 변경. 상대 몬스터 전체에 200 데미지"),
         flavorText: "불의 폭풍이 전장을 뒤덮는다",
         imageName: "spell_fire_storm"
     )
@@ -187,7 +187,7 @@ enum SampleCards {
     static let healingRain = SpellCard(
         name: "치유의 비", attribute: .water, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 수류로 2턴 변경. 아군 LP 300 회복"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 수류로 2라운드 변경. 아군 LP 300 회복"),
         flavorText: "생명의 비가 전장을 적신다",
         imageName: "spell_healing_rain"
     )
@@ -195,7 +195,7 @@ enum SampleCards {
     static let earthEcho = SpellCard(
         name: "대지의 울림", attribute: .earth, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 대지로 2턴 변경. 아군 몬스터 전체에 방어막 200 부여"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 대지로 2라운드 변경. 아군 몬스터 전체에 방어막 200 부여"),
         flavorText: "대지가 울리며 전장이 변한다",
         imageName: "spell_earth_echo"
     )
@@ -203,7 +203,7 @@ enum SampleCards {
     static let windStorm = SpellCard(
         name: "폭풍의 눈", attribute: .wind, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 폭풍으로 2턴 변경. 상대 몬스터 1체 전투력 -200"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 폭풍으로 2라운드 변경. 상대 몬스터 1체 전투력 -200"),
         flavorText: "폭풍이 전장을 휩쓸며 바꿔놓는다",
         imageName: "spell_wind_storm"
     )
@@ -211,7 +211,7 @@ enum SampleCards {
     static let thunderJudgment = SpellCard(
         name: "번개의 심판", attribute: .thunder, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2턴 변경. 상대 몬스터 1체에 300 데미지"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2라운드 변경. 상대 몬스터 1체에 300 데미지"),
         flavorText: "하늘의 심판이 전장을 뒤흔든다",
         imageName: "spell_thunder_judgment"
     )
@@ -219,7 +219,7 @@ enum SampleCards {
     static let darkVeil = SpellCard(
         name: "암흑의 장막", attribute: .dark, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 암흑으로 2턴 변경. 상대 몬스터 전체 방어막 제거"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 암흑으로 2라운드 변경. 상대 몬스터 전체 방어막 제거"),
         flavorText: "어둠이 전장을 삼키며 방어를 무너뜨린다",
         imageName: "spell_dark_veil"
     )
@@ -227,7 +227,7 @@ enum SampleCards {
     static let holyLight = SpellCard(
         name: "성스러운 빛", attribute: .light, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 빛으로 2턴 변경. 아군 몬스터 전체 HP 200 회복"),
+        effect: CardEffect(timing: .onSummon, description: "지형을 빛으로 2라운드 변경. 아군 몬스터 전체 HP 200 회복"),
         flavorText: "성스러운 빛이 전장을 비추며 아군을 치유한다",
         imageName: "spell_holy_light"
     )
