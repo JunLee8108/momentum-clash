@@ -25,7 +25,7 @@ struct BattleDisplay: Equatable {
     var isDirectAttack: Bool = false         // 직접 공격 여부
     var showLPFlash: Bool = false            // LP 데미지 플래시
     var isPlayerAction: Bool = false         // true면 플레이어, false면 AI
-    var fireEffectSlot: Int? = nil           // 화염 파티클 표시 슬롯
+    var showLavaEruption: Bool = false       // 용암 분출 풀스크린 이펙트
 }
 
 /// 전투 프리뷰 데이터
@@ -946,12 +946,12 @@ class GameViewModel {
                 _ = gameState.players[idx].field.summonMonster(m, at: slotIdx)
                 addLog("\(m.name) 소환! (슬롯 \(slotIdx + 1))")
 
-                // 지옥 기사 소환 효과: 화염 파티클 + 상대 LP 500 데미지
+                // 지옥 기사 소환 효과: 용암 풀스크린 + 상대 LP 500 데미지
                 if m.name == "지옥 기사" {
-                    try? await Task.sleep(for: .seconds(0.8))
+                    try? await Task.sleep(for: .seconds(0.5))
                     applyInfernoKnightEffect(slotIndex: slotIdx, playerIndex: idx)
-                    try? await Task.sleep(for: .seconds(1.0))
-                    continue  // 이미 충분히 대기했으므로 아래 sleep 스킵
+                    try? await Task.sleep(for: .seconds(2.2))
+                    continue  // 용암 연출 대기 후 다음 진행
                 }
             case .spell(let s):
                 if s.spellType == .continuous {
@@ -1215,18 +1215,18 @@ class GameViewModel {
 
     // MARK: - 카드 효과
 
-    /// 지옥 기사 소환 효과: 화염 파티클 + 상대 LP 500 데미지
+    /// 지옥 기사 소환 효과: 용암 풀스크린 + 상대 LP 500 데미지
     private func applyInfernoKnightEffect(slotIndex: Int, playerIndex: Int) {
         let opponentIdx = 1 - playerIndex
         let damage = 500
 
-        // 화염 파티클 + LP 플래시 연출
+        // 용암 분출 풀스크린 연출
         withAnimation(.easeInOut(duration: 0.3)) {
             battleDisplay = BattleDisplay(
                 message: "지옥 기사 효과: LP \(damage) 데미지!",
                 showLPFlash: true,
                 isPlayerAction: playerIndex == 0,
-                fireEffectSlot: slotIndex
+                showLavaEruption: true
             )
         }
 
@@ -1240,11 +1240,11 @@ class GameViewModel {
             endGame(winnerIndex: playerIndex)
         }
 
-        // 1초 후 연출 클리어
+        // 2초 후 연출 클리어 (파티클 1.2초 분출 + 0.8초 소멸)
         Task {
-            try? await Task.sleep(for: .seconds(1.0))
+            try? await Task.sleep(for: .seconds(2.0))
             withAnimation(.easeOut(duration: 0.3)) {
-                if battleDisplay?.fireEffectSlot != nil {
+                if battleDisplay?.showLavaEruption == true {
                     battleDisplay = nil
                 }
             }
