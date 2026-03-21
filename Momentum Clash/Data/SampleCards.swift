@@ -28,9 +28,9 @@ enum SampleCards {
     )
 
     static let infernoKnight = MonsterCard(
-        name: "지옥화 기사", attribute: .fire, cost: 5, rarity: .superRare,
+        name: "지옥 기사", attribute: .fire, cost: 5, rarity: .superRare,
         combatPower: 2800, monsterType: .warrior,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체에 500 데미지"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대에게 LP 500 데미지"),
         flavorText: "지옥의 불꽃으로 갑옷을 두른 기사",
         imageName: "card_inferno_knight"
     )
