@@ -170,6 +170,13 @@ struct GameBoardView: View {
                 .allowsHitTesting(false)
             }
 
+            // 오버레이: 지옥 기사 용암 분출 (풀스크린)
+            if let display = viewModel.battleDisplay, display.showLavaEruption {
+                LavaFullscreenOverlay()
+                    .transition(.opacity)
+                    .zIndex(100)
+            }
+
             // 오버레이: 전투 프리뷰
             if let preview = viewModel.combatPreview {
                 VStack {
@@ -432,17 +439,6 @@ struct GameBoardView: View {
                     hasAttacked: attacked
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
-                }
-                .overlay {
-                    // 지옥 기사 화염 파티클
-                    if let display = viewModel.battleDisplay,
-                       display.fireEffectSlot == i,
-                       !isOpponent == display.isPlayerAction {
-                        FireParticleOverlay()
-                            .frame(width: 90, height: 120)
-                            .offset(y: -15)
-                            .transition(.opacity)
-                    }
                 }
                 .animation(.easeInOut(duration: 0.3), value: battleHighlight != nil)
             }
