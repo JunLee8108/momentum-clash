@@ -433,6 +433,17 @@ struct GameBoardView: View {
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
+                .overlay {
+                    // 지옥 기사 화염 파티클
+                    if let display = viewModel.battleDisplay,
+                       display.fireEffectSlot == i,
+                       !isOpponent == display.isPlayerAction {
+                        FireParticleOverlay()
+                            .frame(width: 90, height: 120)
+                            .offset(y: -15)
+                            .transition(.opacity)
+                    }
+                }
                 .animation(.easeInOut(duration: 0.3), value: battleHighlight != nil)
             }
         }
