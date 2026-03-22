@@ -395,33 +395,37 @@ enum SampleCards {
     static let presetDecks: [PresetDeck] = [
         PresetDeck(
             name: "화염 러시",
-            description: "저코스트 화/풍 몬스터로 빠르게 공격하는 공격형 덱",
+            description: "화+풍 저코스트 몬스터로 빠르게 공격하는 공격형 덱",
             emoji: "🔥",
             accentColorName: "red",
             monsters: [
-                (fireImp, 3), (fireSlasher, 3), (galeAssassin, 3),
-                (windFairy, 2), (sparkSoldier, 2), (flameDragon, 2),
-                (stormHawk, 3), (infernoKnight, 2),
-            ],
+                (fireImp, 3), (windFairy, 2),
+                (fireSlasher, 3), (galeAssassin, 3),
+                (volcanoMage, 2), (stormHawk, 2),
+                (flameDragon, 2), (forestSage, 2),
+                (infernoKnight, 1),
+            ],  // 20장, ★5: 1장
             spells: [
                 (fireStorm, 3), (windStorm, 3),
                 (thunderJudgment, 2), (darkVeil, 2),
-            ]
+            ]  // 10장
         ),
         PresetDeck(
             name: "대지 요새",
-            description: "높은 전투력의 지/수 몬스터로 버티는 방어형 덱",
+            description: "지+수 고전투력 몬스터로 버티는 방어형 덱",
             emoji: "⛰️",
             accentColorName: "brown",
             monsters: [
-                (earthGuard, 3), (rockGolem, 3), (mountainGiant, 2),
-                (waterShield, 3), (tidalSerpent, 2), (mistSpirit, 3),
-                (holyPriest, 2), (oceanLord, 2),
-            ],
+                (pebbleFairy, 2), (dropletSlime, 2),
+                (earthGuard, 3), (waterShield, 3),
+                (rockGolem, 2), (tidalSerpent, 2),
+                (mountainGiant, 2), (iceWarrior, 2),
+                (earthEmperor, 1), (oceanLord, 1),
+            ],  // 20장, ★5: 2장
             spells: [
                 (earthEcho, 3), (healingRain, 3),
                 (holyLight, 2), (darkVeil, 2),
-            ]
+            ]  // 10장
         ),
         PresetDeck(
             name: "뇌광 폭풍",
@@ -429,72 +433,111 @@ enum SampleCards {
             emoji: "⚡",
             accentColorName: "yellow",
             monsters: [
-                (sparkSoldier, 3), (thunderBeast, 3), (raijuEmperor, 2),
-                (holyPriest, 3), (archangel, 2), (waterShield, 3),
-                (tidalSerpent, 2), (windFairy, 2),
-            ],
+                (sparkSoldier, 3), (lightFirefly, 2),
+                (thunderFox, 3), (holyPriest, 3),
+                (thunderBeast, 2), (holyKnight, 2),
+                (lightningGeneral, 2), (judgeAngel, 2),
+                (raijuEmperor, 1),
+            ],  // 20장, ★5: 1장
             spells: [
                 (thunderJudgment, 3), (holyLight, 3),
                 (healingRain, 2), (windStorm, 2),
-            ]
+            ]  // 10장
         ),
         PresetDeck(
             name: "암흑 지배",
-            description: "암+화 속성으로 상대를 압박하는 파괴형 덱",
+            description: "암+화 디버프로 상대를 압박하는 파괴형 덱",
             emoji: "🌑",
             accentColorName: "purple",
             monsters: [
-                (shadowRogue, 3), (deathKnight, 3), (fireSlasher, 3),
-                (fireImp, 3), (flameDragon, 2), (infernoKnight, 2),
-                (earthGuard, 2), (rockGolem, 2),
-            ],
+                (darkBat, 3), (fireImp, 2),
+                (shadowRogue, 3), (fireSlasher, 3),
+                (curseMage, 2), (volcanoMage, 2),
+                (deathKnight, 2), (flameDragon, 1),
+                (darkDragon, 1), (infernoKnight, 1),
+            ],  // 20장, ★5: 2장
             spells: [
                 (darkVeil, 3), (fireStorm, 3),
                 (earthEcho, 2), (thunderJudgment, 2),
-            ]
+            ]  // 10장
+        ),
+        PresetDeck(
+            name: "심해의 저주",
+            description: "수+암 방어와 디버프로 상대를 서서히 압살하는 컨트롤 덱",
+            emoji: "🌊",
+            accentColorName: "blue",
+            monsters: [
+                (dropletSlime, 3), (darkBat, 2),
+                (mistSpirit, 3), (shadowRogue, 3),
+                (tidalSerpent, 2), (curseMage, 2),
+                (iceWarrior, 2), (deathKnight, 2),
+                (oceanLord, 1),
+            ],  // 20장, ★5: 1장
+            spells: [
+                (healingRain, 3), (darkVeil, 3),
+                (holyLight, 2), (earthEcho, 2),
+            ]  // 10장
+        ),
+        PresetDeck(
+            name: "질풍노도",
+            description: "풍+뇌 저코스트 속공으로 빠르게 몰아치는 속공 덱",
+            emoji: "🌪️",
+            accentColorName: "green",
+            monsters: [
+                (windFairy, 3), (sparkSoldier, 3),
+                (galeAssassin, 3), (thunderFox, 3),
+                (stormHawk, 2), (thunderBeast, 2),
+                (forestSage, 2), (lightningGeneral, 1),
+                (typhoonDragon, 1),
+            ],  // 20장, ★5: 1장
+            spells: [
+                (windStorm, 3), (thunderJudgment, 3),
+                (fireStorm, 2), (darkVeil, 2),
+            ]  // 10장
         ),
     ]
 
     // MARK: - 테스트 덱
 
-    /// 화염 러시 덱 (30장)
+    /// 화염 러시 덱 (30장: 몬스터 20 + 마법 10)
     static func fireRushDeck() -> [AnyCard] {
         var deck: [AnyCard] = []
-        // 몬스터 22장
+        // 몬스터 20장
         for _ in 0..<3 { deck.append(.monster(fireImp)) }
+        for _ in 0..<2 { deck.append(.monster(windFairy)) }
         for _ in 0..<3 { deck.append(.monster(fireSlasher)) }
         for _ in 0..<3 { deck.append(.monster(galeAssassin)) }
-        for _ in 0..<2 { deck.append(.monster(flameDragon)) }
-        for _ in 0..<2 { deck.append(.monster(sparkSoldier)) }
-        for _ in 0..<3 { deck.append(.monster(earthGuard)) }
+        for _ in 0..<2 { deck.append(.monster(volcanoMage)) }
         for _ in 0..<2 { deck.append(.monster(stormHawk)) }
-        for _ in 0..<2 { deck.append(.monster(infernoKnight)) }
-        for _ in 0..<2 { deck.append(.monster(shadowRogue)) }
-        // 마법 8장 (지형 마법)
-        for _ in 0..<2 { deck.append(.spell(fireStorm)) }
+        for _ in 0..<2 { deck.append(.monster(flameDragon)) }
+        for _ in 0..<2 { deck.append(.monster(forestSage)) }
+        for _ in 0..<1 { deck.append(.monster(infernoKnight)) }
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(fireStorm)) }
+        for _ in 0..<3 { deck.append(.spell(windStorm)) }
         for _ in 0..<2 { deck.append(.spell(thunderJudgment)) }
-        for _ in 0..<2 { deck.append(.spell(windStorm)) }
         for _ in 0..<2 { deck.append(.spell(darkVeil)) }
         deck.shuffle()
         return deck
     }
 
-    /// 대지 요새 덱 (30장)
+    /// 대지 요새 덱 (30장: 몬스터 20 + 마법 10)
     static func earthFortressDeck() -> [AnyCard] {
         var deck: [AnyCard] = []
-        // 몬스터 22장
+        // 몬스터 20장
+        for _ in 0..<2 { deck.append(.monster(pebbleFairy)) }
+        for _ in 0..<2 { deck.append(.monster(dropletSlime)) }
         for _ in 0..<3 { deck.append(.monster(earthGuard)) }
-        for _ in 0..<3 { deck.append(.monster(rockGolem)) }
-        for _ in 0..<2 { deck.append(.monster(mountainGiant)) }
         for _ in 0..<3 { deck.append(.monster(waterShield)) }
+        for _ in 0..<2 { deck.append(.monster(rockGolem)) }
         for _ in 0..<2 { deck.append(.monster(tidalSerpent)) }
-        for _ in 0..<2 { deck.append(.monster(holyPriest)) }
-        for _ in 0..<2 { deck.append(.monster(deathKnight)) }
-        for _ in 0..<3 { deck.append(.monster(mistSpirit)) }
-        for _ in 0..<2 { deck.append(.monster(oceanLord)) }
-        // 마법 8장 (지형 마법)
-        for _ in 0..<2 { deck.append(.spell(earthEcho)) }
-        for _ in 0..<2 { deck.append(.spell(healingRain)) }
+        for _ in 0..<2 { deck.append(.monster(mountainGiant)) }
+        for _ in 0..<2 { deck.append(.monster(iceWarrior)) }
+        for _ in 0..<1 { deck.append(.monster(earthEmperor)) }
+        for _ in 0..<1 { deck.append(.monster(oceanLord)) }
+        // 마법 10장
+        for _ in 0..<3 { deck.append(.spell(earthEcho)) }
+        for _ in 0..<3 { deck.append(.spell(healingRain)) }
         for _ in 0..<2 { deck.append(.spell(holyLight)) }
         for _ in 0..<2 { deck.append(.spell(darkVeil)) }
         deck.shuffle()

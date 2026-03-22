@@ -62,6 +62,7 @@ struct DeckBuilderView: View {
             DeckCardDetailView(
                 card: card,
                 currentCount: deckVM.countInDeck(name: card.name),
+                highCostCount: deckVM.highCostCount,
                 canAdd: deckVM.canAdd(card: card)
             ) {
                 selectedCard = nil
@@ -244,10 +245,19 @@ struct DeckBuilderView: View {
         let typeMaxed = card.isSpell
             ? deckVM.spellCount >= DeckConstants.spellLimit
             : deckVM.monsterCount >= DeckConstants.monsterLimit
+        // ★5 몬스터 제한 체크
+        let highCostMaxed: Bool = {
+            if case .monster(let m) = card,
+               m.cost >= DeckConstants.highCostThreshold,
+               deckVM.highCostCount >= DeckConstants.highCostLimit {
+                return true
+            }
+            return false
+        }()
 
         return ZStack(alignment: .topTrailing) {
             CardView(card: card, isSelected: count > 0, onTap: onTap)
-                .opacity(maxed || typeMaxed ? 0.5 : 1.0)
+                .opacity(maxed || typeMaxed || highCostMaxed ? 0.5 : 1.0)
 
             // 장수 뱃지
             Text("\(count)/\(DeckConstants.sameCardLimit)")
