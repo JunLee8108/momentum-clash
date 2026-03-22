@@ -7,6 +7,8 @@ enum DeckConstants {
     static let monsterLimit = 20
     static let spellLimit = 10
     static let sameCardLimit = 3
+    static let highCostLimit = 2       // ★5 몬스터 최대 2장
+    static let highCostThreshold = 5   // 고코스트 기준 코스트
 }
 
 /// 덱 빌딩 뷰모델
@@ -56,6 +58,15 @@ class DeckViewModel {
         deck.filter { $0.isSpell }.count
     }
 
+    /// 덱 내 ★5 몬스터 수
+    var highCostCount: Int {
+        deck.compactMap { card -> MonsterCard? in
+            if case .monster(let m) = card { return m } else { return nil }
+        }
+        .filter { $0.cost >= DeckConstants.highCostThreshold }
+        .count
+    }
+
     var isDeckValid: Bool {
         deck.count == DeckConstants.deckSize &&
         monsterCount == DeckConstants.monsterLimit &&
@@ -73,8 +84,12 @@ class DeckViewModel {
         if countInDeck(name: card.name) >= DeckConstants.sameCardLimit { return false }
 
         switch card {
-        case .monster:
-            return monsterCount < DeckConstants.monsterLimit
+        case .monster(let m):
+            if monsterCount >= DeckConstants.monsterLimit { return false }
+            // ★5 몬스터 제한 체크
+            if m.cost >= DeckConstants.highCostThreshold &&
+               highCostCount >= DeckConstants.highCostLimit { return false }
+            return true
         case .spell:
             return spellCount < DeckConstants.spellLimit
         }
