@@ -45,16 +45,9 @@ enum SampleCards {
 
     // MARK: - 💧 수(Water) 몬스터
 
-    static let dropletSlime = MonsterCard(
-        name: "물방울 슬라임", attribute: .water, cost: 1, rarity: .normal,
-        combatPower: 500, monsterType: .spirit,
-        flavorText: "투명한 물방울 형태의 작은 슬라임",
-        imageName: "card_droplet_slime"
-    )
-
     static let mistSpirit = MonsterCard(
-        name: "안개 정령", attribute: .water, cost: 2, rarity: .normal,
-        combatPower: 700, monsterType: .spirit,
+        name: "안개 정령", attribute: .water, cost: 1, rarity: .normal,
+        combatPower: 450, monsterType: .spirit,
         effect: CardEffect(timing: .onSummon, description: "소환 시 인접 슬롯 1개를 수(水) 지형으로 변경"),
         flavorText: "안개를 몰고 다니는 신비한 정령",
         imageName: "card_mist_spirit"
@@ -352,10 +345,10 @@ enum SampleCards {
 
     // MARK: - 카드 풀
 
-    /// 전체 몬스터 카드 목록 (36종)
+    /// 전체 몬스터 카드 목록 (35종)
     static let allMonsters: [MonsterCard] = [
         fireImp, fireSlasher, volcanoMage, flameDragon, infernoKnight,
-        dropletSlime, mistSpirit, waterShield, tidalSerpent, iceWarrior, oceanLord,
+        mistSpirit, waterShield, tidalSerpent, iceWarrior, oceanLord,
         windFairy, galeAssassin, stormHawk, forestSage, typhoonDragon,
         pebbleFairy, earthGuard, rockGolem, mountainGiant, earthEmperor,
         sparkSoldier, thunderFox, thunderBeast, lightningGeneral, raijuEmperor,
@@ -416,7 +409,7 @@ enum SampleCards {
             emoji: "⛰️",
             accentColorName: "brown",
             monsters: [
-                (pebbleFairy, 2), (dropletSlime, 2),
+                (pebbleFairy, 2), (mistSpirit, 2),
                 (earthGuard, 3), (waterShield, 3),
                 (rockGolem, 2), (tidalSerpent, 2),
                 (mountainGiant, 2), (iceWarrior, 2),
@@ -467,8 +460,8 @@ enum SampleCards {
             emoji: "🌊",
             accentColorName: "blue",
             monsters: [
-                (dropletSlime, 3), (darkBat, 2),
-                (mistSpirit, 3), (shadowRogue, 3),
+                (mistSpirit, 3), (darkBat, 2),
+                (waterShield, 3), (shadowRogue, 3),
                 (tidalSerpent, 2), (curseMage, 2),
                 (iceWarrior, 2), (deathKnight, 2),
                 (oceanLord, 1),
@@ -526,7 +519,7 @@ enum SampleCards {
         var deck: [AnyCard] = []
         // 몬스터 20장
         for _ in 0..<2 { deck.append(.monster(pebbleFairy)) }
-        for _ in 0..<2 { deck.append(.monster(dropletSlime)) }
+        for _ in 0..<2 { deck.append(.monster(mistSpirit)) }
         for _ in 0..<3 { deck.append(.monster(earthGuard)) }
         for _ in 0..<3 { deck.append(.monster(waterShield)) }
         for _ in 0..<2 { deck.append(.monster(rockGolem)) }

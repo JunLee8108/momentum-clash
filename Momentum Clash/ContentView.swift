@@ -150,19 +150,6 @@ struct ContentView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
             }
-
-            Rectangle()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 1, height: 30)
-
-            VStack(spacing: 4) {
-                Text("★5")
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
-                Text("\(deckVM.highCostCount)/\(DeckConstants.highCostLimit)")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(deckVM.highCostCount >= DeckConstants.highCostLimit ? .yellow : .white)
-            }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)

@@ -62,7 +62,6 @@ struct DeckBuilderView: View {
             DeckCardDetailView(
                 card: card,
                 currentCount: deckVM.countInDeck(name: card.name),
-                highCostCount: deckVM.highCostCount,
                 canAdd: deckVM.canAdd(card: card)
             ) {
                 selectedCard = nil
@@ -241,11 +240,18 @@ struct DeckBuilderView: View {
     }
 
     private func cardPoolItem(card: AnyCard, count: Int, onTap: @escaping () -> Void) -> some View {
-        let maxed = count >= DeckConstants.sameCardLimit
+        // 5성 몬스터는 per-card 제한도 2장
+        let effectiveLimit: Int = {
+            if case .monster(let m) = card, m.cost >= DeckConstants.highCostThreshold {
+                return DeckConstants.highCostLimit
+            }
+            return DeckConstants.sameCardLimit
+        }()
+        let maxed = count >= effectiveLimit
         let typeMaxed = card.isSpell
             ? deckVM.spellCount >= DeckConstants.spellLimit
             : deckVM.monsterCount >= DeckConstants.monsterLimit
-        // ★5 몬스터 제한 체크
+        // ★5 몬스터 총량 제한 체크
         let highCostMaxed: Bool = {
             if case .monster(let m) = card,
                m.cost >= DeckConstants.highCostThreshold,
@@ -260,7 +266,7 @@ struct DeckBuilderView: View {
                 .opacity(maxed || typeMaxed || highCostMaxed ? 0.5 : 1.0)
 
             // 장수 뱃지
-            Text("\(count)/\(DeckConstants.sameCardLimit)")
+            Text("\(count)/\(effectiveLimit)")
                 .font(.system(size: 9, weight: .bold))
                 .foregroundColor(.white)
                 .padding(.horizontal, 5)

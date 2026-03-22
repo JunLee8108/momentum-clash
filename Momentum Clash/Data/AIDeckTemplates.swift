@@ -48,7 +48,7 @@ enum AIDeckTemplates {
         name: "대지 요새",
         monsters: [
             (SampleCards.pebbleFairy, 2),       // ★1 지
-            (SampleCards.dropletSlime, 2),      // ★1 수
+            (SampleCards.mistSpirit, 2),        // ★1 수
             (SampleCards.earthGuard, 3),        // ★2 지
             (SampleCards.waterShield, 3),       // ★2 수
             (SampleCards.rockGolem, 2),         // ★3 지
@@ -115,9 +115,9 @@ enum AIDeckTemplates {
     static let deepSeaCurse = DeckTemplate(
         name: "심해의 저주",
         monsters: [
-            (SampleCards.dropletSlime, 3),      // ★1 수
+            (SampleCards.mistSpirit, 3),        // ★1 수
             (SampleCards.darkBat, 2),           // ★1 암
-            (SampleCards.mistSpirit, 3),        // ★2 수
+            (SampleCards.waterShield, 3),       // ★2 수
             (SampleCards.shadowRogue, 3),       // ★2 암
             (SampleCards.tidalSerpent, 2),      // ★3 수
             (SampleCards.curseMage, 2),         // ★3 암
