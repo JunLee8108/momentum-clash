@@ -35,7 +35,22 @@ enum SampleCards {
         imageName: "card_inferno_knight"
     )
 
+    static let volcanoMage = MonsterCard(
+        name: "화산 마도사", attribute: .fire, cost: 3, rarity: .rare,
+        combatPower: 1300, monsterType: .mage,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체에 300 데미지"),
+        flavorText: "용암을 다루는 화산의 마도사",
+        imageName: "card_volcano_mage"
+    )
+
     // MARK: - 💧 수(Water) 몬스터
+
+    static let dropletSlime = MonsterCard(
+        name: "물방울 슬라임", attribute: .water, cost: 1, rarity: .normal,
+        combatPower: 500, monsterType: .spirit,
+        flavorText: "투명한 물방울 형태의 작은 슬라임",
+        imageName: "card_droplet_slime"
+    )
 
     static let mistSpirit = MonsterCard(
         name: "안개 정령", attribute: .water, cost: 2, rarity: .normal,
@@ -67,6 +82,14 @@ enum SampleCards {
         imageName: "card_ocean_lord"
     )
 
+    static let iceWarrior = MonsterCard(
+        name: "빙결 용사", attribute: .water, cost: 4, rarity: .rare,
+        combatPower: 2100, monsterType: .warrior,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 인접 슬롯 2개를 수(水) 지형으로 변경"),
+        flavorText: "얼음 갑옷을 두른 냉혹한 전사",
+        imageName: "card_ice_warrior"
+    )
+
     // MARK: - 🌿 풍(Wind) 몬스터
 
     static let windFairy = MonsterCard(
@@ -91,7 +114,30 @@ enum SampleCards {
         imageName: "card_gale_assassin"
     )
 
+    static let forestSage = MonsterCard(
+        name: "숲의 현자", attribute: .wind, cost: 4, rarity: .rare,
+        combatPower: 2100, monsterType: .mage,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 카드 1장 드로우"),
+        flavorText: "고대 숲의 지혜를 간직한 현자",
+        imageName: "card_forest_sage"
+    )
+
+    static let typhoonDragon = MonsterCard(
+        name: "태풍룡", attribute: .wind, cost: 5, rarity: .superRare,
+        combatPower: 2700, monsterType: .dragon,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 필드 전체를 풍(風) 지형으로 변경"),
+        flavorText: "태풍을 몰고 다니는 바람의 용",
+        imageName: "card_typhoon_dragon"
+    )
+
     // MARK: - ⛰️ 지(Earth) 몬스터
+
+    static let pebbleFairy = MonsterCard(
+        name: "자갈 요정", attribute: .earth, cost: 1, rarity: .normal,
+        combatPower: 500, monsterType: .spirit,
+        flavorText: "작은 자갈에 깃든 대지의 정령",
+        imageName: "card_pebble_fairy"
+    )
 
     static let rockGolem = MonsterCard(
         name: "바위 골렘", attribute: .earth, cost: 3, rarity: .normal,
@@ -114,7 +160,23 @@ enum SampleCards {
         imageName: "card_mountain_giant"
     )
 
+    static let earthEmperor = MonsterCard(
+        name: "대지의 제왕", attribute: .earth, cost: 5, rarity: .superRare,
+        combatPower: 2700, monsterType: .warrior,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 전체에 방어막 200 부여"),
+        flavorText: "대지를 호령하는 불멸의 제왕",
+        imageName: "card_earth_emperor"
+    )
+
     // MARK: - ⚡ 뇌(Thunder) 몬스터
+
+    static let thunderFox = MonsterCard(
+        name: "뇌격 여우", attribute: .thunder, cost: 2, rarity: .normal,
+        combatPower: 1000, monsterType: .spirit,
+        effect: CardEffect(timing: .onAttack, description: "공격 시 상대 기세 -1"),
+        flavorText: "번개를 두른 민첩한 여우 정령",
+        imageName: "card_thunder_fox"
+    )
 
     static let sparkSoldier = MonsterCard(
         name: "전격 병사", attribute: .thunder, cost: 1, rarity: .normal,
@@ -139,7 +201,23 @@ enum SampleCards {
         imageName: "card_raiju_emperor"
     )
 
+    static let lightningGeneral = MonsterCard(
+        name: "번개 장군", attribute: .thunder, cost: 4, rarity: .rare,
+        combatPower: 2200, monsterType: .machine,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체에 400 데미지"),
+        flavorText: "전장을 번개로 뒤덮는 기계 장군",
+        imageName: "card_lightning_general"
+    )
+
     // MARK: - 🌑 암(Dark) 몬스터
+
+    static let darkBat = MonsterCard(
+        name: "어둠 박쥐", attribute: .dark, cost: 1, rarity: .normal,
+        combatPower: 450, monsterType: .spirit,
+        effect: CardEffect(timing: .onDestroy, description: "파괴 시 상대에게 LP 200 데미지"),
+        flavorText: "어둠 속에서 날아드는 흡혈 박쥐",
+        imageName: "card_dark_bat"
+    )
 
     static let shadowRogue = MonsterCard(
         name: "그림자 도적", attribute: .dark, cost: 2, rarity: .normal,
@@ -156,7 +234,31 @@ enum SampleCards {
         imageName: "card_death_knight"
     )
 
+    static let curseMage = MonsterCard(
+        name: "저주술사", attribute: .dark, cost: 3, rarity: .rare,
+        combatPower: 1300, monsterType: .mage,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체 전투력 -200"),
+        flavorText: "저주의 힘으로 적을 약화시키는 마법사",
+        imageName: "card_curse_mage"
+    )
+
+    static let darkDragon = MonsterCard(
+        name: "암흑룡", attribute: .dark, cost: 5, rarity: .superRare,
+        combatPower: 2600, monsterType: .dragon,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 기세 -2"),
+        flavorText: "어둠을 삼키며 자라난 공포의 용",
+        imageName: "card_dark_dragon"
+    )
+
     // MARK: - ✨ 광(Light) 몬스터
+
+    static let lightFirefly = MonsterCard(
+        name: "빛의 반딧불", attribute: .light, cost: 1, rarity: .normal,
+        combatPower: 400, monsterType: .spirit,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 LP 200 회복"),
+        flavorText: "따뜻한 빛으로 아군을 감싸는 반딧불",
+        imageName: "card_light_firefly"
+    )
 
     static let holyPriest = MonsterCard(
         name: "성광 사제", attribute: .light, cost: 2, rarity: .normal,
@@ -172,6 +274,22 @@ enum SampleCards {
         effect: CardEffect(timing: .onSummon, description: "소환 시 아군 전체 전투력 +200"),
         flavorText: "천상에서 내려온 심판의 천사",
         imageName: "card_archangel"
+    )
+
+    static let holyKnight = MonsterCard(
+        name: "성기사", attribute: .light, cost: 3, rarity: .rare,
+        combatPower: 1400, monsterType: .warrior,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 몬스터 전체 전투력 +100"),
+        flavorText: "빛의 축복을 받은 성스러운 기사",
+        imageName: "card_holy_knight"
+    )
+
+    static let judgeAngel = MonsterCard(
+        name: "심판의 천사", attribute: .light, cost: 4, rarity: .rare,
+        combatPower: 2300, monsterType: .spirit,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체 방어막 제거"),
+        flavorText: "천상의 심판으로 적의 방어를 무너뜨린다",
+        imageName: "card_judge_angel"
     )
 
     // MARK: - 지형 마법 카드 (7종)
@@ -234,15 +352,15 @@ enum SampleCards {
 
     // MARK: - 카드 풀
 
-    /// 전체 몬스터 카드 목록 (21종)
+    /// 전체 몬스터 카드 목록 (36종)
     static let allMonsters: [MonsterCard] = [
-        fireSlasher, fireImp, flameDragon, infernoKnight,
-        mistSpirit, waterShield, tidalSerpent, oceanLord,
-        windFairy, stormHawk, galeAssassin,
-        rockGolem, earthGuard, mountainGiant,
-        sparkSoldier, thunderBeast, raijuEmperor,
-        shadowRogue, deathKnight,
-        holyPriest, archangel
+        fireImp, fireSlasher, volcanoMage, flameDragon, infernoKnight,
+        dropletSlime, mistSpirit, waterShield, tidalSerpent, iceWarrior, oceanLord,
+        windFairy, galeAssassin, stormHawk, forestSage, typhoonDragon,
+        pebbleFairy, earthGuard, rockGolem, mountainGiant, earthEmperor,
+        sparkSoldier, thunderFox, thunderBeast, lightningGeneral, raijuEmperor,
+        darkBat, shadowRogue, curseMage, deathKnight, darkDragon,
+        lightFirefly, holyPriest, holyKnight, judgeAngel, archangel
     ]
 
     /// 전체 마법 카드 목록 (7종)
