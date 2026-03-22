@@ -4,7 +4,6 @@ import SwiftUI
 struct DeckCardDetailView: View {
     let card: AnyCard
     let currentCount: Int
-    let highCostCount: Int
     let canAdd: Bool
     let onClose: () -> Void
     let onAdd: () -> Void
@@ -86,20 +85,10 @@ struct DeckCardDetailView: View {
 
             Spacer()
 
-            // ★5 제한 표시 (5성 몬스터인 경우)
-            if case .monster(let m) = card, m.cost >= DeckConstants.highCostThreshold {
-                Text("★5 \(highCostCount)/\(DeckConstants.highCostLimit)")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(highCostCount >= DeckConstants.highCostLimit ? .red : .yellow)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .liquidGlass(cornerRadius: 20, opacity: 0.5)
-            }
-
-            // 보유 장수
-            Text("\(currentCount)/\(DeckConstants.sameCardLimit)장")
+            // 보유 장수 (5성 몬스터는 최대 2장)
+            Text("\(currentCount)/\(cardLimit)장")
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(currentCount >= DeckConstants.sameCardLimit ? .red : .cyan)
+                .foregroundColor(currentCount >= cardLimit ? .red : .cyan)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .liquidGlass(cornerRadius: 20, opacity: 0.5)
@@ -289,6 +278,14 @@ struct DeckCardDetailView: View {
             .disabled(!canAdd)
             .opacity(canAdd ? 1.0 : 0.5)
         }
+    }
+
+    /// 카드별 최대 투입 장수 (5성 몬스터는 2장, 그 외 3장)
+    private var cardLimit: Int {
+        if case .monster(let m) = card, m.cost >= DeckConstants.highCostThreshold {
+            return DeckConstants.highCostLimit
+        }
+        return DeckConstants.sameCardLimit
     }
 
     private var rarityColor: Color {
