@@ -153,8 +153,8 @@ struct GameState {
         currentPlayer.fightingTargetSlot = nil
         currentPlayer.summonedThisTurn = []
 
-        // 공격하지 않았으면 기세 -1
-        if !currentPlayer.didAttackThisTurn {
+        // 공격하지 않았으면 기세 -1 (선공 첫 턴은 공격 불가이므로 면제)
+        if !currentPlayer.didAttackThisTurn && !isFirstTurn {
             currentPlayer.loseMomentum(1)
         }
 
