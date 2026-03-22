@@ -88,6 +88,11 @@ enum Attribute: String, CaseIterable, Codable {
         }
     }
 
+    /// 정렬용 인덱스 (CaseIterable 순서: 화→수→풍→지→뇌→암→광)
+    var sortOrder: Int {
+        Attribute.allCases.firstIndex(of: self) ?? 0
+    }
+
     /// 지형 배경 이미지 에셋 이름
     var terrainBackgroundImageName: String {
         "terrain_bg_\(rawValue)"
