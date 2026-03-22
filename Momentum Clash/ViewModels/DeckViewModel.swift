@@ -24,20 +24,26 @@ class DeckViewModel {
 
     // MARK: - 카드 풀
 
-    /// 필터링된 몬스터 카드 풀
+    /// 필터링된 몬스터 카드 풀 (속성별 → 소환 cost 오름차순)
     var filteredMonsters: [MonsterCard] {
         if let attr = selectedAttribute {
-            return SampleCards.allMonsters.filter { $0.attribute == attr }
+            return SampleCards.allMonsters
+                .filter { $0.attribute == attr }
+                .sorted { $0.cost < $1.cost }
         }
         return SampleCards.allMonsters
+            .sorted { ($0.attribute.sortOrder, $0.cost) < ($1.attribute.sortOrder, $1.cost) }
     }
 
-    /// 필터링된 마법 카드 풀
+    /// 필터링된 마법 카드 풀 (속성별 → 소환 cost 오름차순)
     var filteredSpells: [SpellCard] {
         if let attr = selectedAttribute {
-            return SampleCards.allSpells.filter { $0.attribute == attr }
+            return SampleCards.allSpells
+                .filter { $0.attribute == attr }
+                .sorted { $0.cost < $1.cost }
         }
         return SampleCards.allSpells
+            .sorted { ($0.attribute.sortOrder, $0.cost) < ($1.attribute.sortOrder, $1.cost) }
     }
 
     // MARK: - 덱 현황
