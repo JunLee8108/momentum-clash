@@ -128,7 +128,7 @@ class GameViewModel {
         self.gameState = GameState(
             player1Deck: playerDeck,
             player2Deck: aiDeck,
-            firstPlayerIndex: 0
+            firstPlayerIndex: Int.random(in: 0...1)
         )
     }
 
@@ -142,7 +142,7 @@ class GameViewModel {
         gameState = GameState(
             player1Deck: playerDeck,
             player2Deck: aiDeck,
-            firstPlayerIndex: 0
+            firstPlayerIndex: Int.random(in: 0...1)
         )
         logs = []
         uiState = .notStarted
@@ -152,18 +152,40 @@ class GameViewModel {
         battleDisplay = nil
         combatPreview = nil
 
-        addLog("⚔️ Momentum Clash 시작!")
-        addLog("상대 덱: \(aiDeckName)")
-        addLog("\(player.name)이 선공입니다. 기세 2로 시작!")
-        addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2라운드)")
-        startTurn()
+        showFirstTurnBanner(aiDeckName: aiDeckName)
     }
 
     func startGame() {
+        showFirstTurnBanner(aiDeckName: nil)
+    }
+
+    /// 선공 배너 표시 → 1.5초 후 게임 시작
+    private func showFirstTurnBanner(aiDeckName: String?) {
+        let isPlayerFirst = gameState.firstPlayerIndex == 0
+        let firstLabel = isPlayerFirst ? "당신이 선공입니다!" : "AI가 선공입니다!"
+
         addLog("⚔️ Momentum Clash 시작!")
-        addLog("\(player.name)이 선공입니다. 기세 2로 시작!")
+        if let deckName = aiDeckName {
+            addLog("상대 덱: \(deckName)")
+        }
+        addLog("\(firstLabel) 기세 2로 시작!")
         addLog("\(gameState.globalTerrain.emoji) 지형: \(gameState.globalTerrain.displayName) (2라운드)")
-        startTurn()
+
+        withAnimation(.easeInOut(duration: 0.3)) {
+            battleDisplay = BattleDisplay(
+                message: "⚔️ \(firstLabel)",
+                isPlayerAction: isPlayerFirst
+            )
+        }
+
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation(.easeOut(duration: 0.3)) {
+                battleDisplay = nil
+            }
+            try? await Task.sleep(for: .seconds(0.3))
+            startTurn()
+        }
     }
 
     // MARK: - 턴 시작
@@ -1273,7 +1295,7 @@ class GameViewModel {
         gameState = GameState(
             player1Deck: newPlayerDeck,
             player2Deck: aiDeckInfo.deck,
-            firstPlayerIndex: 0
+            firstPlayerIndex: Int.random(in: 0...1)
         )
         logs = []
         uiState = .notStarted
