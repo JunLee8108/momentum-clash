@@ -118,7 +118,8 @@ struct BattleEngine {
         // 1. 기본 전투력
         var cp = Double(card.combatPower)
 
-        // 2. 장착 마법 / 지속 효과 (추후 구현)
+        // 2. 디버프 적용 (태풍룡 등)
+        cp += Double(field.cpDebuff)
 
         // 3. 글로벌 지형 보너스 (+300)
         cp += Double(field.terrainBonus(at: slotIndex, globalTerrain: globalTerrain))

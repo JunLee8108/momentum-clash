@@ -1274,9 +1274,10 @@ class GameViewModel {
 
         case "태풍룡":
             effectType = .typhoonStorm
-            effectMessage = "태풍룡: 상대 전체 전투력 -300!"
-            addLog("🌪️ 태풍룡 효과! 상대 몬스터 전투력 -300!")
-            // 전투력 감소는 방어막 -300으로 구현 (음수 방어막은 없으므로 로그만)
+            let debuff = 300
+            gameState.players[opponentIdx].field.cpDebuff = -debuff
+            effectMessage = "태풍룡: 상대 전체 전투력 -\(debuff)!"
+            addLog("🌪️ 태풍룡 효과! 상대 몬스터 전투력 -\(debuff)! (2턴)")
 
         case "대지의 제왕":
             effectType = .earthquake
