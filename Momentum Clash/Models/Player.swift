@@ -74,9 +74,8 @@ struct Player: Equatable {
         let handSize = min(TurnSystem.startingHandSize, deck.count)
         let minMonsters = 3
 
-        // 덱에서 몬스터/마법 인덱스 분리
+        // 덱에서 몬스터 인덱스 추출
         let monsterIndices = deck.indices.filter { !deck[$0].isSpell }
-        let spellIndices = deck.indices.filter { deck[$0].isSpell }
 
         // 몬스터가 충분하면 최소 3장 보장
         if monsterIndices.count >= minMonsters {
