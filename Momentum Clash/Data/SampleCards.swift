@@ -30,7 +30,7 @@ enum SampleCards {
     static let infernoKnight = MonsterCard(
         name: "지옥 기사", attribute: .fire, cost: 5, rarity: .superRare,
         combatPower: 2800, monsterType: .warrior,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대에게 LP 500 데미지"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 화(火)로 오버라이드(2턴). 상대에게 LP 500 데미지"),
         flavorText: "지옥의 불꽃으로 갑옷을 두른 기사",
         imageName: "card_inferno_knight"
     )
@@ -70,7 +70,7 @@ enum SampleCards {
     static let oceanLord = MonsterCard(
         name: "해왕", attribute: .water, cost: 5, rarity: .superRare,
         combatPower: 2700, monsterType: .dragon,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 필드 전체를 수(水) 지형으로 변경"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 수(水)로 오버라이드(2턴). 아군 LP 500 회복"),
         flavorText: "바다를 지배하는 고대의 왕",
         imageName: "card_ocean_lord"
     )
@@ -118,7 +118,7 @@ enum SampleCards {
     static let typhoonDragon = MonsterCard(
         name: "태풍룡", attribute: .wind, cost: 5, rarity: .superRare,
         combatPower: 2700, monsterType: .dragon,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 필드 전체를 풍(風) 지형으로 변경"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 풍(風)으로 오버라이드(2턴). 상대 몬스터 전체 전투력 -300"),
         flavorText: "태풍을 몰고 다니는 바람의 용",
         imageName: "card_typhoon_dragon"
     )
@@ -156,7 +156,7 @@ enum SampleCards {
     static let earthEmperor = MonsterCard(
         name: "대지의 제왕", attribute: .earth, cost: 5, rarity: .superRare,
         combatPower: 2700, monsterType: .warrior,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 전체에 방어막 200 부여"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 지(地)로 오버라이드(2턴). 아군 전체에 방어막 400 부여"),
         flavorText: "대지를 호령하는 불멸의 제왕",
         imageName: "card_earth_emperor"
     )
@@ -187,9 +187,9 @@ enum SampleCards {
     )
 
     static let raijuEmperor = MonsterCard(
-        name: "뇌제 라이쥬", attribute: .thunder, cost: 5, rarity: .ultraRare,
-        combatPower: 2800, monsterType: .dragon,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 지형 전체를 뇌(雷)로 변경"),
+        name: "뇌제 라이쥬", attribute: .thunder, cost: 5, rarity: .superRare,
+        combatPower: 3000, monsterType: .dragon,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 뇌(雷)로 오버라이드(2턴). 상대에게 LP 300 데미지"),
         flavorText: "번개의 화신이자 하늘의 제왕",
         imageName: "card_raiju_emperor"
     )
@@ -238,7 +238,7 @@ enum SampleCards {
     static let darkDragon = MonsterCard(
         name: "암흑룡", attribute: .dark, cost: 5, rarity: .superRare,
         combatPower: 2600, monsterType: .dragon,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 기세 -2"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 암(暗)으로 오버라이드(2턴). 상대 기세 -3"),
         flavorText: "어둠을 삼키며 자라난 공포의 용",
         imageName: "card_dark_dragon"
     )
@@ -264,7 +264,7 @@ enum SampleCards {
     static let archangel = MonsterCard(
         name: "대천사", attribute: .light, cost: 5, rarity: .superRare,
         combatPower: 2600, monsterType: .spirit,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 전체 전투력 +200"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 필드를 광(光)으로 오버라이드(2턴). 아군 LP 500 회복"),
         flavorText: "천상에서 내려온 심판의 천사",
         imageName: "card_archangel"
     )

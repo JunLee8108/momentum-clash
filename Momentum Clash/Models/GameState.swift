@@ -93,9 +93,9 @@ struct GameState {
                 terrainTurnsRemaining = 2
             }
 
-            // 로컬 슬롯 지형 유지도 라운드 단위로 감소
-            players[0].field.tickTerrainRetention()
-            players[1].field.tickTerrainRetention()
+            // 필드 오버라이드 감소 (라운드 단위)
+            players[0].field.tickFieldOverride()
+            players[1].field.tickFieldOverride()
         }
 
         // 턴 전환
@@ -124,10 +124,11 @@ struct GameState {
         currentPhase = .standby
         currentPlayer.refreshEnergy()
 
-        // 글로벌 지형과 일치하는 몬스터가 있으면 기세 +1
+        // 지형과 일치하는 몬스터가 있으면 기세 +1 (필드 오버라이드 우선)
+        let activeTerrain = currentPlayer.field.fieldOverrideAttribute ?? globalTerrain
         let hasMatchingMonster = currentPlayer.field.monsterSlotIndices.contains { i in
             if case .monster(let m, _) = currentPlayer.field.slots[i].content {
-                return m.attribute == globalTerrain
+                return m.attribute == activeTerrain
             }
             return false
         }

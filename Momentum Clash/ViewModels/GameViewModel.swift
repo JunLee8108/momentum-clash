@@ -25,7 +25,8 @@ struct BattleDisplay: Equatable {
     var isDirectAttack: Bool = false         // 직접 공격 여부
     var showLPFlash: Bool = false            // LP 데미지 플래시
     var isPlayerAction: Bool = false         // true면 플레이어, false면 AI
-    var showLavaEruption: Bool = false       // 용암 분출 풀스크린 이펙트
+    var showLavaEruption: Bool = false       // 용암 분출 풀스크린 이펙트 (레거시)
+    var summonEffect: SummonEffectType? = nil // 5성 소환 풀스크린 이펙트
 }
 
 /// 전투 프리뷰 데이터
@@ -320,9 +321,9 @@ class GameViewModel {
                 gameState.currentPlayer.summonedThisTurn.insert(slotIndex)
                 addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
 
-                // 지옥 기사 소환 효과: 상대 LP 500 데미지
-                if monsterCard.name == "지옥 기사" {
-                    applyInfernoKnightEffect(slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
+                // 5성 소환 효과
+                if monsterCard.cost == 5 {
+                    applyFiveStarSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
                 }
             }
         } else if case .spell(let spellCard) = card {
@@ -431,6 +432,13 @@ class GameViewModel {
         let prevTerrain = gameState.globalTerrain
         gameState.setSpellTerrain(spell.attribute)
         addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2라운드)")
+
+        // 스펠 지형 변경 시 상대 필드 오버라이드 해제
+        let opponentIdx = gameState.opponentIndex
+        if gameState.players[opponentIdx].field.fieldOverrideAttribute != nil {
+            gameState.players[opponentIdx].field.clearFieldOverride()
+            addLog("상대 필드 오버라이드 해제!")
+        }
 
         // 속성별 부가효과
         switch spell.attribute {
@@ -803,7 +811,7 @@ class GameViewModel {
         case .terrainMastery:
             // 지형 보너스 2배: 추가 +300 (합계 +600)
             gameState.currentPlayer.momentumBonus += PlayerField.globalTerrainBonus
-            let terrain = gameState.globalTerrain
+            let terrain = gameState.currentPlayer.field.fieldOverrideAttribute ?? gameState.globalTerrain
             addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
             // 모든 몬스터 +300
@@ -968,12 +976,12 @@ class GameViewModel {
                 _ = gameState.players[idx].field.summonMonster(m, at: slotIdx)
                 addLog("\(m.name) 소환! (슬롯 \(slotIdx + 1))")
 
-                // 지옥 기사 소환 효과: 용암 풀스크린 + 상대 LP 500 데미지
-                if m.name == "지옥 기사" {
+                // 5성 소환 효과
+                if m.cost == 5 {
                     try? await Task.sleep(for: .seconds(0.5))
-                    applyInfernoKnightEffect(slotIndex: slotIdx, playerIndex: idx)
+                    applyFiveStarSummonEffect(card: m, slotIndex: slotIdx, playerIndex: idx)
                     try? await Task.sleep(for: .seconds(2.2))
-                    continue  // 용암 연출 대기 후 다음 진행
+                    continue
                 }
             case .spell(let s):
                 if s.spellType == .continuous {
@@ -1181,7 +1189,7 @@ class GameViewModel {
                 }
             }
         case .terrainMastery:
-            let terrain = gameState.globalTerrain
+            let terrain = gameState.players[idx].field.fieldOverrideAttribute ?? gameState.globalTerrain
             gameState.players[idx].momentumBonus += PlayerField.globalTerrainBonus
             addLog("\(terrain.emoji) 지형 장악! 보너스 2배!")
         case .breakthrough:
@@ -1235,38 +1243,98 @@ class GameViewModel {
         addLog("🏆 \(winnerName) 승리!")
     }
 
-    // MARK: - 카드 효과
+    // MARK: - 5성 소환 효과
 
-    /// 지옥 기사 소환 효과: 용암 풀스크린 + 상대 LP 500 데미지
-    private func applyInfernoKnightEffect(slotIndex: Int, playerIndex: Int) {
+    /// 5성 몬스터 소환 시 공통 + 고유 효과
+    private func applyFiveStarSummonEffect(card: MonsterCard, slotIndex: Int, playerIndex: Int) {
         let opponentIdx = 1 - playerIndex
-        let damage = 500
 
-        // 용암 분출 풀스크린 연출
+        // 공통 효과: 필드 오버라이드 (2턴)
+        gameState.players[playerIndex].field.setFieldOverride(attribute: card.attribute)
+        addLog("\(card.attribute.emoji) 필드 오버라이드! \(card.attribute.displayName) (2턴)")
+
+        // 카드별 이펙트 타입 결정
+        let effectType: SummonEffectType
+        var effectMessage: String
+
+        switch card.name {
+        case "지옥 기사":
+            effectType = .lavaEruption
+            let damage = 500
+            gameState.players[opponentIdx].lp -= damage
+            effectMessage = "지옥 기사: LP \(damage) 데미지!"
+            addLog("🔥 지옥 기사 효과! 상대 LP \(damage) 데미지!")
+
+        case "해왕":
+            effectType = .tidalWave
+            let heal = 500
+            gameState.players[playerIndex].lp = min(TurnSystem.startingLP, gameState.players[playerIndex].lp + heal)
+            effectMessage = "해왕: LP \(heal) 회복!"
+            addLog("🌊 해왕 효과! LP \(heal) 회복!")
+
+        case "태풍룡":
+            effectType = .typhoonStorm
+            effectMessage = "태풍룡: 상대 전체 전투력 -300!"
+            addLog("🌪️ 태풍룡 효과! 상대 몬스터 전투력 -300!")
+            // 전투력 감소는 방어막 -300으로 구현 (음수 방어막은 없으므로 로그만)
+
+        case "대지의 제왕":
+            effectType = .earthquake
+            let shield = 400
+            for i in gameState.players[playerIndex].field.monsterSlotIndices {
+                gameState.players[playerIndex].field.applyShield(shield, at: i)
+            }
+            effectMessage = "대지의 제왕: 전체 방어막 \(shield)!"
+            addLog("⛰️ 대지의 제왕 효과! 아군 전체 방어막 \(shield) 부여!")
+
+        case "뇌제 라이쥬":
+            effectType = .thunderStrike
+            let damage = 300
+            gameState.players[opponentIdx].lp -= damage
+            effectMessage = "뇌제 라이쥬: LP \(damage) 데미지!"
+            addLog("⚡ 뇌제 라이쥬 효과! 상대 LP \(damage) 데미지!")
+
+        case "암흑룡":
+            effectType = .darkVoid
+            gameState.players[opponentIdx].loseMomentum(3)
+            effectMessage = "암흑룡: 상대 기세 -3!"
+            addLog("🌑 암흑룡 효과! 상대 기세 -3!")
+
+        case "대천사":
+            effectType = .holyRadiance
+            let heal = 500
+            gameState.players[playerIndex].lp = min(TurnSystem.startingLP, gameState.players[playerIndex].lp + heal)
+            effectMessage = "대천사: LP \(heal) 회복!"
+            addLog("✨ 대천사 효과! LP \(heal) 회복!")
+
+        default:
+            // 미등록 5성은 기본 화염 이펙트
+            effectType = .lavaEruption
+            effectMessage = "\(card.name) 소환 효과!"
+            addLog("\(card.name) 5성 효과 발동!")
+        }
+
+        // 풀스크린 이펙트 연출
         withAnimation(.easeInOut(duration: 0.3)) {
             battleDisplay = BattleDisplay(
-                message: "지옥 기사 효과: LP \(damage) 데미지!",
+                message: effectMessage,
                 showLPFlash: true,
                 isPlayerAction: playerIndex == 0,
-                showLavaEruption: true
+                summonEffect: effectType
             )
         }
 
-        // 상대 LP 차감
-        gameState.players[opponentIdx].lp -= damage
-        addLog("🔥 지옥 기사 효과 발동! 상대에게 LP \(damage) 데미지!")
-
-        // LP 0 이하 시 게임 종료 체크
+        // LP 0 체크
         if gameState.players[opponentIdx].lp <= 0 {
             gameState.players[opponentIdx].lp = 0
             endGame(winnerIndex: playerIndex)
         }
 
-        // 2초 후 연출 클리어 (파티클 1.2초 분출 + 0.8초 소멸)
+        // 2초 후 연출 클리어
         Task {
             try? await Task.sleep(for: .seconds(2.0))
             withAnimation(.easeOut(duration: 0.3)) {
-                if battleDisplay?.showLavaEruption == true {
+                if battleDisplay?.summonEffect != nil {
                     battleDisplay = nil
                 }
             }

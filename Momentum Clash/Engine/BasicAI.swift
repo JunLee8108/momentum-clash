@@ -272,8 +272,7 @@ struct BasicAI {
         var simulatedHand = gameState.players[idx].hand
         var simulatedEnergy = gameState.players[idx].energy
         var occupiedSlots = Set<Int>()
-        // 지형 정보를 시뮬레이션용으로 복사
-        var simulatedTerrains: [Attribute?] = gameState.players[idx].field.slots.map { $0.terrain }
+        // 슬롯 점유 정보만 복사 (슬롯 지형 제거됨)
 
         for i in 0..<PlayerField.slotCount {
             if gameState.players[idx].field.slots[i].content.isOccupied {
@@ -312,20 +311,8 @@ struct BasicAI {
 
                 simulatedHand.remove(at: best.index)
 
-                // 지형 시너지를 고려한 슬롯 선택
-                let slotIndex: Int
-                if case .monster(let m) = best.card {
-                    // 같은 속성 지형 슬롯 우선
-                    let matchingTerrainSlot = (0..<PlayerField.slotCount).first {
-                        !occupiedSlots.contains($0) && simulatedTerrains[$0] == m.attribute
-                    }
-                    slotIndex = matchingTerrainSlot
-                        ?? (0..<PlayerField.slotCount).first { !occupiedSlots.contains($0) }
-                        ?? 0
-                    simulatedTerrains[slotIndex] = m.attribute
-                } else {
-                    slotIndex = (0..<PlayerField.slotCount).first { !occupiedSlots.contains($0) } ?? 0
-                }
+                // 빈 슬롯 선택
+                let slotIndex = (0..<PlayerField.slotCount).first { !occupiedSlots.contains($0) } ?? 0
                 occupiedSlots.insert(slotIndex)
 
                 plans.append((card: best.card, handIndex: best.index, slotIndex: slotIndex))
