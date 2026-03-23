@@ -71,9 +71,31 @@ struct Player: Equatable {
     // MARK: - 초기 드로우
 
     mutating func drawInitialHand() {
-        let count = min(TurnSystem.startingHandSize, deck.count)
-        for _ in 0..<count {
-            hand.append(deck.removeFirst())
+        let handSize = min(TurnSystem.startingHandSize, deck.count)
+        let minMonsters = 3
+
+        // 덱에서 몬스터/마법 인덱스 분리
+        let monsterIndices = deck.indices.filter { !deck[$0].isSpell }
+        let spellIndices = deck.indices.filter { deck[$0].isSpell }
+
+        // 몬스터가 충분하면 최소 3장 보장
+        if monsterIndices.count >= minMonsters {
+            let chosenMonsters = Array(monsterIndices.shuffled().prefix(minMonsters))
+            let remaining = deck.indices.filter { !chosenMonsters.contains($0) }
+            let chosenRest = Array(remaining.shuffled().prefix(handSize - minMonsters))
+            let allChosen = (chosenMonsters + chosenRest).sorted(by: >)
+
+            for idx in allChosen {
+                hand.append(deck.remove(at: idx))
+            }
+        } else {
+            // 몬스터 부족 시 기존 방식 (발생 가능성 낮음)
+            for _ in 0..<handSize {
+                hand.append(deck.removeFirst())
+            }
         }
+
+        // 드로우 후 덱 재셔플
+        deck.shuffle()
     }
 }
