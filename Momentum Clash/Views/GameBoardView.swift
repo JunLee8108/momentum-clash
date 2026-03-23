@@ -170,8 +170,12 @@ struct GameBoardView: View {
                 .allowsHitTesting(false)
             }
 
-            // 오버레이: 지옥 기사 용암 분출 (풀스크린)
-            if let display = viewModel.battleDisplay, display.showLavaEruption {
+            // 오버레이: 5성 소환 풀스크린 이펙트
+            if let display = viewModel.battleDisplay, let effect = display.summonEffect {
+                SummonFullscreenOverlay(effectType: effect)
+                    .transition(.opacity)
+                    .zIndex(100)
+            } else if let display = viewModel.battleDisplay, display.showLavaEruption {
                 LavaFullscreenOverlay()
                     .transition(.opacity)
                     .zIndex(100)
@@ -417,6 +421,29 @@ struct GameBoardView: View {
 
     @ViewBuilder
     private func fieldView(player: Player, isOpponent: Bool) -> some View {
+        VStack(spacing: 2) {
+            // 필드 오버라이드 표시
+            if let override = player.field.fieldOverrideAttribute {
+                HStack(spacing: 4) {
+                    Text(override.emoji)
+                        .font(.system(size: 9))
+                    Text("\(override.displayName) 오버라이드")
+                        .font(.system(size: 8, weight: .bold))
+                    Text("(\(player.field.fieldOverrideTurnsRemaining)턴)")
+                        .font(.system(size: 8))
+                }
+                .foregroundColor(attributeColor(override))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(attributeColor(override).opacity(0.15)))
+            }
+
+            fieldSlotsRow(player: player, isOpponent: isOpponent)
+        }
+    }
+
+    @ViewBuilder
+    private func fieldSlotsRow(player: Player, isOpponent: Bool) -> some View {
         HStack(spacing: 4) {
             ForEach(0..<PlayerField.slotCount, id: \.self) { i in
                 let slot = player.field.slots[i]
@@ -431,6 +458,7 @@ struct GameBoardView: View {
                     slot: slot,
                     index: i,
                     globalTerrain: viewModel.gameState.globalTerrain,
+                    fieldOverrideAttribute: player.field.fieldOverrideAttribute,
                     activeMomentumSkill: player.activeMomentumSkill,
                     fightingTargetSlot: player.fightingTargetSlot,
                     momentumBonus: player.momentumBonus,

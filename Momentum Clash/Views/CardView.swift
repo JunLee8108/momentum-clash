@@ -120,6 +120,7 @@ struct FieldSlotView: View {
     let slot: FieldSlot
     let index: Int
     var globalTerrain: Attribute? = nil
+    var fieldOverrideAttribute: Attribute? = nil
     var activeMomentumSkill: MomentumSkill? = nil
     var fightingTargetSlot: Int? = nil
     var momentumBonus: Int = 0
@@ -131,12 +132,23 @@ struct FieldSlotView: View {
     private let slotWidth: CGFloat = 75
     private let slotHeight: CGFloat = 90
 
+    /// 이 슬롯에 적용되는 유효 지형 (오버라이드 우선)
+    private var activeTerrain: Attribute? {
+        fieldOverrideAttribute ?? globalTerrain
+    }
+
     var body: some View {
         VStack(spacing: 2) {
-            // 지형 표시
-            Text(slot.terrain?.emoji ?? "·")
-                .font(.system(size: 10))
-                .foregroundColor(.white.opacity(0.9))
+            // 오버라이드 활성 시 속성 이모지 + 남은 턴 표시
+            if let override = fieldOverrideAttribute {
+                Text(override.emoji)
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.9))
+            } else {
+                Text("·")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.4))
+            }
 
             // 카드 내용
             slotContentView
@@ -177,7 +189,8 @@ struct FieldSlotView: View {
 
     @ViewBuilder
     private func monsterContentView(card: MonsterCard, shield: Int) -> some View {
-        let terrainBonus = (globalTerrain != nil && card.attribute == globalTerrain!) ? PlayerField.globalTerrainBonus : 0
+        let effectiveTerrain = activeTerrain
+        let terrainBonus = (effectiveTerrain != nil && card.attribute == effectiveTerrain!) ? PlayerField.globalTerrainBonus : 0
         let mBonus = effectiveMomentumBonus(for: card)
         let hasAnyBonus = terrainBonus > 0 || mBonus > 0
 
@@ -241,8 +254,8 @@ struct FieldSlotView: View {
         case .fighting:
             return fightingTargetSlot == index ? 500 : 0
         case .terrainMastery:
-            // 지형 일치 몬스터만 추가 보너스
-            if let terrain = globalTerrain, card.attribute == terrain {
+            // 지형 일치 몬스터만 추가 보너스 (오버라이드 우선)
+            if let terrain = activeTerrain, card.attribute == terrain {
                 return PlayerField.globalTerrainBonus
             }
             return 0
@@ -281,13 +294,15 @@ struct FieldSlotView: View {
 
     private var borderOverlay: some View {
         let momentumGlow = hasMomentumGlow
+        let hasOverride = fieldOverrideAttribute != nil
+        let overrideColor = fieldOverrideAttribute.map { attributeColor($0).opacity(0.7) } ?? Color.clear
         let borderColor: Color = aiHighlightColor
-            ?? (isHighlighted ? .yellow : (momentumGlow ? .orange.opacity(0.7) : .gray.opacity(0.3)))
-        let borderWidth: CGFloat = aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : (momentumGlow ? 2 : 1))
+            ?? (isHighlighted ? .yellow : (momentumGlow ? .orange.opacity(0.7) : (hasOverride ? overrideColor : .gray.opacity(0.3))))
+        let borderWidth: CGFloat = aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : (momentumGlow ? 2 : (hasOverride ? 2 : 1)))
 
         return RoundedRectangle(cornerRadius: 6)
             .stroke(borderColor, lineWidth: borderWidth)
-            .shadow(color: momentumGlow ? .orange.opacity(0.4) : .clear, radius: momentumGlow ? 4 : 0)
+            .shadow(color: momentumGlow ? .orange.opacity(0.4) : (hasOverride ? overrideColor.opacity(0.3) : .clear), radius: (momentumGlow || hasOverride) ? 4 : 0)
     }
 
     @ViewBuilder
@@ -316,9 +331,9 @@ struct FieldSlotView: View {
             if case .monster = slot.content { return true }
             return false
         case .terrainMastery:
-            // 지형 일치 몬스터만
+            // 지형 일치 몬스터만 (오버라이드 우선)
             if case .monster(let card, _) = slot.content,
-               let terrain = globalTerrain, card.attribute == terrain {
+               let terrain = activeTerrain, card.attribute == terrain {
                 return true
             }
             return false
@@ -345,8 +360,8 @@ struct FieldSlotView: View {
     }
 
     private var slotBackground: Color {
-        if let terrain = slot.terrain {
-            return attributeColor(terrain).opacity(0.2)
+        if let override = fieldOverrideAttribute {
+            return attributeColor(override).opacity(0.25)
         }
         return Color.gray.opacity(0.1)
     }

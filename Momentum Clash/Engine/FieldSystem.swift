@@ -12,15 +12,13 @@ enum SlotContent: Equatable {
     }
 }
 
-/// 필드의 개별 슬롯 (지형 속성 + 배치 카드)
+/// 필드의 개별 슬롯 (배치 카드)
 struct FieldSlot: Equatable {
-    var terrain: Attribute?      // nil이면 중립 지형
     var content: SlotContent     // 배치된 카드
-    var terrainRetainTurns: Int  // 카드 제거 후 지형 유지 남은 턴 수
     var hasAttacked: Bool = false // 이번 턴에 공격했는지
 
     static var empty: FieldSlot {
-        FieldSlot(terrain: nil, content: .empty, terrainRetainTurns: 0, hasAttacked: false)
+        FieldSlot(content: .empty, hasAttacked: false)
     }
 }
 
@@ -58,8 +56,6 @@ struct PlayerField: Equatable {
               !slots[index].content.isOccupied else { return false }
 
         slots[index].content = .monster(card, shield: 0)
-        slots[index].terrain = card.attribute  // 소환 시 지형 오염
-        slots[index].terrainRetainTurns = 0
         return true
     }
 
@@ -70,8 +66,6 @@ struct PlayerField: Equatable {
               !slots[index].content.isOccupied else { return false }
 
         slots[index].content = .spell(card)
-        slots[index].terrain = card.attribute
-        slots[index].terrainRetainTurns = 0
         return true
     }
 
@@ -79,15 +73,6 @@ struct PlayerField: Equatable {
     mutating func removeCard(at index: Int) {
         guard index >= 0, index < PlayerField.slotCount else { return }
         slots[index].content = .empty
-        // 지형은 1턴 동안 유지
-        slots[index].terrainRetainTurns = 1
-    }
-
-    /// 슬롯 지형 변경
-    mutating func setTerrain(_ attribute: Attribute?, at index: Int) {
-        guard index >= 0, index < PlayerField.slotCount else { return }
-        slots[index].terrain = attribute
-        slots[index].terrainRetainTurns = 0
     }
 
     /// 방어막 부여
@@ -122,15 +107,30 @@ struct PlayerField: Equatable {
         }
     }
 
-    /// 지형 유지 턴 감소 (턴 종료 시)
-    mutating func tickTerrainRetention() {
-        for i in slots.indices {
-            if slots[i].terrainRetainTurns > 0 {
-                slots[i].terrainRetainTurns -= 1
-                if slots[i].terrainRetainTurns == 0 && !slots[i].content.isOccupied {
-                    slots[i].terrain = nil  // 유지 시간 끝, 중립으로
-                }
-            }
+    // MARK: - 필드 오버라이드 시스템
+
+    /// 5성 소환 시 필드 전체 속성 오버라이드 (2턴)
+    var fieldOverrideAttribute: Attribute? = nil
+    var fieldOverrideTurnsRemaining: Int = 0
+
+    /// 필드 오버라이드 설정 (5성 소환 공통 효과)
+    mutating func setFieldOverride(attribute: Attribute) {
+        fieldOverrideAttribute = attribute
+        fieldOverrideTurnsRemaining = 2
+    }
+
+    /// 필드 오버라이드 해제
+    mutating func clearFieldOverride() {
+        fieldOverrideAttribute = nil
+        fieldOverrideTurnsRemaining = 0
+    }
+
+    /// 해당 플레이어 턴 종료 시 오버라이드 남은 턴 감소
+    mutating func tickFieldOverride() {
+        guard fieldOverrideTurnsRemaining > 0 else { return }
+        fieldOverrideTurnsRemaining -= 1
+        if fieldOverrideTurnsRemaining <= 0 {
+            clearFieldOverride()
         }
     }
 
@@ -139,10 +139,11 @@ struct PlayerField: Equatable {
     /// 글로벌 지형 보너스 계산 (해당 속성 몬스터 +300 CP)
     static let globalTerrainBonus = 300
 
-    /// 특정 슬롯 몬스터의 글로벌 지형 보너스
+    /// 특정 슬롯 몬스터의 지형 보너스 (필드 오버라이드 우선, 없으면 글로벌 지형)
     func terrainBonus(at index: Int, globalTerrain: Attribute) -> Int {
         guard index >= 0, index < PlayerField.slotCount,
               case .monster(let card, _) = slots[index].content else { return 0 }
-        return card.attribute == globalTerrain ? PlayerField.globalTerrainBonus : 0
+        let activeTerrain = fieldOverrideAttribute ?? globalTerrain
+        return card.attribute == activeTerrain ? PlayerField.globalTerrainBonus : 0
     }
 }
