@@ -118,8 +118,9 @@ struct BattleEngine {
         // 1. 기본 전투력
         var cp = Double(card.combatPower)
 
-        // 2. 디버프 적용 (태풍룡 등)
+        // 2. 디버프 적용 (필드 전체: 태풍룡 등 + 슬롯 개별: 염룡/죽음의 기사)
         cp += Double(field.cpDebuff)
+        cp += Double(field.slots[slotIndex].slotCpDebuff)
 
         // 3. 글로벌 지형 보너스 (+300)
         cp += Double(field.terrainBonus(at: slotIndex, globalTerrain: globalTerrain))

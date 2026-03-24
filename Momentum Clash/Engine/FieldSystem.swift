@@ -16,9 +16,10 @@ enum SlotContent: Equatable {
 struct FieldSlot: Equatable {
     var content: SlotContent     // 배치된 카드
     var hasAttacked: Bool = false // 이번 턴에 공격했는지
+    var slotCpDebuff: Int = 0    // 개별 전투력 디버프 (염룡/죽음의 기사 효과, 영구)
 
     static var empty: FieldSlot {
-        FieldSlot(content: .empty, hasAttacked: false)
+        FieldSlot(content: .empty, hasAttacked: false, slotCpDebuff: 0)
     }
 }
 
@@ -73,6 +74,7 @@ struct PlayerField: Equatable {
     mutating func removeCard(at index: Int) {
         guard index >= 0, index < PlayerField.slotCount else { return }
         slots[index].content = .empty
+        slots[index].slotCpDebuff = 0
     }
 
     /// 방어막 부여
@@ -104,6 +106,16 @@ struct PlayerField: Equatable {
             if case .monster(let card, _) = slots[i].content {
                 slots[i].content = .monster(card, shield: 0)
             }
+        }
+    }
+
+    // MARK: - 슬롯별 전투력 디버프
+
+    /// 슬롯에 개별 전투력 디버프 적용 (염룡/죽음의 기사 효과)
+    mutating func applySlotCpDebuff(_ amount: Int, at index: Int) {
+        guard index >= 0, index < PlayerField.slotCount else { return }
+        if case .monster = slots[index].content {
+            slots[index].slotCpDebuff += amount
         }
     }
 
