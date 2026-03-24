@@ -462,6 +462,7 @@ struct GameBoardView: View {
                     activeMomentumSkill: player.activeMomentumSkill,
                     fightingTargetSlot: player.fightingTargetSlot,
                     momentumBonus: player.momentumBonus,
+                    cpDebuff: player.field.cpDebuff,
                     isHighlighted: highlighted,
                     aiHighlightColor: battleHighlight,
                     hasAttacked: attacked
