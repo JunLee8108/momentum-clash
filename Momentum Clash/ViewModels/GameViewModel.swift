@@ -1429,7 +1429,7 @@ class GameViewModel {
 
     /// 4성 효과 타겟 선택 완료 (염룡: 상대 몬스터 / 심판의 천사: 아군 몬스터)
     func applyFourStarEffectOnTarget(targetSlot: Int) {
-        guard case .selectingEffectTarget(let card, _, let isAllyTarget) = uiState else { return }
+        guard case .selectingEffectTarget(let card, _, _) = uiState else { return }
 
         let playerIndex = gameState.currentPlayerIndex
         let opponentIdx = 1 - playerIndex
