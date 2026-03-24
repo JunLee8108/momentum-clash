@@ -554,7 +554,7 @@ struct BasicAI {
             return (i, m, score)
         }.sorted { $0.score > $1.score }
 
-        guard let bestCandidate = summonCandidates.first else { return nil }
+        guard !summonCandidates.isEmpty else { return nil }
 
         // 희생 가능한 필드 몬스터 평가 (이번 턴 소환 제외)
         let sacrificeCandidates: [(slot: Int, monster: MonsterCard, value: Int)] = myField.monsterSlotIndices.compactMap { slot in
