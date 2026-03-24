@@ -241,7 +241,7 @@ struct MomentumSkillPanel: View {
         case .fighting:       return "1체 전투력\n+500"
         case .terrainMastery: return "지형 보너스\n2배"
         case .breakthrough:   return "전체 몬스터\n+300"
-        case .explosion:      return "상대 전체\nCP×100 DMG"
+        case .explosion:      return "상대 최강\n1체 제거"
         default:              return ""
         }
     }

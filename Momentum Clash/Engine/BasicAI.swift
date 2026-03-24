@@ -801,28 +801,27 @@ struct BasicAI {
             ))
         }
 
-        // -- 폭발 (코스트 8): 상대 몬스터 중 CP ≤ 기세×100 파괴 후 배틀 --
+        // -- 폭발 (코스트 8): 상대 최강 몬스터 1체 제거 후 배틀 --
         if momentum >= MomentumSkill.explosion.cost && opponentMonsterCount > 0 {
-            let explosionDmg = BattleEngine.explosionDamage(momentum: MomentumSkill.explosion.cost)
-            let killableSlots = opponentField.monsterSlotIndices.filter { i in
-                if case .monster(let m, _) = opponentField.slots[i].content {
-                    return m.combatPower <= explosionDmg
-                }
-                return false
+            // 상대 필드에서 CP가 가장 높은 몬스터 슬롯 찾기
+            if let targetSlot = opponentField.monsterSlotIndices.max(by: { a, b in
+                guard case .monster(let ma, _) = opponentField.slots[a].content,
+                      case .monster(let mb, _) = opponentField.slots[b].content else { return false }
+                return ma.combatPower < mb.combatPower
+            }) {
+                let score = simulateBattleScore(
+                    gameState: gameState,
+                    momentumBonus: 0,
+                    fightingSlot: nil,
+                    explosionKills: [targetSlot]
+                )
+                candidates.append(Candidate(
+                    skill: .explosion,
+                    score: score,
+                    netGain: score - baselineScore,
+                    fightingSlot: nil
+                ))
             }
-            // 폭발은 파괴 자체가 가치 → 파괴된 몬스터 수 × 1000 + 남은 필드로 배틀
-            let score = simulateBattleScore(
-                gameState: gameState,
-                momentumBonus: 0,
-                fightingSlot: nil,
-                explosionKills: killableSlots
-            )
-            candidates.append(Candidate(
-                skill: .explosion,
-                score: score,
-                netGain: score - baselineScore,
-                fightingSlot: nil
-            ))
         }
 
         // 3. 최적 선택: 순이익이 가장 높은 스킬

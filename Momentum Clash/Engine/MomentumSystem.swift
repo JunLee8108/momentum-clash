@@ -26,7 +26,7 @@ enum MomentumSkill: CaseIterable {
     case terrainMastery // 지형 장악: 이번 턴 지형 보너스 2배 (+600)
     case doubleAttack   // 연속 공격: 몬스터 1체 2회 공격
     case breakthrough   // 전선 돌파: 이번 턴 모든 몬스터 전투력 +300
-    case explosion      // 기세 폭발: 상대 전체에 기세 × 100 데미지
+    case explosion      // 기세 폭발: 상대 필드에서 전투력이 가장 높은 몬스터 1체 제거
     case fullAwakening  // 완전 각성: 몬스터 1체 각성 형태로 변환 (Phase 5)
 
     var cost: Int {
@@ -57,7 +57,7 @@ enum MomentumSkill: CaseIterable {
         case .terrainMastery: return "이번 턴 지형 보너스 2배 (+600)"
         case .doubleAttack:   return "몬스터 1체가 이번 턴 2회 공격 가능"
         case .breakthrough:   return "이번 턴 모든 몬스터 전투력 +300"
-        case .explosion:      return "상대 필드 몬스터 전체에 기세 수 × 100 데미지"
+        case .explosion:      return "상대 필드에서 전투력이 가장 높은 몬스터 1체 제거"
         case .fullAwakening:  return "필드 위 몬스터 1체를 각성 형태로 변환"
         }
     }

@@ -134,9 +134,4 @@ struct BattleEngine {
 
         return max(0, Int(cp))
     }
-
-    /// 기세 폭발 데미지 계산
-    static func explosionDamage(momentum: Int) -> Int {
-        return momentum * 100
-    }
 }
