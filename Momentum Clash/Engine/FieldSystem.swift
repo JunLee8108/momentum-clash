@@ -112,20 +112,23 @@ struct PlayerField: Equatable {
     /// 5성 소환 시 필드 전체 속성 오버라이드 (2턴)
     var fieldOverrideAttribute: Attribute? = nil
     var fieldOverrideTurnsRemaining: Int = 0
+    var fieldOverrideSourceSlot: Int? = nil
 
     /// 태풍룡 효과: 상대로부터 받는 전투력 디버프 (음수 값, 필드 오버라이드와 수명 공유)
     var cpDebuff: Int = 0
 
     /// 필드 오버라이드 설정 (5성 소환 공통 효과)
-    mutating func setFieldOverride(attribute: Attribute) {
+    mutating func setFieldOverride(attribute: Attribute, sourceSlot: Int) {
         fieldOverrideAttribute = attribute
         fieldOverrideTurnsRemaining = 2
+        fieldOverrideSourceSlot = sourceSlot
     }
 
     /// 필드 오버라이드 해제
     mutating func clearFieldOverride() {
         fieldOverrideAttribute = nil
         fieldOverrideTurnsRemaining = 0
+        fieldOverrideSourceSlot = nil
         cpDebuff = 0
     }
 

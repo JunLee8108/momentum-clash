@@ -366,9 +366,8 @@ class GameViewModel {
             return
         }
 
-        // 필드에서 제거 → 묘지로 이동
-        gameState.currentPlayer.field.removeCard(at: slotIndex)
-        gameState.currentPlayer.graveyard.append(.monster(card))
+        // 필드에서 제거 → 묘지로 이동 (5성 오버라이드 자동 정리 포함)
+        gameState.destroyMonster(playerIndex: gameState.currentPlayerIndex, slot: slotIndex)
 
         // 기력 충전 (소환 비용만큼)
         gameState.currentPlayer.energy += card.cost
@@ -411,8 +410,7 @@ class GameViewModel {
             if let target = gameState.players[opponentIdx].field.monsterSlotIndices.first {
                 if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
                     if m.combatPower <= 800 {
-                        gameState.players[opponentIdx].field.removeCard(at: target)
-                        gameState.players[opponentIdx].graveyard.append(.monster(m))
+                        gameState.destroyMonster(playerIndex: opponentIdx, slot: target)
                         addLog("\(m.name) 파괴!")
                     } else {
                         addLog("\(m.name)에게 800 데미지! (파괴 실패)")
@@ -448,8 +446,7 @@ class GameViewModel {
             for i in gameState.players[opponentIdx].field.monsterSlotIndices.reversed() {
                 if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[i].content {
                     if m.combatPower <= 200 {
-                        gameState.players[opponentIdx].field.removeCard(at: i)
-                        gameState.players[opponentIdx].graveyard.append(.monster(m))
+                        gameState.destroyMonster(playerIndex: opponentIdx, slot: i)
                         addLog("\(m.name) 파괴! (화염 데미지)")
                     }
                 }
@@ -488,8 +485,7 @@ class GameViewModel {
             }) {
                 if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
                     if m.combatPower <= 300 {
-                        gameState.players[opponentIdx].field.removeCard(at: target)
-                        gameState.players[opponentIdx].graveyard.append(.monster(m))
+                        gameState.destroyMonster(playerIndex: opponentIdx, slot: target)
                         addLog("\(m.name) 파괴! (번개 심판)")
                     } else {
                         addLog("\(m.name)에 300 데미지!")
@@ -655,8 +651,7 @@ class GameViewModel {
 
             // 결과 연출
             if result.defenderDestroyed {
-                gameState.players[aiIndex].field.removeCard(at: defSlot)
-                gameState.players[aiIndex].graveyard.append(.monster(defCard))
+                gameState.destroyMonster(playerIndex: aiIndex, slot: defSlot)
                 gameState.players[playerIndex].gainMomentum(1)
                 withAnimation(.easeInOut(duration: 0.3)) {
                     battleDisplay = BattleDisplay(
@@ -669,8 +664,7 @@ class GameViewModel {
             }
 
             if result.attackerDestroyed {
-                gameState.players[playerIndex].field.removeCard(at: attackerSlot)
-                gameState.players[playerIndex].graveyard.append(.monster(atkCard))
+                gameState.destroyMonster(playerIndex: playerIndex, slot: attackerSlot)
                 gameState.players[aiIndex].gainMomentum(1)
                 withAnimation(.easeInOut(duration: 0.3)) {
                     battleDisplay = BattleDisplay(
@@ -825,8 +819,7 @@ class GameViewModel {
                       case .monster(let mb, _) = gameState.players[opIdx].field.slots[b].content else { return false }
                 return ma.combatPower < mb.combatPower
             }), case .monster(let m, _) = gameState.players[opIdx].field.slots[targetSlot].content {
-                gameState.players[opIdx].field.removeCard(at: targetSlot)
-                gameState.players[opIdx].graveyard.append(.monster(m))
+                gameState.destroyMonster(playerIndex: opIdx, slot: targetSlot)
                 addLog("기세 폭발! \(m.name)(CP \(m.combatPower)) 제거!")
             }
         default:
@@ -922,9 +915,8 @@ class GameViewModel {
 
             await showAIBanner("릴리즈", duration: 0.8)
 
-            // 필드에서 제거 → 묘지 이동
-            gameState.players[idx].field.removeCard(at: sacrifice.sacrificeSlot)
-            gameState.players[idx].graveyard.append(.monster(sacMonster))
+            // 필드에서 제거 → 묘지 이동 (5성 오버라이드 자동 정리 포함)
+            gameState.destroyMonster(playerIndex: idx, slot: sacrifice.sacrificeSlot)
 
             // 기력 충전
             gameState.players[idx].energy += sacMonster.cost
@@ -1059,8 +1051,7 @@ class GameViewModel {
 
                     // 결과 연출
                     if result.defenderDestroyed {
-                        gameState.players[defIdx].field.removeCard(at: defSlot)
-                        gameState.players[defIdx].graveyard.append(.monster(defCard))
+                        gameState.destroyMonster(playerIndex: defIdx, slot: defSlot)
                         gameState.players[idx].gainMomentum(1)
                         withAnimation(.easeInOut(duration: 0.3)) {
                             battleDisplay = BattleDisplay(message: "\(defCard.name) 파괴!")
@@ -1069,8 +1060,7 @@ class GameViewModel {
                         try? await Task.sleep(for: .seconds(0.9))
                     }
                     if result.attackerDestroyed {
-                        gameState.players[idx].field.removeCard(at: plan.attackerSlot)
-                        gameState.players[idx].graveyard.append(.monster(atkCard))
+                        gameState.destroyMonster(playerIndex: idx, slot: plan.attackerSlot)
                         gameState.players[defIdx].gainMomentum(1)
                         withAnimation(.easeInOut(duration: 0.3)) {
                             battleDisplay = BattleDisplay(message: "\(atkCard.name) 파괴!")
@@ -1202,8 +1192,7 @@ class GameViewModel {
                       case .monster(let mb, _) = gameState.players[opIdx].field.slots[b].content else { return false }
                 return ma.combatPower < mb.combatPower
             }), case .monster(let m, _) = gameState.players[opIdx].field.slots[targetSlot].content {
-                gameState.players[opIdx].field.removeCard(at: targetSlot)
-                gameState.players[opIdx].graveyard.append(.monster(m))
+                gameState.destroyMonster(playerIndex: opIdx, slot: targetSlot)
                 addLog("기세 폭발! \(m.name)(CP \(m.combatPower)) 제거!")
             }
         default:
@@ -1249,7 +1238,7 @@ class GameViewModel {
         let opponentIdx = 1 - playerIndex
 
         // 공통 효과: 필드 오버라이드 (2턴)
-        gameState.players[playerIndex].field.setFieldOverride(attribute: card.attribute)
+        gameState.players[playerIndex].field.setFieldOverride(attribute: card.attribute, sourceSlot: slotIndex)
         addLog("\(card.attribute.emoji) 필드 오버라이드! \(card.attribute.displayName) (2턴)")
 
         // 카드별 이펙트 타입 결정
