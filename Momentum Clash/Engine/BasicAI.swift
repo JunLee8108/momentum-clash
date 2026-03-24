@@ -575,6 +575,10 @@ struct BasicAI {
 
         guard let weakest = sacrificeCandidates.first else { return nil }
 
+        // 희생 대상과 동일한 카드는 소환 후보에서 제외 (같은 카드 교체는 턴 낭비)
+        let filteredCandidates = summonCandidates.filter { $0.card.name != weakest.monster.name }
+        guard let bestCandidate = filteredCandidates.first else { return nil }
+
         // 릴리즈 후 소환 가능한지 확인 (기력 = 현재 + 희생 몬스터 비용)
         let energyAfterSacrifice = player.energy + weakest.monster.cost
         guard bestCandidate.card.cost <= energyAfterSacrifice else { return nil }
