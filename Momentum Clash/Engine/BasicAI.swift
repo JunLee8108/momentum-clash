@@ -193,14 +193,12 @@ struct BasicAI {
                 }
 
                 if result.defenderDestroyed {
-                    gameState.players[defIdx].field.removeCard(at: defSlot)
-                    gameState.players[defIdx].graveyard.append(.monster(defCard))
+                    gameState.destroyMonster(playerIndex: defIdx, slot: defSlot)
                     gameState.players[atkIdx].gainMomentum(1)
                     logs.append("  → \(defCard.name) 파괴!")
                 }
                 if result.attackerDestroyed {
-                    gameState.players[atkIdx].field.removeCard(at: plan.attackerSlot)
-                    gameState.players[atkIdx].graveyard.append(.monster(atkCard))
+                    gameState.destroyMonster(playerIndex: atkIdx, slot: plan.attackerSlot)
                     gameState.players[defIdx].gainMomentum(1)
                     logs.append("  → \(atkCard.name) 파괴!")
                 }

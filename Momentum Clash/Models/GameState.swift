@@ -109,6 +109,26 @@ struct GameState {
         currentPlayer.didAttackThisTurn = false
     }
 
+    // MARK: - 몬스터 파괴
+
+    /// 몬스터 파괴 시 필드 오버라이드/디버프 자동 정리
+    /// - 5성 몬스터가 파괴되면 해당 필드의 오버라이드 해제 + 상대 필드의 cpDebuff 정리
+    mutating func destroyMonster(playerIndex: Int, slot: Int) {
+        guard case .monster(let m, _) = players[playerIndex].field.slots[slot].content else { return }
+
+        // 카드 제거 → 묘지
+        players[playerIndex].field.removeCard(at: slot)
+        players[playerIndex].graveyard.append(.monster(m))
+
+        // 이 슬롯이 필드 오버라이드의 원천이면 정리
+        if players[playerIndex].field.fieldOverrideSourceSlot == slot {
+            players[playerIndex].field.clearFieldOverride()
+            // 태풍룡 cpDebuff는 상대 필드에 저장되어 있으므로 함께 정리
+            let opponentIdx = 1 - playerIndex
+            players[opponentIdx].field.cpDebuff = 0
+        }
+    }
+
     // MARK: - 지형 마법
 
     /// 마법카드로 지형 강제 변경 (2라운드 지속)
