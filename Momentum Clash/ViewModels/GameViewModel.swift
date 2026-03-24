@@ -818,17 +818,16 @@ class GameViewModel {
             gameState.currentPlayer.momentumBonus += 300
             addLog("전 몬스터 전투력 +300!")
         case .explosion:
-            // 상대 전체에 기세 × 100 데미지
-            let dmg = BattleEngine.explosionDamage(momentum: skill.cost)
+            // 상대 필드에서 전투력이 가장 높은 몬스터 1체 제거
             let opIdx = gameState.opponentIndex
-            for i in gameState.players[opIdx].field.monsterSlotIndices.reversed() {
-                if case .monster(let m, _) = gameState.players[opIdx].field.slots[i].content {
-                    if m.combatPower <= dmg {
-                        gameState.players[opIdx].field.removeCard(at: i)
-                        gameState.players[opIdx].graveyard.append(.monster(m))
-                        addLog("\(m.name) 파괴! (\(dmg) 데미지)")
-                    }
-                }
+            if let targetSlot = gameState.players[opIdx].field.monsterSlotIndices.max(by: { a, b in
+                guard case .monster(let ma, _) = gameState.players[opIdx].field.slots[a].content,
+                      case .monster(let mb, _) = gameState.players[opIdx].field.slots[b].content else { return false }
+                return ma.combatPower < mb.combatPower
+            }), case .monster(let m, _) = gameState.players[opIdx].field.slots[targetSlot].content {
+                gameState.players[opIdx].field.removeCard(at: targetSlot)
+                gameState.players[opIdx].graveyard.append(.monster(m))
+                addLog("기세 폭발! \(m.name)(CP \(m.combatPower)) 제거!")
             }
         default:
             break
@@ -1196,16 +1195,16 @@ class GameViewModel {
             gameState.players[idx].momentumBonus += 300
             addLog("전 몬스터 전투력 +300!")
         case .explosion:
-            let dmg = BattleEngine.explosionDamage(momentum: skill.cost)
+            // 상대 필드에서 전투력이 가장 높은 몬스터 1체 제거
             let opIdx = 1 - idx
-            for i in gameState.players[opIdx].field.monsterSlotIndices.reversed() {
-                if case .monster(let m, _) = gameState.players[opIdx].field.slots[i].content {
-                    if m.combatPower <= dmg {
-                        gameState.players[opIdx].field.removeCard(at: i)
-                        gameState.players[opIdx].graveyard.append(.monster(m))
-                        addLog("\(m.name) 파괴! (\(dmg) 데미지)")
-                    }
-                }
+            if let targetSlot = gameState.players[opIdx].field.monsterSlotIndices.max(by: { a, b in
+                guard case .monster(let ma, _) = gameState.players[opIdx].field.slots[a].content,
+                      case .monster(let mb, _) = gameState.players[opIdx].field.slots[b].content else { return false }
+                return ma.combatPower < mb.combatPower
+            }), case .monster(let m, _) = gameState.players[opIdx].field.slots[targetSlot].content {
+                gameState.players[opIdx].field.removeCard(at: targetSlot)
+                gameState.players[opIdx].graveyard.append(.monster(m))
+                addLog("기세 폭발! \(m.name)(CP \(m.combatPower)) 제거!")
             }
         default:
             break
