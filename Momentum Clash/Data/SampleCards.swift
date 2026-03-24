@@ -22,7 +22,7 @@ enum SampleCards {
     static let flameDragon = MonsterCard(
         name: "염룡", attribute: .fire, cost: 4, rarity: .rare,
         combatPower: 2200, monsterType: .dragon,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 인접 슬롯 1개를 화(火) 지형으로 변경"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체의 전투력 -400"),
         flavorText: "화염 속에서 태어난 드래곤",
         imageName: "card_flame_dragon"
     )
@@ -78,7 +78,7 @@ enum SampleCards {
     static let iceWarrior = MonsterCard(
         name: "빙결 용사", attribute: .water, cost: 4, rarity: .rare,
         combatPower: 2100, monsterType: .warrior,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 인접 슬롯 2개를 수(水) 지형으로 변경"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 LP 300 회복"),
         flavorText: "얼음 갑옷을 두른 냉혹한 전사",
         imageName: "card_ice_warrior"
     )
@@ -149,6 +149,7 @@ enum SampleCards {
     static let mountainGiant = MonsterCard(
         name: "산악 거인", attribute: .earth, cost: 4, rarity: .rare,
         combatPower: 2400, monsterType: .warrior,
+        effect: CardEffect(timing: .onSummon, description: "소환 시 자신에게 방어막 300 부여"),
         flavorText: "산 하나를 등에 지고 걸어다니는 거인",
         imageName: "card_mountain_giant"
     )
@@ -197,7 +198,7 @@ enum SampleCards {
     static let lightningGeneral = MonsterCard(
         name: "번개 장군", attribute: .thunder, cost: 4, rarity: .rare,
         combatPower: 2200, monsterType: .machine,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체에 400 데미지"),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 기세 +2 획득"),
         flavorText: "전장을 번개로 뒤덮는 기계 장군",
         imageName: "card_lightning_general"
     )
@@ -223,6 +224,7 @@ enum SampleCards {
     static let deathKnight = MonsterCard(
         name: "죽음의 기사", attribute: .dark, cost: 4, rarity: .rare,
         combatPower: 2100, monsterType: .undead,
+        effect: CardEffect(timing: .onDestroy, description: "파괴 시 자신을 파괴한 몬스터의 전투력 -300"),
         flavorText: "죽음 이후에도 싸움을 멈추지 않는 기사",
         imageName: "card_death_knight"
     )
@@ -280,8 +282,8 @@ enum SampleCards {
     static let judgeAngel = MonsterCard(
         name: "심판의 천사", attribute: .light, cost: 4, rarity: .rare,
         combatPower: 2300, monsterType: .spirit,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체 방어막 제거"),
-        flavorText: "천상의 심판으로 적의 방어를 무너뜨린다",
+        effect: CardEffect(timing: .onSummon, description: "소환 시 아군 몬스터 1체에 방어막 300 부여"),
+        flavorText: "천상의 심판으로 아군을 수호한다",
         imageName: "card_judge_angel"
     )
 
