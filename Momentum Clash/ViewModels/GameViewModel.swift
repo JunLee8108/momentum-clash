@@ -338,7 +338,11 @@ class GameViewModel {
             }
         }
 
-        uiState = .mainPhase
+        if case .selectingEffectTarget = uiState {
+            // 4성 효과 타겟 선택 대기 중이면 상태 유지
+        } else {
+            uiState = .mainPhase
+        }
     }
 
     func cancelSlotSelection() {
