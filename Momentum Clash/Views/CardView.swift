@@ -193,7 +193,7 @@ struct FieldSlotView: View {
         let effectiveTerrain = activeTerrain
         let terrainBonus = (effectiveTerrain != nil && card.attribute == effectiveTerrain!) ? PlayerField.globalTerrainBonus : 0
         let mBonus = effectiveMomentumBonus(for: card)
-        let hasAnyModifier = terrainBonus > 0 || mBonus > 0 || cpDebuff < 0
+        let hasAnyModifier = terrainBonus > 0 || mBonus > 0 || cpDebuff != 0
 
         VStack(spacing: 1) {
             Text(card.name)
@@ -226,6 +226,17 @@ struct FieldSlotView: View {
                     .foregroundColor(.orange)
                 }
 
+                // 버프
+                if cpDebuff > 0 {
+                    HStack(spacing: 1) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 6))
+                        Text("+\(cpDebuff)")
+                            .font(.system(size: 7, weight: .semibold))
+                    }
+                    .foregroundColor(.green)
+                }
+
                 // 디버프
                 if cpDebuff < 0 {
                     HStack(spacing: 1) {
@@ -241,7 +252,7 @@ struct FieldSlotView: View {
                 let totalCP = max(0, card.combatPower + terrainBonus + mBonus + cpDebuff)
                 Text("\(totalCP)")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(cpDebuff < 0 ? .red : .orange)
+                    .foregroundColor(cpDebuff < 0 ? .red : (cpDebuff > 0 ? .green : .orange))
             } else {
                 Text("\(card.combatPower)")
                     .font(.system(size: 10, weight: .bold))
@@ -307,21 +318,28 @@ struct FieldSlotView: View {
 
     private var borderOverlay: some View {
         let momentumGlow = hasMomentumGlow
+        let buffActive = hasBuff
         let debuffActive = hasDebuff
         let hasOverride = fieldOverrideAttribute != nil
         let overrideColor = fieldOverrideAttribute.map { attributeColor($0).opacity(0.7) } ?? Color.clear
         let borderColor: Color = aiHighlightColor
-            ?? (isHighlighted ? .yellow : (momentumGlow ? .orange.opacity(0.7) : (debuffActive ? .red.opacity(0.7) : (hasOverride ? overrideColor : .gray.opacity(0.3)))))
-        let borderWidth: CGFloat = aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : (momentumGlow ? 2 : (debuffActive ? 2 : (hasOverride ? 2 : 1))))
+            ?? (isHighlighted ? .yellow : (momentumGlow ? .orange.opacity(0.7) : (buffActive ? .green.opacity(0.7) : (debuffActive ? .red.opacity(0.7) : (hasOverride ? overrideColor : .gray.opacity(0.3))))))
+        let borderWidth: CGFloat = aiHighlightColor != nil ? 3 : (isHighlighted ? 2 : (momentumGlow ? 2 : (buffActive ? 2 : (debuffActive ? 2 : (hasOverride ? 2 : 1)))))
 
         return RoundedRectangle(cornerRadius: 6)
             .stroke(borderColor, lineWidth: borderWidth)
-            .shadow(color: momentumGlow ? .orange.opacity(0.4) : (debuffActive ? .red.opacity(0.4) : (hasOverride ? overrideColor.opacity(0.3) : .clear)), radius: (momentumGlow || debuffActive || hasOverride) ? 4 : 0)
+            .shadow(color: momentumGlow ? .orange.opacity(0.4) : (buffActive ? .green.opacity(0.4) : (debuffActive ? .red.opacity(0.4) : (hasOverride ? overrideColor.opacity(0.3) : .clear))), radius: (momentumGlow || buffActive || debuffActive || hasOverride) ? 4 : 0)
     }
 
     /// 디버프 걸린 몬스터 여부
     private var hasDebuff: Bool {
         guard cpDebuff < 0, case .monster = slot.content else { return false }
+        return true
+    }
+
+    /// 버프 걸린 몬스터 여부
+    private var hasBuff: Bool {
+        guard cpDebuff > 0, case .monster = slot.content else { return false }
         return true
     }
 
@@ -334,6 +352,10 @@ struct FieldSlotView: View {
         } else if hasMomentumGlow {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color.orange.opacity(0.12))
+                .allowsHitTesting(false)
+        } else if hasBuff {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.green.opacity(0.12))
                 .allowsHitTesting(false)
         } else if hasDebuff {
             RoundedRectangle(cornerRadius: 6)
