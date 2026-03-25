@@ -1,11 +1,5 @@
 import SwiftUI
-import SpriteKit
-
-// MARK: - 공용 텍스처 (재사용)
-enum ParticleTextures {
-    static let glow = LavaEruptionScene.glowTexture
-    static let softGlow = LavaEruptionScene.softGlowTexture
-}
+import SceneKit
 
 // MARK: - 5성 소환 이펙트 종류
 enum SummonEffectType {
@@ -18,426 +12,685 @@ enum SummonEffectType {
     case thunderStrike  // 뇌제 라이쥬 (뇌)
 }
 
-// MARK: - 🌊 해일 씬 (해왕)
-class TidalWaveScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.0)
-        let w = size.width, h = size.height
+// MARK: - 3D 파티클 헬퍼
 
-        // 파도 안개 (하단)
-        let waveMist = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 30, lifetime: 2.0,
-            posRange: CGVector(dx: w * 1.2, dy: 40),
-            speed: 20, angle: .pi / 2, angleRange: .pi / 3,
-            scale: 2.5, scaleSpeed: 0.2,
-            colors: [
-                (r: 0.0, g: 0.3, b: 1.0, a: 0.0),
-                (r: 0.0, g: 0.5, b: 1.0, a: 0.6),
-                (r: 0.0, g: 0.3, b: 0.8, a: 0.4),
-                (r: 0.0, g: 0.1, b: 0.5, a: 0.0)
-            ]
-        )
-        waveMist.position = CGPoint(x: 0, y: 0)
-        addChild(waveMist)
+private func makeParticleSystem(
+    birthRate: CGFloat,
+    lifetime: CGFloat,
+    velocity: CGFloat,
+    size: CGFloat,
+    color: UIColor,
+    endColor: UIColor,
+    spread: CGFloat = .pi / 4,
+    blendMode: SCNParticleSystem.BlendMode = .additive
+) -> SCNParticleSystem {
+    let ps = SCNParticleSystem()
+    ps.birthRate = birthRate
+    ps.particleLifeSpan = lifetime
+    ps.particleLifeSpanVariation = lifetime * 0.3
+    ps.particleVelocity = velocity
+    ps.particleVelocityVariation = velocity * 0.3
+    ps.particleSize = size
+    ps.particleSizeVariation = size * 0.3
+    ps.particleColor = color
+    ps.spreadingAngle = spread
+    ps.blendMode = blendMode
+    ps.isAffectedByGravity = false
+    ps.isAffectedByPhysicsFields = false
 
-        // 물방울 (상단 → 하단)
-        let drops = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 45, lifetime: 1.5,
-            posRange: CGVector(dx: w * 1.2, dy: 20),
-            speed: 180, angle: -.pi / 2, angleRange: .pi / 6,
-            scale: 0.5, scaleSpeed: -0.1,
-            colors: [
-                (r: 0.6, g: 0.9, b: 1.0, a: 1.0),
-                (r: 0.2, g: 0.6, b: 1.0, a: 0.9),
-                (r: 0.0, g: 0.3, b: 0.8, a: 0.6),
-                (r: 0.0, g: 0.1, b: 0.5, a: 0.0)
-            ]
-        )
-        drops.position = CGPoint(x: 0, y: h)
-        drops.yAcceleration = -120
-        addChild(drops)
+    // 색상 변화
+    let colorAnim = CAKeyframeAnimation()
+    colorAnim.values = [color, endColor]
+    colorAnim.keyTimes = [0.0, 1.0]
+    colorAnim.duration = CFTimeInterval(lifetime)
+    let controller = SCNParticlePropertyController(animation: colorAnim)
+    ps.propertyControllers = [.color: controller]
 
-        // 물기둥 (하단 → 상단)
-        for xPos in [-w * 0.3, 0, w * 0.3] as [CGFloat] {
-            let pillar = makeEmitter(
-                texture: ParticleTextures.glow,
-                birthRate: 70, lifetime: 0.9,
-                posRange: CGVector(dx: 35, dy: 10),
-                speed: 220, angle: .pi / 2, angleRange: .pi / 10,
-                scale: 0.4, scaleSpeed: -0.2,
-                colors: [
-                    (r: 0.8, g: 0.95, b: 1.0, a: 1.0),
-                    (r: 0.3, g: 0.7, b: 1.0, a: 0.9),
-                    (r: 0.0, g: 0.4, b: 0.9, a: 0.6),
-                    (r: 0.0, g: 0.1, b: 0.4, a: 0.0)
-                ]
-            )
-            pillar.position = CGPoint(x: xPos, y: 0)
-            addChild(pillar)
-        }
-
-        scheduleCleanup()
-    }
+    return ps
 }
 
-// MARK: - 🌪️ 회오리 씬 (태풍룡)
-class TyphoonStormScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        let w = size.width, h = size.height
-
-        // 회오리 바람
-        let vortex = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 80, lifetime: 1.2,
-            posRange: CGVector(dx: w * 0.6, dy: h * 0.6),
-            speed: 150, angle: 0, angleRange: .pi * 2,
-            scale: 0.4, scaleSpeed: -0.2,
-            colors: [
-                (r: 0.5, g: 1.0, b: 0.5, a: 1.0),
-                (r: 0.2, g: 0.8, b: 0.3, a: 0.8),
-                (r: 0.1, g: 0.6, b: 0.2, a: 0.5),
-                (r: 0.0, g: 0.3, b: 0.1, a: 0.0)
-            ]
-        )
-        addChild(vortex)
-
-        // 바람 줄기 (중앙으로 수렴)
-        let streaks = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 25, lifetime: 1.5,
-            posRange: CGVector(dx: w * 1.0, dy: h * 0.8),
-            speed: 100, angle: .pi, angleRange: .pi / 4,
-            scale: 1.5, scaleSpeed: -0.5,
-            colors: [
-                (r: 0.3, g: 0.9, b: 0.4, a: 0.0),
-                (r: 0.2, g: 0.8, b: 0.3, a: 0.5),
-                (r: 0.1, g: 0.5, b: 0.2, a: 0.3),
-                (r: 0.0, g: 0.2, b: 0.1, a: 0.0)
-            ]
-        )
-        addChild(streaks)
-
-        // 나뭇잎/파편
-        let debris = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 40, lifetime: 0.8,
-            posRange: CGVector(dx: w * 0.3, dy: h * 0.3),
-            speed: 250, angle: 0, angleRange: .pi * 2,
-            scale: 0.2, scaleSpeed: -0.15
-        )
-        debris.particleColor = SKColor(red: 0.4, green: 1.0, blue: 0.5, alpha: 1.0)
-        debris.particleAlphaSpeed = -1.2
-        addChild(debris)
-
-        scheduleCleanup()
-    }
+private func makeSphereNode(
+    radius: CGFloat,
+    color: UIColor,
+    emission: UIColor,
+    transparency: CGFloat = 0.6,
+    position: SCNVector3 = SCNVector3(0, 0, 0)
+) -> SCNNode {
+    let sphere = SCNSphere(radius: radius)
+    let mat = SCNMaterial()
+    mat.diffuse.contents = color
+    mat.emission.contents = emission
+    mat.transparency = transparency
+    mat.isDoubleSided = true
+    sphere.materials = [mat]
+    let node = SCNNode(geometry: sphere)
+    node.position = position
+    return node
 }
 
-// MARK: - ⛰️ 지진 씬 (대지의 제왕)
-class EarthquakeScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.0)
-        let w = size.width, h = size.height
+// MARK: - 🔥 용암 분출 (화)
 
-        // 대지 균열 파편 (하단에서 사방으로)
-        let shatter = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 70, lifetime: 1.0,
-            posRange: CGVector(dx: w * 0.8, dy: 20),
-            speed: 200, angle: .pi / 2, angleRange: .pi / 3,
-            scale: 0.5, scaleSpeed: -0.3,
-            colors: [
-                (r: 0.9, g: 0.7, b: 0.3, a: 1.0),
-                (r: 0.7, g: 0.5, b: 0.2, a: 0.9),
-                (r: 0.5, g: 0.3, b: 0.1, a: 0.6),
-                (r: 0.3, g: 0.15, b: 0.05, a: 0.0)
-            ]
+private func buildLavaEruptionScene() -> SCNScene {
+    let scene = SCNScene()
+
+    // 카메라
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 2, 8)
+    cameraNode.look(at: SCNVector3(0, 1, 0))
+    scene.rootNode.addChildNode(cameraNode)
+
+    // 조명
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 1, green: 0.3, blue: 0, alpha: 1)
+    light.light!.intensity = 2000
+    light.position = SCNVector3(0, 3, 2)
+    scene.rootNode.addChildNode(light)
+
+    // 용암 구체 (중앙)
+    let core = makeSphereNode(
+        radius: 0.8,
+        color: UIColor(red: 1, green: 0.2, blue: 0, alpha: 1),
+        emission: UIColor(red: 1, green: 0.5, blue: 0, alpha: 1),
+        transparency: 0.7
+    )
+    core.position = SCNVector3(0, 0, 0)
+    scene.rootNode.addChildNode(core)
+
+    // 구체 맥동
+    let pulse = SCNAction.sequence([
+        SCNAction.scale(to: 1.3, duration: 0.4),
+        SCNAction.scale(to: 0.9, duration: 0.3),
+        SCNAction.scale(to: 1.1, duration: 0.3)
+    ])
+    core.runAction(SCNAction.repeatForever(pulse))
+
+    // 화염 기둥 파티클 3개
+    for xPos in [-1.5, 0.0, 1.5] as [Float] {
+        let ps = makeParticleSystem(
+            birthRate: 150, lifetime: 1.2, velocity: 5, size: 0.15,
+            color: UIColor(red: 1, green: 0.9, blue: 0.3, alpha: 1),
+            endColor: UIColor(red: 0.8, green: 0.1, blue: 0, alpha: 0),
+            spread: 15
         )
-        shatter.position = CGPoint(x: 0, y: 0)
-        shatter.yAcceleration = -100
-        addChild(shatter)
+        ps.emittingDirection = SCNVector3(0, 1, 0)
+        ps.isAffectedByGravity = false
 
-        // 먼지 구름
-        let dust = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 20, lifetime: 2.0,
-            posRange: CGVector(dx: w * 1.2, dy: 30),
-            speed: 10, angle: .pi / 2, angleRange: .pi / 2,
-            scale: 3.0, scaleSpeed: 0.5,
-            colors: [
-                (r: 0.6, g: 0.45, b: 0.2, a: 0.0),
-                (r: 0.5, g: 0.35, b: 0.15, a: 0.4),
-                (r: 0.4, g: 0.25, b: 0.1, a: 0.3),
-                (r: 0.3, g: 0.15, b: 0.05, a: 0.0)
-            ]
-        )
-        dust.position = CGPoint(x: 0, y: h * 0.2)
-        addChild(dust)
-
-        // 암석 파편
-        let rocks = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 50, lifetime: 0.7,
-            posRange: CGVector(dx: w * 0.5, dy: 10),
-            speed: 300, angle: .pi / 2, angleRange: .pi / 5,
-            scale: 0.3, scaleSpeed: -0.2
-        )
-        rocks.particleColor = SKColor(red: 0.6, green: 0.4, blue: 0.15, alpha: 1.0)
-        rocks.particleAlphaSpeed = -1.0
-        rocks.yAcceleration = -200
-        rocks.position = CGPoint(x: 0, y: 0)
-        addChild(rocks)
-
-        scheduleCleanup()
+        let pillarNode = SCNNode()
+        pillarNode.position = SCNVector3(xPos, -2, 0)
+        pillarNode.addParticleSystem(ps)
+        scene.rootNode.addChildNode(pillarNode)
     }
+
+    // 용암 스파크 (사방)
+    let sparks = makeParticleSystem(
+        birthRate: 80, lifetime: 0.8, velocity: 8, size: 0.06,
+        color: UIColor(red: 1, green: 0.85, blue: 0.4, alpha: 1),
+        endColor: UIColor(red: 0.5, green: 0.05, blue: 0, alpha: 0),
+        spread: 180
+    )
+    sparks.isAffectedByGravity = true
+    core.addParticleSystem(sparks)
+
+    // 용암 안개 (하단)
+    let mist = makeParticleSystem(
+        birthRate: 30, lifetime: 2, velocity: 1, size: 0.8,
+        color: UIColor(red: 1, green: 0.3, blue: 0, alpha: 0.4),
+        endColor: UIColor(red: 0.4, green: 0.05, blue: 0, alpha: 0),
+        spread: 90
+    )
+    let mistNode = SCNNode()
+    mistNode.position = SCNVector3(0, -2, 0)
+    mistNode.addParticleSystem(mist)
+    scene.rootNode.addChildNode(mistNode)
+
+    scheduleCleanup(scene: scene)
+    return scene
 }
 
-// MARK: - 🌑 암흑 안개 씬 (암흑룡)
-class DarkVoidScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        let w = size.width, h = size.height
+// MARK: - 🌊 해일 (수)
 
-        // 암흑 안개 (중앙에서 퍼짐)
-        let void = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 30, lifetime: 2.0,
-            posRange: CGVector(dx: w * 0.3, dy: h * 0.3),
-            speed: 30, angle: 0, angleRange: .pi * 2,
-            scale: 3.0, scaleSpeed: 0.5,
-            colors: [
-                (r: 0.3, g: 0.0, b: 0.5, a: 0.0),
-                (r: 0.2, g: 0.0, b: 0.4, a: 0.6),
-                (r: 0.1, g: 0.0, b: 0.3, a: 0.4),
-                (r: 0.05, g: 0.0, b: 0.1, a: 0.0)
-            ]
+private func buildTidalWaveScene() -> SCNScene {
+    let scene = SCNScene()
+
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 2, 8)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
+    scene.rootNode.addChildNode(cameraNode)
+
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 0, green: 0.4, blue: 1, alpha: 1)
+    light.light!.intensity = 2000
+    light.position = SCNVector3(0, 3, 3)
+    scene.rootNode.addChildNode(light)
+
+    // 물 구체 (중앙)
+    let waterCore = makeSphereNode(
+        radius: 1.0,
+        color: UIColor(red: 0, green: 0.3, blue: 0.9, alpha: 1),
+        emission: UIColor(red: 0.2, green: 0.6, blue: 1, alpha: 1),
+        transparency: 0.5
+    )
+    scene.rootNode.addChildNode(waterCore)
+
+    let wobble = SCNAction.sequence([
+        SCNAction.scale(to: 1.2, duration: 0.5),
+        SCNAction.scale(to: 0.85, duration: 0.4),
+        SCNAction.scale(to: 1.1, duration: 0.3)
+    ])
+    waterCore.runAction(SCNAction.repeatForever(wobble))
+
+    // 물기둥 (아래에서 위로)
+    for xPos in [-1.2, 0.0, 1.2] as [Float] {
+        let ps = makeParticleSystem(
+            birthRate: 120, lifetime: 1.0, velocity: 6, size: 0.12,
+            color: UIColor(red: 0.6, green: 0.9, blue: 1, alpha: 1),
+            endColor: UIColor(red: 0, green: 0.2, blue: 0.6, alpha: 0),
+            spread: 12
         )
-        addChild(void)
-
-        // 보라색 스파크
-        let sparks = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 50, lifetime: 0.8,
-            posRange: CGVector(dx: w * 0.6, dy: h * 0.5),
-            speed: 120, angle: 0, angleRange: .pi * 2,
-            scale: 0.25, scaleSpeed: -0.2,
-            colors: [
-                (r: 0.8, g: 0.3, b: 1.0, a: 1.0),
-                (r: 0.5, g: 0.1, b: 0.8, a: 0.8),
-                (r: 0.3, g: 0.0, b: 0.5, a: 0.4),
-                (r: 0.1, g: 0.0, b: 0.2, a: 0.0)
-            ]
-        )
-        addChild(sparks)
-
-        // 검은 입자 (중력 없이 부유)
-        let darkParticles = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 35, lifetime: 1.5,
-            posRange: CGVector(dx: w * 0.8, dy: h * 0.6),
-            speed: 40, angle: .pi / 2, angleRange: .pi * 2,
-            scale: 0.5, scaleSpeed: 0.1
-        )
-        darkParticles.particleColor = SKColor(red: 0.15, green: 0.0, blue: 0.25, alpha: 1.0)
-        darkParticles.particleAlphaSpeed = -0.8
-        addChild(darkParticles)
-
-        scheduleCleanup()
+        ps.emittingDirection = SCNVector3(0, 1, 0)
+        let node = SCNNode()
+        node.position = SCNVector3(xPos, -2.5, 0)
+        node.addParticleSystem(ps)
+        scene.rootNode.addChildNode(node)
     }
+
+    // 물방울 (위에서 아래로)
+    let drops = makeParticleSystem(
+        birthRate: 60, lifetime: 1.5, velocity: 4, size: 0.08,
+        color: UIColor(red: 0.7, green: 0.95, blue: 1, alpha: 1),
+        endColor: UIColor(red: 0, green: 0.1, blue: 0.5, alpha: 0),
+        spread: 30
+    )
+    drops.emittingDirection = SCNVector3(0, -1, 0)
+    drops.isAffectedByGravity = true
+    let dropNode = SCNNode()
+    dropNode.position = SCNVector3(0, 4, 0)
+    dropNode.addParticleSystem(drops)
+    scene.rootNode.addChildNode(dropNode)
+
+    // 파도 안개
+    let waveMist = makeParticleSystem(
+        birthRate: 25, lifetime: 2, velocity: 1, size: 0.7,
+        color: UIColor(red: 0, green: 0.4, blue: 1, alpha: 0.4),
+        endColor: UIColor(red: 0, green: 0.1, blue: 0.3, alpha: 0),
+        spread: 90
+    )
+    let mistNode = SCNNode()
+    mistNode.position = SCNVector3(0, -2, 0)
+    mistNode.addParticleSystem(waveMist)
+    scene.rootNode.addChildNode(mistNode)
+
+    scheduleCleanup(scene: scene)
+    return scene
 }
 
-// MARK: - ✨ 빛 기둥 씬 (대천사)
-class HolyRadianceScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.0)
-        let w = size.width, h = size.height
+// MARK: - 🌪️ 회오리 (풍)
 
-        // 빛 기둥 (상단에서 쏟아짐)
-        let lightBeam = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 25, lifetime: 1.8,
-            posRange: CGVector(dx: w * 0.4, dy: 10),
-            speed: 150, angle: -.pi / 2, angleRange: .pi / 12,
-            scale: 2.0, scaleSpeed: 0.3,
-            colors: [
-                (r: 1.0, g: 0.95, b: 0.7, a: 1.0),
-                (r: 1.0, g: 0.85, b: 0.4, a: 0.8),
-                (r: 1.0, g: 0.7, b: 0.2, a: 0.5),
-                (r: 0.8, g: 0.5, b: 0.1, a: 0.0)
-            ]
-        )
-        lightBeam.position = CGPoint(x: 0, y: h)
-        addChild(lightBeam)
+private func buildTyphoonStormScene() -> SCNScene {
+    let scene = SCNScene()
 
-        // 금색 입자 (전체 화면 부유)
-        let goldDust = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 60, lifetime: 1.2,
-            posRange: CGVector(dx: w * 1.0, dy: h * 0.8),
-            speed: 50, angle: .pi / 2, angleRange: .pi * 2,
-            scale: 0.3, scaleSpeed: -0.1,
-            colors: [
-                (r: 1.0, g: 0.9, b: 0.5, a: 1.0),
-                (r: 1.0, g: 0.8, b: 0.3, a: 0.8),
-                (r: 0.9, g: 0.6, b: 0.1, a: 0.4),
-                (r: 0.5, g: 0.3, b: 0.0, a: 0.0)
-            ]
-        )
-        goldDust.position = CGPoint(x: 0, y: h * 0.5)
-        addChild(goldDust)
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 2, 8)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
+    scene.rootNode.addChildNode(cameraNode)
 
-        // 흰색 깜빡임
-        let flare = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 20, lifetime: 0.6,
-            posRange: CGVector(dx: w * 0.6, dy: h * 0.5),
-            speed: 10, angle: 0, angleRange: .pi * 2,
-            scale: 0.8, scaleSpeed: -0.5
-        )
-        flare.particleColor = SKColor(red: 1.0, green: 1.0, blue: 0.9, alpha: 1.0)
-        flare.particleAlphaSpeed = -1.5
-        flare.position = CGPoint(x: 0, y: h * 0.5)
-        addChild(flare)
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 0.2, green: 0.9, blue: 0.3, alpha: 1)
+    light.light!.intensity = 1500
+    light.position = SCNVector3(0, 4, 3)
+    scene.rootNode.addChildNode(light)
 
-        scheduleCleanup()
-    }
+    // 회오리 토러스 (3D 링)
+    let torus = SCNTorus(ringRadius: 1.5, pipeRadius: 0.15)
+    let torusMat = SCNMaterial()
+    torusMat.diffuse.contents = UIColor(red: 0.1, green: 0.7, blue: 0.2, alpha: 0.5)
+    torusMat.emission.contents = UIColor(red: 0.3, green: 1, blue: 0.4, alpha: 1)
+    torusMat.transparency = 0.4
+    torus.materials = [torusMat]
+    let torusNode = SCNNode(geometry: torus)
+    torusNode.eulerAngles.x = .pi / 6
+    scene.rootNode.addChildNode(torusNode)
+
+    // 토러스 회전
+    let spin = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 1.0)
+    torusNode.runAction(SCNAction.repeatForever(spin))
+
+    // 토러스 크기 변화
+    let breathe = SCNAction.sequence([
+        SCNAction.scale(to: 1.3, duration: 0.5),
+        SCNAction.scale(to: 0.8, duration: 0.4),
+        SCNAction.scale(to: 1.0, duration: 0.3)
+    ])
+    torusNode.runAction(SCNAction.repeatForever(breathe))
+
+    // 바람 파티클 (나선 형태)
+    let vortex = makeParticleSystem(
+        birthRate: 100, lifetime: 1.2, velocity: 5, size: 0.08,
+        color: UIColor(red: 0.4, green: 1, blue: 0.5, alpha: 1),
+        endColor: UIColor(red: 0, green: 0.3, blue: 0.1, alpha: 0),
+        spread: 180
+    )
+    torusNode.addParticleSystem(vortex)
+
+    // 나뭇잎/파편 파티클
+    let debris = makeParticleSystem(
+        birthRate: 50, lifetime: 1.0, velocity: 8, size: 0.04,
+        color: UIColor(red: 0.5, green: 1, blue: 0.3, alpha: 1),
+        endColor: UIColor(red: 0.1, green: 0.5, blue: 0.1, alpha: 0),
+        spread: 180
+    )
+    debris.isAffectedByGravity = true
+    scene.rootNode.addParticleSystem(debris)
+
+    // 바람 줄기 (위아래)
+    let streaks = makeParticleSystem(
+        birthRate: 40, lifetime: 1.5, velocity: 6, size: 0.2,
+        color: UIColor(red: 0.2, green: 0.8, blue: 0.3, alpha: 0.3),
+        endColor: UIColor(red: 0, green: 0.3, blue: 0.1, alpha: 0),
+        spread: 20
+    )
+    streaks.emittingDirection = SCNVector3(0, 1, 0)
+    let streakNode = SCNNode()
+    streakNode.position = SCNVector3(0, -3, 0)
+    streakNode.addParticleSystem(streaks)
+    scene.rootNode.addChildNode(streakNode)
+
+    scheduleCleanup(scene: scene)
+    return scene
 }
 
-// MARK: - ⚡ 낙뢰 씬 (뇌제 라이쥬)
-class ThunderStrikeScene: SKScene {
-    override func didMove(to view: SKView) {
-        backgroundColor = .clear
-        scaleMode = .resizeFill
-        anchorPoint = CGPoint(x: 0.5, y: 0.0)
-        let w = size.width, h = size.height
+// MARK: - ⛰️ 지진 (지)
 
-        // 번개 줄기 (상단 → 하단)
-        for xOffset in [-w * 0.2, w * 0.05, w * 0.25] as [CGFloat] {
-            let bolt = makeEmitter(
-                texture: ParticleTextures.glow,
-                birthRate: 100, lifetime: 0.5,
-                posRange: CGVector(dx: 15, dy: h * 0.8),
-                speed: 300, angle: -.pi / 2, angleRange: .pi / 15,
-                scale: 0.3, scaleSpeed: -0.3,
-                colors: [
-                    (r: 1.0, g: 1.0, b: 0.9, a: 1.0),
-                    (r: 1.0, g: 0.95, b: 0.5, a: 0.9),
-                    (r: 0.7, g: 0.8, b: 1.0, a: 0.6),
-                    (r: 0.3, g: 0.5, b: 1.0, a: 0.0)
-                ]
-            )
-            bolt.position = CGPoint(x: xOffset, y: h * 0.8)
-            addChild(bolt)
-        }
+private func buildEarthquakeScene() -> SCNScene {
+    let scene = SCNScene()
 
-        // 전기 스파크 (중앙)
-        let sparks = makeEmitter(
-            texture: ParticleTextures.glow,
-            birthRate: 70, lifetime: 0.6,
-            posRange: CGVector(dx: w * 0.5, dy: h * 0.3),
-            speed: 200, angle: 0, angleRange: .pi * 2,
-            scale: 0.2, scaleSpeed: -0.15
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 3, 8)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
+    scene.rootNode.addChildNode(cameraNode)
+
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 0.8, green: 0.6, blue: 0.2, alpha: 1)
+    light.light!.intensity = 1800
+    light.position = SCNVector3(0, 4, 3)
+    scene.rootNode.addChildNode(light)
+
+    // 바위 덩어리 (여러 개)
+    let rockPositions: [(Float, Float, Float, CGFloat)] = [
+        (-1.5, -1, 0.5, 0.4),
+        (1.2, -0.5, -0.3, 0.3),
+        (0, 0, 0, 0.6),
+        (-0.8, 0.8, 0.2, 0.25),
+        (1.5, 1, -0.5, 0.35)
+    ]
+
+    for (i, pos) in rockPositions.enumerated() {
+        let box = SCNBox(width: pos.3, height: pos.3, length: pos.3, chamferRadius: pos.3 * 0.15)
+        let mat = SCNMaterial()
+        mat.diffuse.contents = UIColor(red: 0.5, green: 0.35, blue: 0.15, alpha: 1)
+        mat.emission.contents = UIColor(red: 0.7, green: 0.5, blue: 0.2, alpha: 0.3)
+        box.materials = [mat]
+        let node = SCNNode(geometry: box)
+        node.position = SCNVector3(pos.0, pos.1 - 3, pos.2)
+        node.eulerAngles = SCNVector3(
+            Float.random(in: 0...Float.pi),
+            Float.random(in: 0...Float.pi),
+            Float.random(in: 0...Float.pi)
         )
-        sparks.particleColor = SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
-        sparks.particleAlphaSpeed = -1.5
-        sparks.position = CGPoint(x: 0, y: h * 0.4)
-        addChild(sparks)
+        scene.rootNode.addChildNode(node)
 
-        // 노란 글로우 (하단 충격파)
-        let impact = makeEmitter(
-            texture: ParticleTextures.softGlow,
-            birthRate: 20, lifetime: 1.5,
-            posRange: CGVector(dx: w * 0.8, dy: 20),
-            speed: 15, angle: .pi / 2, angleRange: .pi / 2,
-            scale: 2.0, scaleSpeed: 0.3,
-            colors: [
-                (r: 1.0, g: 1.0, b: 0.5, a: 0.0),
-                (r: 1.0, g: 0.9, b: 0.3, a: 0.5),
-                (r: 0.7, g: 0.7, b: 0.2, a: 0.3),
-                (r: 0.3, g: 0.3, b: 0.1, a: 0.0)
-            ]
+        // 바위 솟아오르기 + 회전
+        let delay = Double(i) * 0.1
+        let rise = SCNAction.sequence([
+            SCNAction.wait(duration: delay),
+            SCNAction.moveBy(x: 0, y: CGFloat(pos.1 + 3), z: 0, duration: 0.4)
+        ])
+        let rotate = SCNAction.rotateBy(
+            x: CGFloat.random(in: -2...2),
+            y: CGFloat.random(in: -2...2),
+            z: CGFloat.random(in: -2...2),
+            duration: 2
         )
-        impact.position = CGPoint(x: 0, y: 0)
-        addChild(impact)
-
-        scheduleCleanup()
+        node.runAction(SCNAction.group([rise, rotate]))
     }
+
+    // 먼지 파티클
+    let dust = makeParticleSystem(
+        birthRate: 60, lifetime: 2.0, velocity: 3, size: 0.3,
+        color: UIColor(red: 0.6, green: 0.45, blue: 0.2, alpha: 0.4),
+        endColor: UIColor(red: 0.3, green: 0.2, blue: 0.1, alpha: 0),
+        spread: 90
+    )
+    let dustNode = SCNNode()
+    dustNode.position = SCNVector3(0, -2, 0)
+    dustNode.addParticleSystem(dust)
+    scene.rootNode.addChildNode(dustNode)
+
+    // 암석 파편 (사방으로)
+    let fragments = makeParticleSystem(
+        birthRate: 80, lifetime: 1.0, velocity: 7, size: 0.06,
+        color: UIColor(red: 0.9, green: 0.7, blue: 0.3, alpha: 1),
+        endColor: UIColor(red: 0.3, green: 0.15, blue: 0.05, alpha: 0),
+        spread: 180
+    )
+    fragments.isAffectedByGravity = true
+    scene.rootNode.addParticleSystem(fragments)
+
+    scheduleCleanup(scene: scene)
+    return scene
 }
 
-// MARK: - SKScene 헬퍼
+// MARK: - 🌑 암흑 공허 (암)
 
-extension SKScene {
-    typealias RGBA = (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)
+private func buildDarkVoidScene() -> SCNScene {
+    let scene = SCNScene()
 
-    func makeEmitter(
-        texture: SKTexture,
-        birthRate: CGFloat,
-        lifetime: CGFloat,
-        posRange: CGVector,
-        speed: CGFloat,
-        angle: CGFloat,
-        angleRange: CGFloat,
-        scale: CGFloat,
-        scaleSpeed: CGFloat,
-        colors: [RGBA]? = nil
-    ) -> SKEmitterNode {
-        let e = SKEmitterNode()
-        e.particleTexture = texture
-        e.particleBirthRate = birthRate
-        e.particleLifetime = lifetime
-        e.particleLifetimeRange = lifetime * 0.2
-        e.particlePositionRange = posRange
-        e.particleSpeed = speed
-        e.particleSpeedRange = speed * 0.3
-        e.emissionAngle = angle
-        e.emissionAngleRange = angleRange
-        e.particleScale = scale
-        e.particleScaleRange = scale * 0.3
-        e.particleScaleSpeed = scaleSpeed
-        e.particleBlendMode = .add
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 0, 8)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
+    scene.rootNode.addChildNode(cameraNode)
 
-        if let colors = colors, colors.count >= 4 {
-            let seq = SKKeyframeSequence(
-                keyframeValues: colors.map { SKColor(red: $0.r, green: $0.g, blue: $0.b, alpha: $0.a) },
-                times: [0.0, 0.25, 0.6, 1.0]
-            )
-            e.particleColorSequence = seq
-        }
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 0.4, green: 0, blue: 0.6, alpha: 1)
+    light.light!.intensity = 1200
+    light.position = SCNVector3(0, 0, 5)
+    scene.rootNode.addChildNode(light)
 
-        return e
+    // 블랙홀 구체
+    let voidCore = makeSphereNode(
+        radius: 0.6,
+        color: UIColor(red: 0.05, green: 0, blue: 0.1, alpha: 1),
+        emission: UIColor(red: 0.2, green: 0, blue: 0.3, alpha: 1),
+        transparency: 0.9
+    )
+    scene.rootNode.addChildNode(voidCore)
+
+    // 블랙홀 맥동 (크기 팽창)
+    let expand = SCNAction.sequence([
+        SCNAction.scale(to: 2.0, duration: 0.6),
+        SCNAction.scale(to: 1.5, duration: 0.3),
+        SCNAction.scale(to: 1.8, duration: 0.3)
+    ])
+    voidCore.runAction(SCNAction.repeatForever(expand))
+
+    // 보라 회전 링
+    let ring = SCNTorus(ringRadius: 2.0, pipeRadius: 0.08)
+    let ringMat = SCNMaterial()
+    ringMat.diffuse.contents = UIColor(red: 0.5, green: 0, blue: 0.8, alpha: 0.6)
+    ringMat.emission.contents = UIColor(red: 0.7, green: 0.2, blue: 1, alpha: 1)
+    ringMat.transparency = 0.5
+    ring.materials = [ringMat]
+    let ringNode = SCNNode(geometry: ring)
+    ringNode.eulerAngles.x = .pi / 4
+    scene.rootNode.addChildNode(ringNode)
+
+    let ringRotate = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 1.5)
+    ringNode.runAction(SCNAction.repeatForever(ringRotate))
+
+    // 두 번째 링 (반대 각도)
+    let ring2Node = ringNode.clone()
+    ring2Node.eulerAngles.x = -.pi / 3
+    ring2Node.eulerAngles.z = .pi / 6
+    scene.rootNode.addChildNode(ring2Node)
+    let ringRotate2 = SCNAction.rotateBy(x: 0, y: -CGFloat.pi * 2, z: 0, duration: 1.2)
+    ring2Node.runAction(SCNAction.repeatForever(ringRotate2))
+
+    // 보라색 스파크
+    let sparks = makeParticleSystem(
+        birthRate: 70, lifetime: 1.0, velocity: 4, size: 0.05,
+        color: UIColor(red: 0.8, green: 0.3, blue: 1, alpha: 1),
+        endColor: UIColor(red: 0.1, green: 0, blue: 0.2, alpha: 0),
+        spread: 180
+    )
+    voidCore.addParticleSystem(sparks)
+
+    // 검은 안개
+    let darkMist = makeParticleSystem(
+        birthRate: 20, lifetime: 2.5, velocity: 1.5, size: 0.6,
+        color: UIColor(red: 0.15, green: 0, blue: 0.25, alpha: 0.5),
+        endColor: UIColor(red: 0.05, green: 0, blue: 0.1, alpha: 0),
+        spread: 180
+    )
+    scene.rootNode.addParticleSystem(darkMist)
+
+    scheduleCleanup(scene: scene)
+    return scene
+}
+
+// MARK: - ✨ 빛의 강림 (광)
+
+private func buildHolyRadianceScene() -> SCNScene {
+    let scene = SCNScene()
+
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 2, 8)
+    cameraNode.look(at: SCNVector3(0, 1, 0))
+    scene.rootNode.addChildNode(cameraNode)
+
+    let light = SCNNode()
+    light.light = SCNLight()
+    light.light!.type = .omni
+    light.light!.color = UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 1)
+    light.light!.intensity = 2500
+    light.position = SCNVector3(0, 5, 3)
+    scene.rootNode.addChildNode(light)
+
+    // 빛 구체 (상단)
+    let holyCore = makeSphereNode(
+        radius: 0.7,
+        color: UIColor(red: 1, green: 0.95, blue: 0.7, alpha: 1),
+        emission: UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 1),
+        transparency: 0.4,
+        position: SCNVector3(0, 3, 0)
+    )
+    scene.rootNode.addChildNode(holyCore)
+
+    // 구체 빛 맥동
+    let glow = SCNAction.sequence([
+        SCNAction.scale(to: 1.5, duration: 0.4),
+        SCNAction.scale(to: 0.8, duration: 0.3),
+        SCNAction.scale(to: 1.2, duration: 0.3)
+    ])
+    holyCore.runAction(SCNAction.repeatForever(glow))
+
+    // 빛 기둥 (위에서 아래로) — 실린더 3개
+    for xPos in [-1.0, 0.0, 1.0] as [Float] {
+        let cylinder = SCNCylinder(radius: 0.15, height: 8)
+        let cylMat = SCNMaterial()
+        cylMat.diffuse.contents = UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 0.3)
+        cylMat.emission.contents = UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 1)
+        cylMat.transparency = 0.3
+        cylMat.isDoubleSided = true
+        cylinder.materials = [cylMat]
+        let cylNode = SCNNode(geometry: cylinder)
+        cylNode.position = SCNVector3(xPos, 0, Float.random(in: -0.5...0.5))
+        scene.rootNode.addChildNode(cylNode)
+
+        // 빛 기둥 내려오기
+        cylNode.opacity = 0
+        let fadeIn = SCNAction.sequence([
+            SCNAction.wait(duration: Double(abs(xPos)) * 0.15),
+            SCNAction.fadeIn(duration: 0.3)
+        ])
+        cylNode.runAction(fadeIn)
     }
 
-    func scheduleCleanup() {
-        let allEmitters = children.compactMap { $0 as? SKEmitterNode }
-        run(SKAction.sequence([
-            SKAction.wait(forDuration: 1.2),
-            SKAction.run {
-                for emitter in allEmitters {
-                    emitter.particleBirthRate = 0
-                }
-            },
-            SKAction.wait(forDuration: 1.0),
-            SKAction.run { [weak self] in
-                self?.removeAllChildren()
+    // 금색 입자 (하강)
+    let goldDust = makeParticleSystem(
+        birthRate: 80, lifetime: 1.5, velocity: 3, size: 0.06,
+        color: UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 1),
+        endColor: UIColor(red: 0.8, green: 0.5, blue: 0.1, alpha: 0),
+        spread: 40
+    )
+    goldDust.emittingDirection = SCNVector3(0, -1, 0)
+    let goldNode = SCNNode()
+    goldNode.position = SCNVector3(0, 4, 0)
+    goldNode.addParticleSystem(goldDust)
+    scene.rootNode.addChildNode(goldNode)
+
+    // 흰색 깜빡임 (전체)
+    let flare = makeParticleSystem(
+        birthRate: 30, lifetime: 0.8, velocity: 2, size: 0.15,
+        color: UIColor(red: 1, green: 1, blue: 0.9, alpha: 1),
+        endColor: UIColor(red: 1, green: 0.8, blue: 0.3, alpha: 0),
+        spread: 180
+    )
+    scene.rootNode.addParticleSystem(flare)
+
+    // 후광 링
+    let halo = SCNTorus(ringRadius: 1.5, pipeRadius: 0.06)
+    let haloMat = SCNMaterial()
+    haloMat.diffuse.contents = UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 0.4)
+    haloMat.emission.contents = UIColor(red: 1, green: 0.85, blue: 0.3, alpha: 1)
+    haloMat.transparency = 0.5
+    halo.materials = [haloMat]
+    let haloNode = SCNNode(geometry: halo)
+    haloNode.position = SCNVector3(0, 3, 0)
+    haloNode.eulerAngles.x = .pi / 2
+    scene.rootNode.addChildNode(haloNode)
+
+    let haloSpin = SCNAction.rotateBy(x: 0, y: 0, z: CGFloat.pi * 2, duration: 2.0)
+    haloNode.runAction(SCNAction.repeatForever(haloSpin))
+
+    scheduleCleanup(scene: scene)
+    return scene
+}
+
+// MARK: - ⚡ 낙뢰 (뇌)
+
+private func buildThunderStrikeScene() -> SCNScene {
+    let scene = SCNScene()
+
+    let cameraNode = SCNNode()
+    cameraNode.camera = SCNCamera()
+    cameraNode.position = SCNVector3(0, 2, 8)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
+    scene.rootNode.addChildNode(cameraNode)
+
+    // 기본 조명 (어두운)
+    let ambient = SCNNode()
+    ambient.light = SCNLight()
+    ambient.light!.type = .ambient
+    ambient.light!.color = UIColor(white: 0.1, alpha: 1)
+    scene.rootNode.addChildNode(ambient)
+
+    // 번개 플래시 조명
+    let flash = SCNNode()
+    flash.light = SCNLight()
+    flash.light!.type = .omni
+    flash.light!.color = UIColor(red: 0.8, green: 0.9, blue: 1, alpha: 1)
+    flash.light!.intensity = 3000
+    flash.position = SCNVector3(0, 5, 3)
+    scene.rootNode.addChildNode(flash)
+
+    // 번개 깜빡임
+    let flashBlink = SCNAction.sequence([
+        SCNAction.customAction(duration: 0.05) { node, _ in node.light?.intensity = 5000 },
+        SCNAction.customAction(duration: 0.05) { node, _ in node.light?.intensity = 500 },
+        SCNAction.customAction(duration: 0.08) { node, _ in node.light?.intensity = 4000 },
+        SCNAction.customAction(duration: 0.1) { node, _ in node.light?.intensity = 800 },
+        SCNAction.customAction(duration: 0.05) { node, _ in node.light?.intensity = 6000 },
+        SCNAction.customAction(duration: 0.3) { node, _ in node.light?.intensity = 1000 },
+        SCNAction.wait(duration: 0.3),
+    ])
+    flash.runAction(SCNAction.repeatForever(flashBlink))
+
+    // 번개 줄기 (실린더)
+    for xPos in [-1.0, 0.3, 1.2] as [Float] {
+        let bolt = SCNCylinder(radius: 0.06, height: 8)
+        let boltMat = SCNMaterial()
+        boltMat.diffuse.contents = UIColor(red: 0.9, green: 0.95, blue: 1, alpha: 0.9)
+        boltMat.emission.contents = UIColor(red: 0.7, green: 0.85, blue: 1, alpha: 1)
+        boltMat.transparency = 0.7
+        boltMat.isDoubleSided = true
+        bolt.materials = [boltMat]
+        let boltNode = SCNNode(geometry: bolt)
+        boltNode.position = SCNVector3(xPos, 0, Float.random(in: -1...1))
+        boltNode.eulerAngles.z = Float.random(in: -0.15...0.15)
+        scene.rootNode.addChildNode(boltNode)
+
+        // 번개 볼트 파티클
+        let boltParticles = makeParticleSystem(
+            birthRate: 100, lifetime: 0.5, velocity: 8, size: 0.05,
+            color: UIColor(red: 1, green: 1, blue: 0.9, alpha: 1),
+            endColor: UIColor(red: 0.3, green: 0.5, blue: 1, alpha: 0),
+            spread: 15
+        )
+        boltParticles.emittingDirection = SCNVector3(0, -1, 0)
+        let particleNode = SCNNode()
+        particleNode.position = SCNVector3(xPos, 4, boltNode.position.z)
+        particleNode.addParticleSystem(boltParticles)
+        scene.rootNode.addChildNode(particleNode)
+    }
+
+    // 전기 구체 (충격파 중앙)
+    let impactSphere = makeSphereNode(
+        radius: 0.5,
+        color: UIColor(red: 0.7, green: 0.85, blue: 1, alpha: 1),
+        emission: UIColor(red: 0.9, green: 0.95, blue: 1, alpha: 1),
+        transparency: 0.5,
+        position: SCNVector3(0, -1.5, 0)
+    )
+    scene.rootNode.addChildNode(impactSphere)
+
+    let impactPulse = SCNAction.sequence([
+        SCNAction.scale(to: 2.5, duration: 0.2),
+        SCNAction.scale(to: 1.0, duration: 0.2),
+        SCNAction.scale(to: 2.0, duration: 0.15)
+    ])
+    impactSphere.runAction(SCNAction.repeatForever(impactPulse))
+
+    // 전기 스파크
+    let sparks = makeParticleSystem(
+        birthRate: 90, lifetime: 0.6, velocity: 10, size: 0.04,
+        color: UIColor(red: 0.8, green: 0.9, blue: 1, alpha: 1),
+        endColor: UIColor(red: 0.3, green: 0.5, blue: 1, alpha: 0),
+        spread: 180
+    )
+    impactSphere.addParticleSystem(sparks)
+
+    scheduleCleanup(scene: scene)
+    return scene
+}
+
+// MARK: - 씬 클린업
+
+private func scheduleCleanup(scene: SCNScene) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        // 파티클 방출 정지
+        scene.rootNode.enumerateChildNodes { node, _ in
+            for ps in node.particleSystems ?? [] {
+                ps.birthRate = 0
             }
-        ]))
+        }
+        for ps in scene.rootNode.particleSystems ?? [] {
+            ps.birthRate = 0
+        }
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+        scene.rootNode.enumerateChildNodes { node, _ in
+            node.removeFromParentNode()
+        }
     }
 }
 
-// MARK: - 범용 풀스크린 소환 오버레이
+// MARK: - 범용 풀스크린 소환 오버레이 (3D)
 
 struct SummonFullscreenOverlay: View {
     let effectType: SummonEffectType
@@ -447,9 +700,9 @@ struct SummonFullscreenOverlay: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                SpriteView(
-                    scene: makeScene(size: geo.size),
-                    options: [.allowsTransparency]
+                SceneView(
+                    scene: makeScene(),
+                    options: [.rendersContinuously]
                 )
                 .allowsHitTesting(false)
 
@@ -480,26 +733,18 @@ struct SummonFullscreenOverlay: View {
         }
     }
 
-    private func makeScene(size: CGSize) -> SKScene {
-        let scene: SKScene
+    private func makeScene() -> SCNScene {
+        let scene: SCNScene
         switch effectType {
-        case .lavaEruption:
-            scene = LavaEruptionScene()
-        case .tidalWave:
-            scene = TidalWaveScene()
-        case .typhoonStorm:
-            scene = TyphoonStormScene()
-        case .earthquake:
-            scene = EarthquakeScene()
-        case .darkVoid:
-            scene = DarkVoidScene()
-        case .holyRadiance:
-            scene = HolyRadianceScene()
-        case .thunderStrike:
-            scene = ThunderStrikeScene()
+        case .lavaEruption:  scene = buildLavaEruptionScene()
+        case .tidalWave:     scene = buildTidalWaveScene()
+        case .typhoonStorm:  scene = buildTyphoonStormScene()
+        case .earthquake:    scene = buildEarthquakeScene()
+        case .darkVoid:      scene = buildDarkVoidScene()
+        case .holyRadiance:  scene = buildHolyRadianceScene()
+        case .thunderStrike: scene = buildThunderStrikeScene()
         }
-        scene.size = size
-        scene.backgroundColor = .clear
+        scene.background.contents = UIColor.clear
         return scene
     }
 
