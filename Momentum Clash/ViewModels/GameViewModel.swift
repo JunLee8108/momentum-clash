@@ -13,6 +13,7 @@ enum GameUIState: Equatable {
     case selectingSacrificeSlot
     case selectingFightingTarget
     case selectingEffectTarget(card: MonsterCard, slotIndex: Int, isAllyTarget: Bool)
+    case selectingSpellEffectTarget(spell: SpellCard, isAllyTarget: Bool)
     case aiTurn
     case gameOver(winner: String)
 }
@@ -322,14 +323,8 @@ class GameViewModel {
                 gameState.currentPlayer.summonedThisTurn.insert(slotIndex)
                 addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
 
-                // 5성 소환 효과
-                if monsterCard.cost == 5 {
-                    applyFiveStarSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
-                }
-                // 4성 소환 효과
-                if monsterCard.cost == 4 {
-                    applyFourStarSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
-                }
+                // 소환 효과 (데이터 기반)
+                handleSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
             }
         } else if case .spell(let spellCard) = card {
             let success = gameState.currentPlayer.field.placeSpell(spellCard, at: slotIndex)
@@ -339,7 +334,7 @@ class GameViewModel {
         }
 
         if case .selectingEffectTarget = uiState {
-            // 4성 효과 타겟 선택 대기 중이면 상태 유지
+            // 타겟 선택 대기 중이면 상태 유지
         } else {
             uiState = .mainPhase
         }
@@ -402,123 +397,56 @@ class GameViewModel {
     }
 
     private func applySpellEffect(_ spell: SpellCard) {
-        // 지형 마법 처리
-        if spell.spellType == .terrain {
-            applyTerrainSpell(spell)
-            return
-        }
-
-        switch spell.name {
-        case "대지의 방벽":
-            if let firstMonster = gameState.currentPlayer.field.monsterSlotIndices.first {
-                gameState.currentPlayer.field.applyShield(600, at: firstMonster)
-                addLog("방어막 600 부여!")
-            }
-        case "낙뢰":
-            let opponentIdx = gameState.opponentIndex
-            if let target = gameState.players[opponentIdx].field.monsterSlotIndices.first {
-                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
-                    if m.combatPower <= 800 {
-                        gameState.destroyMonster(playerIndex: opponentIdx, slot: target)
-                        addLog("\(m.name) 파괴!")
-                    } else {
-                        addLog("\(m.name)에게 800 데미지! (파괴 실패)")
-                    }
-                }
-            }
-        case "바람의 칼날":
-            gameState.currentPlayer.momentumBonus += 400
-            addLog("이번 턴 전투력 +400!")
-        default:
-            addLog("\(spell.name) 효과 발동!")
-        }
-    }
-
-    /// 지형 마법카드 효과 처리
-    private func applyTerrainSpell(_ spell: SpellCard) {
-        let prevTerrain = gameState.globalTerrain
-        gameState.setSpellTerrain(spell.attribute)
-        addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2라운드)")
-
-        // 스펠 지형 변경 시 상대 필드 오버라이드 해제
+        let playerIdx = gameState.currentPlayerIndex
         let opponentIdx = gameState.opponentIndex
-        if gameState.players[opponentIdx].field.fieldOverrideAttribute != nil {
-            gameState.players[opponentIdx].field.clearFieldOverride()
-            addLog("상대 필드 오버라이드 해제!")
+
+        // 지형 마법: 지형 변경 + 상대 오버라이드 해제
+        if spell.spellType == .terrain {
+            let prevTerrain = gameState.globalTerrain
+            gameState.setSpellTerrain(spell.attribute)
+            addLog("\(spell.attribute.emoji) 지형 변경: \(prevTerrain.displayName) → \(spell.attribute.displayName) (2라운드)")
+
+            if gameState.players[opponentIdx].field.fieldOverrideAttribute != nil {
+                gameState.players[opponentIdx].field.clearFieldOverride()
+                addLog("상대 필드 오버라이드 해제!")
+            }
         }
 
-        // 속성별 부가효과
-        switch spell.attribute {
-        case .fire:
-            // 상대 몬스터 전체에 200 데미지
-            let opponentIdx = gameState.opponentIndex
-            for i in gameState.players[opponentIdx].field.monsterSlotIndices.reversed() {
-                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[i].content {
-                    if m.combatPower <= 200 {
-                        gameState.destroyMonster(playerIndex: opponentIdx, slot: i)
-                        addLog("\(m.name) 파괴! (화염 데미지)")
-                    }
-                }
-            }
-            addLog("상대 전체에 200 데미지!")
-
-        case .water:
-            // LP 300 회복
-            gameState.currentPlayer.lp = min(TurnSystem.startingLP, gameState.currentPlayer.lp + 300)
-            addLog("LP 300 회복! (현재 LP: \(gameState.currentPlayer.lp))")
-
-        case .earth:
-            // 아군 몬스터 전체에 방어막 200
-            for slot in gameState.currentPlayer.field.monsterSlotIndices {
-                gameState.currentPlayer.field.applyShield(200, at: slot)
-            }
-            addLog("아군 전체 방어막 200 부여!")
-
-        case .wind:
-            // 상대 몬스터 1체 CP -200 (방어막 -200으로 구현, 최소 0)
-            let opponentIdx = gameState.opponentIndex
-            if let target = gameState.players[opponentIdx].field.monsterSlotIndices.first {
-                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
-                    addLog("\(m.name) 전투력 -200!")
-                }
+        // 타겟 선택이 필요한 부가효과인지 확인
+        let isPlayer = (playerIdx == 0)
+        if let targetType = EffectEngine.needsPlayerTargetSelection(spell.effect.actions) {
+            let hasTargets: Bool
+            if targetType == .selectEnemy {
+                hasTargets = !gameState.players[opponentIdx].field.monsterSlotIndices.isEmpty
+            } else {
+                hasTargets = !gameState.players[playerIdx].field.monsterSlotIndices.isEmpty
             }
 
-        case .thunder:
-            // 상대 몬스터 1체에 300 데미지 (가장 강한 몬스터 타겟)
-            let opponentIdx = gameState.opponentIndex
-            let monsterSlots = gameState.players[opponentIdx].field.monsterSlotIndices
-            if let target = monsterSlots.max(by: { a, b in
-                guard case .monster(let mA, _) = gameState.players[opponentIdx].field.slots[a].content,
-                      case .monster(let mB, _) = gameState.players[opponentIdx].field.slots[b].content else { return false }
-                return mA.combatPower < mB.combatPower
-            }) {
-                if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
-                    if m.combatPower <= 300 {
-                        gameState.destroyMonster(playerIndex: opponentIdx, slot: target)
-                        addLog("\(m.name) 파괴! (번개 심판)")
-                    } else {
-                        addLog("\(m.name)에 300 데미지!")
-                    }
-                }
+            if hasTargets && isPlayer {
+                let isAllyTarget = (targetType == .selectAlly)
+                uiState = .selectingSpellEffectTarget(spell: spell, isAllyTarget: isAllyTarget)
+                addLog("\(spell.attribute.emoji) \(spell.name) 효과! 대상을 선택하세요.")
+                return
             }
+            // 대상 없거나 AI: 자동 선택으로 진행
+        }
 
-        case .dark:
-            // 상대 몬스터 전체 방어막 제거
-            let opponentIdx = gameState.opponentIndex
-            for i in gameState.players[opponentIdx].field.monsterSlotIndices {
-                if case .monster(let m, let shield) = gameState.players[opponentIdx].field.slots[i].content, shield > 0 {
-                    gameState.players[opponentIdx].field.slots[i].content = .monster(m, shield: 0)
-                    addLog("\(m.name) 방어막 제거! (-\(shield))")
-                }
-            }
-            addLog("상대 전체 방어막 제거!")
-
-        case .light:
-            // 아군 몬스터 전체에 방어막 200 부여 (HP 회복 대신 방어막으로 구현)
-            for slot in gameState.currentPlayer.field.monsterSlotIndices {
-                gameState.currentPlayer.field.applyShield(200, at: slot)
-            }
-            addLog("아군 전체 HP 200 회복! (방어막 부여)")
+        // 데이터 기반 부가효과 실행
+        let context = EffectContext(
+            playerIndex: playerIdx,
+            opponentIndex: opponentIdx,
+            slotIndex: 0,
+            isPlayer: isPlayer,
+            cardAttribute: spell.attribute,
+            destroyerSlot: nil
+        )
+        let results = EffectEngine.resolve(
+            actions: spell.effect.actions,
+            context: context,
+            gameState: &gameState
+        )
+        for r in results {
+            addLog("\(spell.attribute.emoji) \(spell.name) 효과! \(r.message)")
         }
     }
 
@@ -660,6 +588,8 @@ class GameViewModel {
 
             // 결과 연출
             if result.defenderDestroyed {
+                // onDestroy 효과 (파괴 전에 처리)
+                await handleDestroyEffect(card: defCard, ownerIndex: aiIndex, destroyerIndex: playerIndex, destroyerSlot: attackerSlot, isPlayerAction: true)
                 gameState.destroyMonster(playerIndex: aiIndex, slot: defSlot)
                 gameState.players[playerIndex].gainMomentum(1)
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -670,22 +600,11 @@ class GameViewModel {
                 }
                 addLog("\(defCard.name) 파괴!")
                 try? await Task.sleep(for: .seconds(0.4))
-
-                // 죽음의 기사 onDestroy: 자신을 파괴한 몬스터(공격자) 전투력 -300
-                if defCard.name == "죽음의 기사" && !result.attackerDestroyed {
-                    gameState.players[playerIndex].field.applySlotCpDebuff(-300, at: attackerSlot)
-                    addLog("🌑 죽음의 기사 저주! \(atkCard.name) 전투력 -300!")
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        battleDisplay = BattleDisplay(
-                            message: "\(atkCard.name) 전투력 -300!",
-                            isPlayerAction: true
-                        )
-                    }
-                    try? await Task.sleep(for: .seconds(0.4))
-                }
             }
 
             if result.attackerDestroyed {
+                // onDestroy 효과 (파괴 전에 처리)
+                await handleDestroyEffect(card: atkCard, ownerIndex: playerIndex, destroyerIndex: aiIndex, destroyerSlot: defSlot, isPlayerAction: true)
                 gameState.destroyMonster(playerIndex: playerIndex, slot: attackerSlot)
                 gameState.players[aiIndex].gainMomentum(1)
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -696,20 +615,10 @@ class GameViewModel {
                 }
                 addLog("\(atkCard.name) 파괴!")
                 try? await Task.sleep(for: .seconds(0.4))
-
-                // 죽음의 기사 onDestroy: 자신을 파괴한 몬스터(방어자) 전투력 -300
-                if atkCard.name == "죽음의 기사" && !result.defenderDestroyed {
-                    gameState.players[aiIndex].field.applySlotCpDebuff(-300, at: defSlot)
-                    addLog("🌑 죽음의 기사 저주! \(defCard.name) 전투력 -300!")
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        battleDisplay = BattleDisplay(
-                            message: "\(defCard.name) 전투력 -300!",
-                            isPlayerAction: true
-                        )
-                    }
-                    try? await Task.sleep(for: .seconds(0.4))
-                }
             }
+
+            // onAttack 효과 (공격자)
+            await handleAttackEffect(card: atkCard, attackerIndex: playerIndex, defenderIndex: aiIndex, defenderSlot: defSlot, isPlayerAction: true)
 
             if result.lpDamageToDefender > 0 {
                 gameState.players[aiIndex].takeDamage(result.lpDamageToDefender)
@@ -1002,17 +911,17 @@ class GameViewModel {
                 _ = gameState.players[idx].field.summonMonster(m, at: slotIdx)
                 addLog("\(m.name) 소환! (슬롯 \(slotIdx + 1))")
 
-                // 5성 소환 효과
-                if m.cost == 5 {
-                    try? await Task.sleep(for: .seconds(0.5))
-                    applyFiveStarSummonEffect(card: m, slotIndex: slotIdx, playerIndex: idx)
-                    try? await Task.sleep(for: .seconds(2.2))
-                    continue
-                }
-                // 4성 소환 효과 (AI 자동 처리)
-                if m.cost == 4 {
-                    applyFourStarSummonEffect(card: m, slotIndex: slotIdx, playerIndex: idx)
-                    try? await Task.sleep(for: .seconds(0.8))
+                // 소환 효과 (데이터 기반)
+                if m.effect != nil && m.effect!.timing == .onSummon && !m.effect!.actions.isEmpty {
+                    let is5Star = m.cost == 5
+                    if is5Star { try? await Task.sleep(for: .seconds(0.5)) }
+                    handleSummonEffect(card: m, slotIndex: slotIdx, playerIndex: idx)
+                    if is5Star {
+                        try? await Task.sleep(for: .seconds(2.2))
+                        continue
+                    } else {
+                        try? await Task.sleep(for: .seconds(0.8))
+                    }
                 }
             case .spell(let s):
                 if s.spellType == .continuous {
@@ -1091,6 +1000,8 @@ class GameViewModel {
 
                     // 결과 연출
                     if result.defenderDestroyed {
+                        // onDestroy 효과 (파괴 전에 처리)
+                        await handleDestroyEffect(card: defCard, ownerIndex: defIdx, destroyerIndex: idx, destroyerSlot: plan.attackerSlot, isPlayerAction: false)
                         gameState.destroyMonster(playerIndex: defIdx, slot: defSlot)
                         gameState.players[idx].gainMomentum(1)
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -1098,18 +1009,10 @@ class GameViewModel {
                         }
                         addLog("  → \(defCard.name) 파괴!")
                         try? await Task.sleep(for: .seconds(0.9))
-
-                        // 죽음의 기사 onDestroy: 자신을 파괴한 몬스터(공격자) 전투력 -300
-                        if defCard.name == "죽음의 기사" && !result.attackerDestroyed {
-                            gameState.players[idx].field.applySlotCpDebuff(-300, at: plan.attackerSlot)
-                            addLog("  → 🌑 죽음의 기사 저주! \(atkCard.name) 전투력 -300!")
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                battleDisplay = BattleDisplay(message: "\(atkCard.name) 전투력 -300!")
-                            }
-                            try? await Task.sleep(for: .seconds(0.9))
-                        }
                     }
                     if result.attackerDestroyed {
+                        // onDestroy 효과 (파괴 전에 처리)
+                        await handleDestroyEffect(card: atkCard, ownerIndex: idx, destroyerIndex: defIdx, destroyerSlot: defSlot, isPlayerAction: false)
                         gameState.destroyMonster(playerIndex: idx, slot: plan.attackerSlot)
                         gameState.players[defIdx].gainMomentum(1)
                         withAnimation(.easeInOut(duration: 0.3)) {
@@ -1117,17 +1020,10 @@ class GameViewModel {
                         }
                         addLog("  → \(atkCard.name) 파괴!")
                         try? await Task.sleep(for: .seconds(0.9))
-
-                        // 죽음의 기사 onDestroy: 자신을 파괴한 몬스터(방어자) 전투력 -300
-                        if atkCard.name == "죽음의 기사" && !result.defenderDestroyed {
-                            gameState.players[defIdx].field.applySlotCpDebuff(-300, at: defSlot)
-                            addLog("  → 🌑 죽음의 기사 저주! \(defCard.name) 전투력 -300!")
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                battleDisplay = BattleDisplay(message: "\(defCard.name) 전투력 -300!")
-                            }
-                            try? await Task.sleep(for: .seconds(0.9))
-                        }
                     }
+
+                    // onAttack 효과 (공격자)
+                    await handleAttackEffect(card: atkCard, attackerIndex: idx, defenderIndex: defIdx, defenderSlot: defSlot, isPlayerAction: false)
                     if result.lpDamageToDefender > 0 {
                         gameState.players[defIdx].takeDamage(result.lpDamageToDefender)
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -1291,180 +1187,160 @@ class GameViewModel {
         addLog("🏆 \(winnerName) 승리!")
     }
 
-    // MARK: - 4성 소환 효과
+    // MARK: - 데이터 기반 효과 시스템
 
-    /// 4성 몬스터 소환 시 효과 적용
-    private func applyFourStarSummonEffect(card: MonsterCard, slotIndex: Int, playerIndex: Int) {
+    /// 5성 속성 → SummonEffectType 매핑
+    private func summonEffectType(for attribute: Attribute) -> SummonEffectType {
+        switch attribute {
+        case .fire:    return .lavaEruption
+        case .water:   return .tidalWave
+        case .wind:    return .typhoonStorm
+        case .earth:   return .earthquake
+        case .thunder: return .thunderStrike
+        case .dark:    return .darkVoid
+        case .light:   return .holyRadiance
+        }
+    }
+
+    /// 소환 효과 통합 처리 (4성/5성/3성 이하 모두)
+    private func handleSummonEffect(card: MonsterCard, slotIndex: Int, playerIndex: Int) {
+        guard let effect = card.effect, effect.timing == .onSummon, !effect.actions.isEmpty else { return }
+
         let opponentIdx = 1 - playerIndex
         let isPlayer = (playerIndex == 0)
 
-        switch card.name {
-        case "염룡":
-            // 상대 몬스터 1체 전투력 -400 (타겟 선택)
-            let enemySlots = gameState.players[opponentIdx].field.monsterSlotIndices
-            if enemySlots.isEmpty {
-                addLog("🔥 염룡 효과: 상대 필드에 몬스터가 없어 효과 무시")
-                return
-            }
-            if isPlayer {
-                uiState = .selectingEffectTarget(card: card, slotIndex: slotIndex, isAllyTarget: false)
-                addLog("🔥 염룡 효과! 전투력을 낮출 상대 몬스터를 선택하세요.")
-                return
+        // 타겟 선택이 필요한 효과인지 확인
+        if let targetType = EffectEngine.needsPlayerTargetSelection(effect.actions) {
+            // 타겟이 존재하는지 확인
+            let hasTargets: Bool
+            if targetType == .selectEnemy {
+                hasTargets = !gameState.players[opponentIdx].field.monsterSlotIndices.isEmpty
             } else {
-                // AI: 가장 전투력 높은 상대 몬스터 자동 선택
-                if let target = enemySlots.max(by: { a, b in
-                    guard case .monster(let ma, _) = gameState.players[opponentIdx].field.slots[a].content,
-                          case .monster(let mb, _) = gameState.players[opponentIdx].field.slots[b].content else { return false }
-                    return ma.combatPower < mb.combatPower
-                }) {
-                    gameState.players[opponentIdx].field.applySlotCpDebuff(-400, at: target)
-                    if case .monster(let m, _) = gameState.players[opponentIdx].field.slots[target].content {
-                        addLog("🔥 염룡 효과! \(m.name) 전투력 -400!")
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            battleDisplay = BattleDisplay(
-                                message: "\(m.name) 전투력 -400!",
-                                isPlayerAction: false
-                            )
-                        }
-                    }
-                }
+                hasTargets = !gameState.players[playerIndex].field.monsterSlotIndices.isEmpty
             }
 
-        case "빙결 용사":
-            // 아군 LP 300 회복
-            let heal = 300
-            gameState.players[playerIndex].lp = min(TurnSystem.startingLP, gameState.players[playerIndex].lp + heal)
-            addLog("💧 빙결 용사 효과! LP \(heal) 회복!")
+            if !hasTargets {
+                addLog("\(card.attribute.emoji) \(card.name) 효과: 대상이 없어 효과 무시")
+                return
+            }
+
+            if isPlayer {
+                let isAllyTarget = (targetType == .selectAlly)
+                uiState = .selectingEffectTarget(card: card, slotIndex: slotIndex, isAllyTarget: isAllyTarget)
+                addLog("\(card.attribute.emoji) \(card.name) 효과! 대상을 선택하세요.")
+                return
+            }
+            // AI: 자동 선택으로 진행 (EffectEngine이 처리)
+        }
+
+        // 효과 실행
+        let context = EffectContext(
+            playerIndex: playerIndex,
+            opponentIndex: opponentIdx,
+            slotIndex: slotIndex,
+            isPlayer: isPlayer,
+            cardAttribute: card.attribute,
+            destroyerSlot: nil
+        )
+        let results = EffectEngine.resolve(
+            actions: effect.actions,
+            context: context,
+            gameState: &gameState
+        )
+
+        // 결과 로그
+        for r in results {
+            addLog("\(card.attribute.emoji) \(card.name) 효과! \(r.message)")
+        }
+
+        // 5성: 풀스크린 이펙트 연출
+        if card.cost == 5 {
+            let effectType = summonEffectType(for: card.attribute)
+            let effectMessage = results.map { $0.message }.joined(separator: " ")
             withAnimation(.easeInOut(duration: 0.3)) {
                 battleDisplay = BattleDisplay(
-                    message: "LP \(heal) 회복!",
+                    message: "\(card.name): \(effectMessage)",
                     showLPFlash: true,
-                    isPlayerAction: isPlayer
+                    isPlayerAction: isPlayer,
+                    summonEffect: effectType
                 )
             }
 
-        case "숲의 현자":
-            // 카드 1장 드로우
-            if !gameState.players[playerIndex].deck.isEmpty {
-                let drawn = gameState.players[playerIndex].deck.removeFirst()
-                gameState.players[playerIndex].hand.append(drawn)
-                addLog("🌿 숲의 현자 효과! \(drawn.name) 드로우!")
+            // LP 0 체크
+            if gameState.players[opponentIdx].lp <= 0 {
+                gameState.players[opponentIdx].lp = 0
+                endGame(winnerIndex: playerIndex)
+            }
+
+            // 2초 후 연출 클리어
+            Task {
+                try? await Task.sleep(for: .seconds(2.0))
+                withAnimation(.easeOut(duration: 0.3)) {
+                    if battleDisplay?.summonEffect != nil {
+                        battleDisplay = nil
+                    }
+                }
+            }
+        } else {
+            // 4성 이하: 간단한 배너
+            if let firstResult = results.first {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     battleDisplay = BattleDisplay(
-                        message: "카드 1장 드로우!",
+                        message: firstResult.message,
+                        highlightedSlot: firstResult.highlightedSlot,
                         isPlayerAction: isPlayer
                     )
                 }
-            } else {
-                addLog("🌿 숲의 현자 효과: 덱에 카드가 없어 드로우 불가")
             }
 
-        case "산악 거인":
-            // 자신에게 방어막 300
-            let shield = 300
-            gameState.players[playerIndex].field.applyShield(shield, at: slotIndex)
-            addLog("⛰️ 산악 거인 효과! 방어막 \(shield) 부여!")
-            withAnimation(.easeInOut(duration: 0.3)) {
-                battleDisplay = BattleDisplay(
-                    message: "방어막 \(shield) 부여!",
-                    highlightedSlot: slotIndex,
-                    isPlayerAction: isPlayer
-                )
-            }
-
-        case "번개 장군":
-            // 기세 +2
-            gameState.players[playerIndex].gainMomentum(2)
-            addLog("⚡ 번개 장군 효과! 기세 +2!")
-            withAnimation(.easeInOut(duration: 0.3)) {
-                battleDisplay = BattleDisplay(
-                    message: "기세 +2!",
-                    isPlayerAction: isPlayer
-                )
-            }
-
-        case "심판의 천사":
-            // 아군 몬스터 1체에 방어막 300 (타겟 선택)
-            let allySlots = gameState.players[playerIndex].field.monsterSlotIndices
-            if allySlots.isEmpty {
-                addLog("✨ 심판의 천사 효과: 아군 몬스터가 없어 효과 무시")
-                return
-            }
-            if isPlayer {
-                uiState = .selectingEffectTarget(card: card, slotIndex: slotIndex, isAllyTarget: true)
-                addLog("✨ 심판의 천사 효과! 방어막을 부여할 아군 몬스터를 선택하세요.")
-                return
-            } else {
-                // AI: 가장 전투력 높은 아군 몬스터에 방어막
-                if let target = allySlots.max(by: { a, b in
-                    guard case .monster(let ma, _) = gameState.players[playerIndex].field.slots[a].content,
-                          case .monster(let mb, _) = gameState.players[playerIndex].field.slots[b].content else { return false }
-                    return ma.combatPower < mb.combatPower
-                }) {
-                    gameState.players[playerIndex].field.applyShield(300, at: target)
-                    if case .monster(let m, _) = gameState.players[playerIndex].field.slots[target].content {
-                        addLog("✨ 심판의 천사 효과! \(m.name)에 방어막 300 부여!")
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            battleDisplay = BattleDisplay(
-                                message: "\(m.name) 방어막 300!",
-                                isPlayerAction: false
-                            )
+            // 배너 자동 클리어
+            Task {
+                try? await Task.sleep(for: .seconds(1.0))
+                await MainActor.run {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        if battleDisplay?.summonEffect == nil {
+                            battleDisplay = nil
                         }
-                    }
-                }
-            }
-
-        default:
-            break
-        }
-
-        // 배너 자동 클리어
-        Task {
-            try? await Task.sleep(for: .seconds(1.0))
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    if battleDisplay?.summonEffect == nil {
-                        battleDisplay = nil
                     }
                 }
             }
         }
     }
 
-    /// 4성 효과 타겟 선택 완료 (염룡: 상대 몬스터 / 심판의 천사: 아군 몬스터)
+    /// 타겟 선택 효과 완료 (데이터 기반)
     func applyFourStarEffectOnTarget(targetSlot: Int) {
-        guard case .selectingEffectTarget(let card, _, _) = uiState else { return }
+        guard case .selectingEffectTarget(let card, let slotIndex, _) = uiState else { return }
+        guard let effect = card.effect else { return }
 
         let playerIndex = gameState.currentPlayerIndex
         let opponentIdx = 1 - playerIndex
 
-        switch card.name {
-        case "염룡":
-            // 상대 몬스터에 전투력 -400
-            guard case .monster(let m, _) = gameState.players[opponentIdx].field.slots[targetSlot].content else { return }
-            gameState.players[opponentIdx].field.applySlotCpDebuff(-400, at: targetSlot)
-            addLog("🔥 염룡 효과! \(m.name) 전투력 -400!")
+        let context = EffectContext(
+            playerIndex: playerIndex,
+            opponentIndex: opponentIdx,
+            slotIndex: slotIndex,
+            isPlayer: true,
+            cardAttribute: card.attribute,
+            destroyerSlot: nil
+        )
+        let results = EffectEngine.resolve(
+            actions: effect.actions,
+            context: context,
+            gameState: &gameState,
+            selectedTargetSlot: targetSlot
+        )
+
+        for r in results {
+            addLog("\(card.attribute.emoji) \(card.name) 효과! \(r.message)")
+        }
+
+        if let firstResult = results.first {
             withAnimation(.easeInOut(duration: 0.3)) {
                 battleDisplay = BattleDisplay(
-                    message: "\(m.name) 전투력 -400!",
+                    message: firstResult.message,
                     isPlayerAction: true
                 )
             }
-
-        case "심판의 천사":
-            // 아군 몬스터에 방어막 300
-            guard case .monster(let m, _) = gameState.players[playerIndex].field.slots[targetSlot].content else { return }
-            gameState.players[playerIndex].field.applyShield(300, at: targetSlot)
-            addLog("✨ 심판의 천사 효과! \(m.name)에 방어막 300 부여!")
-            withAnimation(.easeInOut(duration: 0.3)) {
-                battleDisplay = BattleDisplay(
-                    message: "\(m.name) 방어막 300!",
-                    isPlayerAction: true
-                )
-            }
-
-        default:
-            break
         }
 
         uiState = .mainPhase
@@ -1480,102 +1356,111 @@ class GameViewModel {
         }
     }
 
-    // MARK: - 5성 소환 효과
+    /// 마법 카드 타겟 선택 효과 완료
+    func applySpellEffectOnTarget(targetSlot: Int) {
+        guard case .selectingSpellEffectTarget(let spell, _) = uiState else { return }
 
-    /// 5성 몬스터 소환 시 공통 + 고유 효과
-    private func applyFiveStarSummonEffect(card: MonsterCard, slotIndex: Int, playerIndex: Int) {
+        let playerIndex = gameState.currentPlayerIndex
         let opponentIdx = 1 - playerIndex
 
-        // 공통 효과: 필드 오버라이드 (2턴)
-        gameState.players[playerIndex].field.setFieldOverride(attribute: card.attribute, sourceSlot: slotIndex)
-        addLog("\(card.attribute.emoji) 필드 오버라이드! \(card.attribute.displayName) (2턴)")
+        let context = EffectContext(
+            playerIndex: playerIndex,
+            opponentIndex: opponentIdx,
+            slotIndex: 0,
+            isPlayer: true,
+            cardAttribute: spell.attribute,
+            destroyerSlot: nil
+        )
+        let results = EffectEngine.resolve(
+            actions: spell.effect.actions,
+            context: context,
+            gameState: &gameState,
+            selectedTargetSlot: targetSlot
+        )
 
-        // 카드별 이펙트 타입 결정
-        let effectType: SummonEffectType
-        var effectMessage: String
+        for r in results {
+            addLog("\(spell.attribute.emoji) \(spell.name) 효과! \(r.message)")
+        }
 
-        switch card.name {
-        case "지옥 기사":
-            effectType = .lavaEruption
-            let damage = 500
-            gameState.players[opponentIdx].lp -= damage
-            effectMessage = "지옥 기사: LP \(damage) 데미지!"
-            addLog("🔥 지옥 기사 효과! 상대 LP \(damage) 데미지!")
-
-        case "해왕":
-            effectType = .tidalWave
-            let heal = 500
-            gameState.players[playerIndex].lp = min(TurnSystem.startingLP, gameState.players[playerIndex].lp + heal)
-            effectMessage = "해왕: LP \(heal) 회복!"
-            addLog("🌊 해왕 효과! LP \(heal) 회복!")
-
-        case "태풍룡":
-            effectType = .typhoonStorm
-            let debuff = 300
-            gameState.players[opponentIdx].field.cpDebuff = -debuff
-            effectMessage = "태풍룡: 상대 전체 전투력 -\(debuff)!"
-            addLog("🌪️ 태풍룡 효과! 상대 몬스터 전투력 -\(debuff)! (2턴)")
-
-        case "대지의 제왕":
-            effectType = .earthquake
-            let shield = 400
-            for i in gameState.players[playerIndex].field.monsterSlotIndices {
-                gameState.players[playerIndex].field.applyShield(shield, at: i)
+        if let firstResult = results.first {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                battleDisplay = BattleDisplay(
+                    message: firstResult.message,
+                    isPlayerAction: true
+                )
             }
-            effectMessage = "대지의 제왕: 전체 방어막 \(shield)!"
-            addLog("⛰️ 대지의 제왕 효과! 아군 전체 방어막 \(shield) 부여!")
-
-        case "뇌제 라이쥬":
-            effectType = .thunderStrike
-            let damage = 300
-            gameState.players[opponentIdx].lp -= damage
-            effectMessage = "뇌제 라이쥬: LP \(damage) 데미지!"
-            addLog("⚡ 뇌제 라이쥬 효과! 상대 LP \(damage) 데미지!")
-
-        case "암흑룡":
-            effectType = .darkVoid
-            gameState.players[opponentIdx].loseMomentum(3)
-            effectMessage = "암흑룡: 상대 기세 -3!"
-            addLog("🌑 암흑룡 효과! 상대 기세 -3!")
-
-        case "대천사":
-            effectType = .holyRadiance
-            let heal = 500
-            gameState.players[playerIndex].lp = min(TurnSystem.startingLP, gameState.players[playerIndex].lp + heal)
-            effectMessage = "대천사: LP \(heal) 회복!"
-            addLog("✨ 대천사 효과! LP \(heal) 회복!")
-
-        default:
-            // 미등록 5성은 기본 화염 이펙트
-            effectType = .lavaEruption
-            effectMessage = "\(card.name) 소환 효과!"
-            addLog("\(card.name) 5성 효과 발동!")
         }
 
-        // 풀스크린 이펙트 연출
-        withAnimation(.easeInOut(duration: 0.3)) {
-            battleDisplay = BattleDisplay(
-                message: effectMessage,
-                showLPFlash: true,
-                isPlayerAction: playerIndex == 0,
-                summonEffect: effectType
-            )
-        }
+        uiState = .mainPhase
 
-        // LP 0 체크
-        if gameState.players[opponentIdx].lp <= 0 {
-            gameState.players[opponentIdx].lp = 0
-            endGame(winnerIndex: playerIndex)
-        }
-
-        // 2초 후 연출 클리어
+        // 배너 자동 클리어
         Task {
-            try? await Task.sleep(for: .seconds(2.0))
-            withAnimation(.easeOut(duration: 0.3)) {
-                if battleDisplay?.summonEffect != nil {
+            try? await Task.sleep(for: .seconds(1.0))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.3)) {
                     battleDisplay = nil
                 }
             }
+        }
+    }
+
+    /// 파괴 시 효과 처리 (onDestroy, 데이터 기반)
+    private func handleDestroyEffect(card: MonsterCard, ownerIndex: Int, destroyerIndex: Int, destroyerSlot: Int, isPlayerAction: Bool) async {
+        guard let effect = card.effect, effect.timing == .onDestroy, !effect.actions.isEmpty else { return }
+
+        let context = EffectContext(
+            playerIndex: ownerIndex,
+            opponentIndex: destroyerIndex,
+            slotIndex: 0,
+            isPlayer: ownerIndex == 0,
+            cardAttribute: card.attribute,
+            destroyerSlot: destroyerSlot
+        )
+        let results = EffectEngine.resolve(
+            actions: effect.actions,
+            context: context,
+            gameState: &gameState
+        )
+
+        for r in results {
+            addLog("\(card.attribute.emoji) \(card.name) 효과! \(r.message)")
+            withAnimation(.easeInOut(duration: 0.3)) {
+                battleDisplay = BattleDisplay(
+                    message: r.message,
+                    isPlayerAction: isPlayerAction
+                )
+            }
+            try? await Task.sleep(for: .seconds(0.4))
+        }
+    }
+
+    /// 공격 시 효과 처리 (onAttack, 데이터 기반)
+    private func handleAttackEffect(card: MonsterCard, attackerIndex: Int, defenderIndex: Int, defenderSlot: Int, isPlayerAction: Bool) async {
+        guard let effect = card.effect, effect.timing == .onAttack, !effect.actions.isEmpty else { return }
+
+        let context = EffectContext(
+            playerIndex: attackerIndex,
+            opponentIndex: defenderIndex,
+            slotIndex: 0,
+            isPlayer: attackerIndex == 0,
+            cardAttribute: card.attribute,
+            destroyerSlot: defenderSlot  // onAttack에서 destroyer = 공격 대상
+        )
+        let results = EffectEngine.resolve(
+            actions: effect.actions,
+            context: context,
+            gameState: &gameState
+        )
+
+        for r in results {
+            addLog("\(card.attribute.emoji) \(card.name) 효과! \(r.message)")
+            withAnimation(.easeInOut(duration: 0.3)) {
+                battleDisplay = BattleDisplay(
+                    message: r.message,
+                    isPlayerAction: isPlayerAction
+                )
+            }
+            try? await Task.sleep(for: .seconds(0.4))
         }
     }
 

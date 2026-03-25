@@ -519,6 +519,11 @@ struct GameBoardView: View {
                     return true
                 }
             }
+            if case .selectingSpellEffectTarget(_, let isAllyTarget) = viewModel.uiState {
+                if isAllyTarget, case .monster = viewModel.player.field.slots[index].content {
+                    return true
+                }
+            }
             if case .selectingSummonSlot = viewModel.uiState {
                 return !viewModel.player.field.slots[index].content.isOccupied
             }
@@ -543,6 +548,11 @@ struct GameBoardView: View {
                     return true
                 }
             }
+            if case .selectingSpellEffectTarget(_, let isAllyTarget) = viewModel.uiState {
+                if !isAllyTarget, case .monster = viewModel.aiPlayer.field.slots[index].content {
+                    return true
+                }
+            }
         }
         return false
     }
@@ -554,9 +564,14 @@ struct GameBoardView: View {
                 viewModel.applyFightingSkill(toSlot: index)
                 return
             }
-            // 4성 효과 타겟 선택 (아군)
+            // 몬스터 효과 타겟 선택 (아군)
             if case .selectingEffectTarget(_, _, let isAllyTarget) = viewModel.uiState, isAllyTarget {
                 viewModel.applyFourStarEffectOnTarget(targetSlot: index)
+                return
+            }
+            // 마법 효과 타겟 선택 (아군)
+            if case .selectingSpellEffectTarget(_, let isAllyTarget) = viewModel.uiState, isAllyTarget {
+                viewModel.applySpellEffectOnTarget(targetSlot: index)
                 return
             }
             // 내 필드 슬롯 탭
@@ -575,9 +590,14 @@ struct GameBoardView: View {
                 return
             }
         } else {
-            // 4성 효과 타겟 선택 (상대)
+            // 몬스터 효과 타겟 선택 (상대)
             if case .selectingEffectTarget(_, _, let isAllyTarget) = viewModel.uiState, !isAllyTarget {
                 viewModel.applyFourStarEffectOnTarget(targetSlot: index)
+                return
+            }
+            // 마법 효과 타겟 선택 (상대)
+            if case .selectingSpellEffectTarget(_, let isAllyTarget) = viewModel.uiState, !isAllyTarget {
+                viewModel.applySpellEffectOnTarget(targetSlot: index)
                 return
             }
             // 상대 필드 슬롯 탭
@@ -690,8 +710,15 @@ struct GameBoardView: View {
 
                 case .selectingEffectTarget(_, _, let isAllyTarget):
                     Text(isAllyTarget
-                         ? "방어막을 부여할 아군 몬스터를 선택하세요"
-                         : "전투력을 낮출 상대 몬스터를 선택하세요")
+                         ? "효과를 적용할 아군 몬스터를 선택하세요"
+                         : "효과를 적용할 상대 몬스터를 선택하세요")
+                        .font(.caption)
+                        .foregroundColor(isAllyTarget ? .cyan : .red)
+
+                case .selectingSpellEffectTarget(_, let isAllyTarget):
+                    Text(isAllyTarget
+                         ? "효과를 적용할 아군 몬스터를 선택하세요"
+                         : "효과를 적용할 상대 몬스터를 선택하세요")
                         .font(.caption)
                         .foregroundColor(isAllyTarget ? .cyan : .red)
 
