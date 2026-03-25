@@ -10,10 +10,53 @@ enum EffectTiming: String, Codable {
     case passive        // 상시 적용
 }
 
+/// 효과가 적용되는 대상
+enum EffectTarget: String, Codable {
+    case selfSlot       // 자기 자신 슬롯
+    case allAllies      // 아군 몬스터 전체
+    case selectAlly     // 아군 1체 선택 (AI: 최강 아군 자동)
+    case selectEnemy    // 적 1체 선택 (AI: 최강 적 자동)
+    case strongestEnemy // 적 중 가장 강한 1체
+    case allEnemies     // 적 몬스터 전체
+    case player         // 자기 플레이어 (LP/기세 등)
+    case opponent       // 상대 플레이어 (LP/기세 등)
+    case destroyer      // 자신을 파괴한 몬스터 (onDestroy 전용)
+}
+
+/// 효과 행동 (데이터로 표현)
+enum EffectAction: Codable, Equatable {
+    case healLP(Int)              // LP 회복
+    case damageLP(Int)            // LP 데미지
+    case applyShield(Int)         // 방어막 부여
+    case cpDebuff(Int)            // CP 디버프 (음수값)
+    case cpBuff(Int)              // CP 버프 (양수값, 슬롯별)
+    case drawCards(Int)           // 카드 드로우
+    case gainMomentum(Int)        // 기세 획득
+    case loseMomentum(Int)        // 기세 감소
+    case fieldOverride            // 필드 오버라이드 (카드 속성 사용, 5성 전용)
+    case fieldCpDebuff(Int)       // 필드 전체 CP 디버프 (오버라이드와 수명 공유, 태풍룡 등)
+    case removeAllShields         // 방어막 전체 제거
+    case destroyIfCPBelow(Int)    // CP 이하면 파괴
+    case momentumBonus(Int)       // 이번 턴 전투력 보너스
+}
+
+/// 효과 행동 + 대상 쌍
+struct EffectActionEntry: Codable, Equatable {
+    let action: EffectAction
+    let target: EffectTarget
+}
+
 /// 카드 효과
 struct CardEffect: Codable, Equatable {
     let timing: EffectTiming
     let description: String
+    let actions: [EffectActionEntry]
+
+    init(timing: EffectTiming, description: String, actions: [EffectActionEntry] = []) {
+        self.timing = timing
+        self.description = description
+        self.actions = actions
+    }
 }
 
 /// 모든 카드의 공통 프로토콜
