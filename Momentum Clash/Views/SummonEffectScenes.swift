@@ -22,7 +22,7 @@ private func makeParticleSystem(
     color: UIColor,
     endColor: UIColor,
     spread: CGFloat = .pi / 4,
-    blendMode: SCNParticleSystem.BlendMode = .additive
+    blendMode: SCNParticleBlendMode = .additive
 ) -> SCNParticleSystem {
     let ps = SCNParticleSystem()
     ps.birthRate = birthRate
