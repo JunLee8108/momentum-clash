@@ -175,10 +175,6 @@ struct GameBoardView: View {
                 SummonFullscreenOverlay(effectType: effect)
                     .transition(.opacity)
                     .zIndex(100)
-            } else if let display = viewModel.battleDisplay, display.showLavaEruption {
-                LavaFullscreenOverlay()
-                    .transition(.opacity)
-                    .zIndex(100)
             }
 
             // 오버레이: 전투 프리뷰

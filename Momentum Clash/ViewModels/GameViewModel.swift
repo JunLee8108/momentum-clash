@@ -27,7 +27,6 @@ struct BattleDisplay: Equatable {
     var isDirectAttack: Bool = false         // 직접 공격 여부
     var showLPFlash: Bool = false            // LP 데미지 플래시
     var isPlayerAction: Bool = false         // true면 플레이어, false면 AI
-    var showLavaEruption: Bool = false       // 용암 분출 풀스크린 이펙트 (레거시)
     var summonEffect: SummonEffectType? = nil // 5성 소환 풀스크린 이펙트
 }
 
