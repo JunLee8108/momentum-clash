@@ -43,8 +43,8 @@ enum SampleCards {
     static let volcanoMage = MonsterCard(
         name: "화산 마도사", attribute: .fire, cost: 3, rarity: .rare,
         combatPower: 1300, monsterType: .mage,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체에 300 데미지",
-            actions: [EffectActionEntry(action: .destroyIfCPBelow(300), target: .strongestEnemy)]),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체의 전투력 -300",
+            actions: [EffectActionEntry(action: .cpDebuff(-300), target: .selectEnemy)]),
         flavorText: "용암을 다루는 화산의 마도사",
         imageName: "card_volcano_mage"
     )
@@ -265,8 +265,8 @@ enum SampleCards {
     static let curseMage = MonsterCard(
         name: "저주술사", attribute: .dark, cost: 3, rarity: .rare,
         combatPower: 1300, monsterType: .mage,
-        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체 전투력 -200",
-            actions: [EffectActionEntry(action: .cpDebuff(-200), target: .strongestEnemy)]),
+        effect: CardEffect(timing: .onSummon, description: "소환 시 상대 몬스터 1체의 전투력 -200",
+            actions: [EffectActionEntry(action: .cpDebuff(-200), target: .selectEnemy)]),
         flavorText: "저주의 힘으로 적을 약화시키는 마법사",
         imageName: "card_curse_mage"
     )
@@ -338,8 +338,8 @@ enum SampleCards {
     static let fireStorm = SpellCard(
         name: "화염 폭풍", attribute: .fire, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 화염으로 2라운드 변경. 상대 몬스터 전체에 200 데미지",
-            actions: [EffectActionEntry(action: .destroyIfCPBelow(200), target: .allEnemies)]),
+        effect: CardEffect(timing: .onSummon, description: "지형을 화염으로 2라운드 변경. 상대 몬스터 전체 전투력 -200",
+            actions: [EffectActionEntry(action: .cpDebuff(-200), target: .allEnemies)]),
         flavorText: "불의 폭풍이 전장을 뒤덮는다",
         imageName: "spell_fire_storm"
     )
@@ -365,8 +365,8 @@ enum SampleCards {
     static let windStorm = SpellCard(
         name: "폭풍의 눈", attribute: .wind, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 폭풍으로 2라운드 변경. 상대 몬스터 1체 전투력 -200",
-            actions: [EffectActionEntry(action: .cpDebuff(-200), target: .strongestEnemy)]),
+        effect: CardEffect(timing: .onSummon, description: "지형을 폭풍으로 2라운드 변경. 상대 몬스터 1체의 전투력 -200",
+            actions: [EffectActionEntry(action: .cpDebuff(-200), target: .selectEnemy)]),
         flavorText: "폭풍이 전장을 휩쓸며 바꿔놓는다",
         imageName: "spell_wind_storm"
     )
@@ -374,8 +374,8 @@ enum SampleCards {
     static let thunderJudgment = SpellCard(
         name: "번개의 심판", attribute: .thunder, cost: 2, rarity: .rare,
         spellType: .terrain,
-        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2라운드 변경. 상대 몬스터 1체에 300 데미지",
-            actions: [EffectActionEntry(action: .destroyIfCPBelow(300), target: .strongestEnemy)]),
+        effect: CardEffect(timing: .onSummon, description: "지형을 번개로 2라운드 변경. 상대 몬스터 1체의 전투력 -300",
+            actions: [EffectActionEntry(action: .cpDebuff(-300), target: .selectEnemy)]),
         flavorText: "하늘의 심판이 전장을 뒤흔든다",
         imageName: "spell_thunder_judgment"
     )

@@ -13,6 +13,7 @@ enum GameUIState: Equatable {
     case selectingSacrificeSlot
     case selectingFightingTarget
     case selectingEffectTarget(card: MonsterCard, slotIndex: Int, isAllyTarget: Bool)
+    case selectingSpellEffectTarget(spell: SpellCard, isAllyTarget: Bool)
     case aiTurn
     case gameOver(winner: String)
 }
@@ -411,12 +412,31 @@ class GameViewModel {
             }
         }
 
+        // 타겟 선택이 필요한 부가효과인지 확인
+        let isPlayer = (playerIdx == 0)
+        if let targetType = EffectEngine.needsPlayerTargetSelection(spell.effect.actions) {
+            let hasTargets: Bool
+            if targetType == .selectEnemy {
+                hasTargets = !gameState.players[opponentIdx].field.monsterSlotIndices.isEmpty
+            } else {
+                hasTargets = !gameState.players[playerIdx].field.monsterSlotIndices.isEmpty
+            }
+
+            if hasTargets && isPlayer {
+                let isAllyTarget = (targetType == .selectAlly)
+                uiState = .selectingSpellEffectTarget(spell: spell, isAllyTarget: isAllyTarget)
+                addLog("\(spell.attribute.emoji) \(spell.name) 효과! 대상을 선택하세요.")
+                return
+            }
+            // 대상 없거나 AI: 자동 선택으로 진행
+        }
+
         // 데이터 기반 부가효과 실행
         let context = EffectContext(
             playerIndex: playerIdx,
             opponentIndex: opponentIdx,
             slotIndex: 0,
-            isPlayer: playerIdx == 0,
+            isPlayer: isPlayer,
             cardAttribute: spell.attribute,
             destroyerSlot: nil
         )
@@ -426,7 +446,7 @@ class GameViewModel {
             gameState: &gameState
         )
         for r in results {
-            addLog("\(r.emoji) \(r.message)")
+            addLog("\(spell.attribute.emoji) \(spell.name) 효과! \(r.message)")
         }
     }
 
@@ -1312,6 +1332,54 @@ class GameViewModel {
 
         for r in results {
             addLog("\(card.attribute.emoji) \(card.name) 효과! \(r.message)")
+        }
+
+        if let firstResult = results.first {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                battleDisplay = BattleDisplay(
+                    message: firstResult.message,
+                    isPlayerAction: true
+                )
+            }
+        }
+
+        uiState = .mainPhase
+
+        // 배너 자동 클리어
+        Task {
+            try? await Task.sleep(for: .seconds(1.0))
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    battleDisplay = nil
+                }
+            }
+        }
+    }
+
+    /// 마법 카드 타겟 선택 효과 완료
+    func applySpellEffectOnTarget(targetSlot: Int) {
+        guard case .selectingSpellEffectTarget(let spell, _) = uiState else { return }
+
+        let playerIndex = gameState.currentPlayerIndex
+        let opponentIdx = 1 - playerIndex
+
+        let context = EffectContext(
+            playerIndex: playerIndex,
+            opponentIndex: opponentIdx,
+            slotIndex: 0,
+            isPlayer: true,
+            cardAttribute: spell.attribute,
+            destroyerSlot: nil
+        )
+        let results = EffectEngine.resolve(
+            actions: spell.effect.actions,
+            context: context,
+            gameState: &gameState,
+            selectedTargetSlot: targetSlot
+        )
+
+        for r in results {
+            addLog("\(spell.attribute.emoji) \(spell.name) 효과! \(r.message)")
         }
 
         if let firstResult = results.first {

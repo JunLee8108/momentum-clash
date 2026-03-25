@@ -16,7 +16,6 @@ enum EffectTarget: String, Codable {
     case allAllies      // 아군 몬스터 전체
     case selectAlly     // 아군 1체 선택 (AI: 최강 아군 자동)
     case selectEnemy    // 적 1체 선택 (AI: 최강 적 자동)
-    case strongestEnemy // 적 중 가장 강한 1체
     case allEnemies     // 적 몬스터 전체
     case player         // 자기 플레이어 (LP/기세 등)
     case opponent       // 상대 플레이어 (LP/기세 등)
@@ -36,7 +35,6 @@ enum EffectAction: Codable, Equatable {
     case fieldOverride            // 필드 오버라이드 (카드 속성 사용, 5성 전용)
     case fieldCpDebuff(Int)       // 필드 전체 CP 디버프 (오버라이드와 수명 공유, 태풍룡 등)
     case removeAllShields         // 방어막 전체 제거
-    case destroyIfCPBelow(Int)    // CP 이하면 파괴
     case momentumBonus(Int)       // 이번 턴 전투력 보너스
 }
 

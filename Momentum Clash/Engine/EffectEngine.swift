@@ -226,36 +226,6 @@ struct EffectEngine {
                 isPlayerAction: context.isPlayer
             )
 
-        case .destroyIfCPBelow(let threshold):
-            let targetPlayerIdx = targetPlayerIndex(entry.target, context: context)
-            let slots = resolveTargetSlots(entry.target, context: context, gameState: gameState, selectedTargetSlot: selectedTargetSlot)
-            var destroyed: [String] = []
-            // 역순으로 파괴 (인덱스 이동 방지)
-            for slot in slots.sorted(by: >) {
-                if case .monster(let m, _) = gameState.players[targetPlayerIdx].field.slots[slot].content {
-                    if m.combatPower <= threshold {
-                        gameState.destroyMonster(playerIndex: targetPlayerIdx, slot: slot)
-                        destroyed.append(m.name)
-                    }
-                }
-            }
-            if destroyed.isEmpty {
-                return EffectResult(
-                    message: "전체에 \(threshold) 데미지!",
-                    emoji: "💥",
-                    showLPFlash: false,
-                    highlightedSlot: nil,
-                    isPlayerAction: context.isPlayer
-                )
-            }
-            return EffectResult(
-                message: "\(destroyed.joined(separator: ", ")) 파괴!",
-                emoji: "💥",
-                showLPFlash: false,
-                highlightedSlot: nil,
-                isPlayerAction: context.isPlayer
-            )
-
         case .momentumBonus(let amount):
             let idx = playerIndexForTarget(entry.target, context: context)
             gameState.players[idx].momentumBonus += amount
@@ -276,7 +246,7 @@ struct EffectEngine {
         switch target {
         case .player, .selfSlot, .allAllies, .selectAlly:
             return context.playerIndex
-        case .opponent, .allEnemies, .selectEnemy, .strongestEnemy, .destroyer:
+        case .opponent, .allEnemies, .selectEnemy, .destroyer:
             return context.opponentIndex
         }
     }
@@ -286,7 +256,7 @@ struct EffectEngine {
         switch target {
         case .selfSlot, .allAllies, .selectAlly:
             return context.playerIndex
-        case .allEnemies, .selectEnemy, .strongestEnemy:
+        case .allEnemies, .selectEnemy:
             return context.opponentIndex
         case .destroyer:
             // 자신을 파괴한 몬스터는 상대편
@@ -326,12 +296,6 @@ struct EffectEngine {
                 return [selected]
             }
             // AI: 가장 전투력 높은 적
-            return autoSelectStrongest(
-                playerIndex: context.opponentIndex,
-                gameState: gameState
-            ).map { [$0] } ?? []
-
-        case .strongestEnemy:
             return autoSelectStrongest(
                 playerIndex: context.opponentIndex,
                 gameState: gameState
