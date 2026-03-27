@@ -972,8 +972,9 @@ struct SummonFullscreenOverlay: View {
                 }
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double(shakeCount) * interval) {
-            withAnimation(.easeOut(duration: 0.1)) {
+        // 원위치 복귀
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.65) {
+            withAnimation(.easeOut(duration: 0.15)) {
                 shakeOffset = 0
             }
         }
