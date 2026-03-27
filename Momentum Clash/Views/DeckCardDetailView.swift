@@ -9,6 +9,7 @@ struct DeckCardDetailView: View {
     let onAdd: () -> Void
 
     @State private var appeared = false
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
         ZStack {
@@ -32,8 +33,14 @@ struct DeckCardDetailView: View {
 
             // 콘텐츠
             VStack(spacing: 0) {
+                // 스와이프 힌트 바
+                Capsule()
+                    .fill(Color.white.opacity(0.4))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 8)
+
                 topBadges
-                    .padding(.top, 12)
+                    .padding(.top, 8)
 
                 Spacer()
 
@@ -45,7 +52,30 @@ struct DeckCardDetailView: View {
             }
             .padding(.horizontal, 20)
         }
+        .offset(y: dragOffset)
         .opacity(appeared ? 1 : 0)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    if value.translation.height > 0 {
+                        dragOffset = value.translation.height
+                    }
+                }
+                .onEnded { value in
+                    if value.translation.height > 100 {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            dragOffset = UIScreen.main.bounds.height
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                            onClose()
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
         .onAppear {
             withAnimation(.easeOut(duration: 0.25)) {
                 appeared = true

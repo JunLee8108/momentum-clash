@@ -310,6 +310,7 @@ struct DeckBuilderView: View {
                 }
                 .disabled(!canAdd)
             }
+            .padding(.bottom, 8)
         }
     }
 
