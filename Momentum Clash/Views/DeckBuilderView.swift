@@ -264,9 +264,9 @@ struct DeckBuilderView: View {
         }()
         let canAdd = !maxed && !typeMaxed && !highCostMaxed && deckVM.deck.count < DeckConstants.deckSize
 
-        return VStack(spacing: 4) {
+        return VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
-                CardView(card: card, isSelected: count > 0, onTap: onTap)
+                CardView(card: card, isSelected: count > 0, flatBottom: true, onTap: onTap)
                     .opacity(canAdd ? 1.0 : 0.5)
 
                 // 장수 뱃지
@@ -281,7 +281,7 @@ struct DeckBuilderView: View {
                     .offset(x: 4, y: -4)
             }
 
-            // 인라인 수량 조절 컨트롤
+            // 인라인 수량 조절 컨트롤 (카드와 일체형)
             HStack(spacing: 0) {
                 // 왼쪽 전체 = 마이너스
                 Button {
@@ -290,16 +290,16 @@ struct DeckBuilderView: View {
                     Text("-")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(count > 0 ? .white : .gray.opacity(0.4))
-                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .frame(maxWidth: .infinity, minHeight: 26)
                         .background(count > 0 ? Color.red.opacity(0.5) : Color.white.opacity(0.05))
                 }
                 .disabled(count == 0)
 
                 // 가운데 수량
                 Text("\(count)")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .foregroundColor(count > 0 ? .cyan : .gray)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 24, height: 26)
                     .background(Color.white.opacity(0.08))
 
                 // 오른쪽 전체 = 플러스
@@ -312,12 +312,16 @@ struct DeckBuilderView: View {
                     Text("+")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(canAdd ? .white : .gray.opacity(0.4))
-                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .frame(maxWidth: .infinity, minHeight: 26)
                         .background(canAdd ? Color.green.opacity(0.5) : Color.white.opacity(0.05))
                 }
                 .disabled(!canAdd)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .frame(width: 100)
+            .clipShape(UnevenRoundedRectangle(
+                topLeadingRadius: 0, bottomLeadingRadius: 6,
+                bottomTrailingRadius: 6, topTrailingRadius: 0
+            ))
         }
     }
 
