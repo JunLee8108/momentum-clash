@@ -282,36 +282,42 @@ struct DeckBuilderView: View {
             }
 
             // 인라인 수량 조절 컨트롤
-            HStack(spacing: 6) {
-                // 마이너스 버튼
+            HStack(spacing: 0) {
+                // 왼쪽 전체 = 마이너스
                 Button {
                     deckVM.removeCard(name: card.name)
                 } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(count > 0 ? .red : .gray.opacity(0.3))
+                    Text("-")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(count > 0 ? .white : .gray.opacity(0.4))
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .background(count > 0 ? Color.red.opacity(0.5) : Color.white.opacity(0.05))
                 }
                 .disabled(count == 0)
 
-                // 현재 수량
+                // 가운데 수량
                 Text("\(count)")
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                     .foregroundColor(count > 0 ? .cyan : .gray)
-                    .frame(minWidth: 16)
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.08))
 
-                // 플러스 버튼
+                // 오른쪽 전체 = 플러스
                 Button {
                     switch card {
                     case .monster(let m): deckVM.addMonster(m)
                     case .spell(let s): deckVM.addSpell(s)
                     }
                 } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(canAdd ? .green : .gray.opacity(0.3))
+                    Text("+")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(canAdd ? .white : .gray.opacity(0.4))
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                        .background(canAdd ? Color.green.opacity(0.5) : Color.white.opacity(0.05))
                 }
                 .disabled(!canAdd)
             }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
     }
 
