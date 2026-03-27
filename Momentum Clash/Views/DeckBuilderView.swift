@@ -260,21 +260,56 @@ struct DeckBuilderView: View {
             }
             return false
         }()
+        let canAdd = !maxed && !typeMaxed && !highCostMaxed && deckVM.deck.count < DeckConstants.deckSize
 
-        return ZStack(alignment: .topTrailing) {
-            CardView(card: card, isSelected: count > 0, onTap: onTap)
-                .opacity(maxed || typeMaxed || highCostMaxed ? 0.5 : 1.0)
+        return VStack(spacing: 4) {
+            ZStack(alignment: .topTrailing) {
+                CardView(card: card, isSelected: count > 0, onTap: onTap)
+                    .opacity(canAdd ? 1.0 : 0.5)
 
-            // 장수 뱃지
-            Text("\(count)/\(effectiveLimit)")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(
-                    Capsule().fill(maxed ? Color.red.opacity(0.8) : Color.blue.opacity(0.8))
-                )
-                .offset(x: 4, y: -4)
+                // 장수 뱃지
+                Text("\(count)/\(effectiveLimit)")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(maxed ? Color.red.opacity(0.8) : Color.blue.opacity(0.8))
+                    )
+                    .offset(x: 4, y: -4)
+            }
+
+            // 인라인 수량 조절 컨트롤
+            HStack(spacing: 6) {
+                // 마이너스 버튼
+                Button {
+                    deckVM.removeCard(name: card.name)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(count > 0 ? .red : .gray.opacity(0.3))
+                }
+                .disabled(count == 0)
+
+                // 현재 수량
+                Text("\(count)")
+                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .foregroundColor(count > 0 ? .cyan : .gray)
+                    .frame(minWidth: 16)
+
+                // 플러스 버튼
+                Button {
+                    switch card {
+                    case .monster(let m): deckVM.addMonster(m)
+                    case .spell(let s): deckVM.addSpell(s)
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(canAdd ? .green : .gray.opacity(0.3))
+                }
+                .disabled(!canAdd)
+            }
         }
     }
 
