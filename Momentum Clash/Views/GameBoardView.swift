@@ -27,6 +27,18 @@ struct HandCenterPreferenceKey: PreferenceKey {
     }
 }
 
+struct HandCardFramePreference: Equatable {
+    let index: Int
+    let frame: CGRect
+}
+
+struct HandCardFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [HandCardFramePreference] = []
+    static func reduce(value: inout [HandCardFramePreference], nextValue: () -> [HandCardFramePreference]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
     var viewModel: GameViewModel
@@ -331,6 +343,13 @@ struct GameBoardView: View {
                 }
             }
         }
+        .onPreferenceChange(HandCardFramePreferenceKey.self) { prefs in
+            var frames: [Int: CGRect] = [:]
+            for pref in prefs {
+                frames[pref.index] = pref.frame
+            }
+            viewModel.handCardFrames = frames
+        }
     }
 
     // MARK: - 소환 카드 이동 애니메이션 오버레이
@@ -338,11 +357,10 @@ struct GameBoardView: View {
     @ViewBuilder
     private func summonCardOverlay(anim: SummonAnimation) -> some View {
         let slotFrames = anim.isPlayer ? viewModel.playerSlotFrames : viewModel.aiSlotFrames
-        let startCenter = anim.isPlayer ? viewModel.playerHandCenter : viewModel.aiHandCenter
         let targetFrame = slotFrames[anim.targetSlotIndex] ?? .zero
 
         let targetCenter = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
-        let currentPos = anim.animating ? targetCenter : startCenter
+        let currentPos = anim.animating ? targetCenter : anim.startPosition
 
         // 카드 이미지 (실제 카드 이미지 사용)
         let imageName = anim.card.imageName
