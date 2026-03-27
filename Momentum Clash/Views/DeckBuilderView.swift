@@ -212,7 +212,7 @@ struct DeckBuilderView: View {
         ScrollView {
             LazyVGrid(columns: [
                 GridItem(.adaptive(minimum: 100), spacing: 8)
-            ], spacing: 8) {
+            ], spacing: 16) {
                 if deckVM.selectedCardType == .monster {
                     ForEach(deckVM.filteredMonsters, id: \.name) { monster in
                         cardPoolItem(
@@ -310,7 +310,6 @@ struct DeckBuilderView: View {
                 }
                 .disabled(!canAdd)
             }
-            .padding(.bottom, 8)
         }
     }
 

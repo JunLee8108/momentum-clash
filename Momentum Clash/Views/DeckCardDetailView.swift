@@ -13,46 +13,53 @@ struct DeckCardDetailView: View {
 
     var body: some View {
         ZStack {
-            // 배경 이미지
-            GeometryReader { geo in
-                cardBackground(size: geo.size)
+            // 스와이프 시 뒤에 보이는 배경 (검정 → 투명)
+            Color.black
+                .opacity(max(0, 1 - dragOffset / 400))
+                .ignoresSafeArea()
+
+            ZStack {
+                // 배경 이미지
+                GeometryReader { geo in
+                    cardBackground(size: geo.size)
+                }
+                .ignoresSafeArea()
+
+                // 그라데이션 오버레이
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.3),
+                        Color.clear,
+                        Color.black.opacity(0.7)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                // 콘텐츠
+                VStack(spacing: 0) {
+                    // 스와이프 힌트 바
+                    Capsule()
+                        .fill(Color.white.opacity(0.4))
+                        .frame(width: 40, height: 4)
+                        .padding(.top, 8)
+
+                    topBadges
+                        .padding(.top, 8)
+
+                    Spacer()
+
+                    infoPanel
+
+                    actionButtons
+                        .padding(.top, 12)
+                        .padding(.bottom, 16)
+                }
+                .padding(.horizontal, 20)
             }
-            .ignoresSafeArea()
-
-            // 그라데이션 오버레이
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.3),
-                    Color.clear,
-                    Color.black.opacity(0.7)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            // 콘텐츠
-            VStack(spacing: 0) {
-                // 스와이프 힌트 바
-                Capsule()
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 8)
-
-                topBadges
-                    .padding(.top, 8)
-
-                Spacer()
-
-                infoPanel
-
-                actionButtons
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
-            }
-            .padding(.horizontal, 20)
+            .offset(y: dragOffset)
         }
-        .offset(y: dragOffset)
         .opacity(appeared ? 1 : 0)
         .gesture(
             DragGesture()
@@ -64,7 +71,7 @@ struct DeckCardDetailView: View {
                 .onEnded { value in
                     if value.translation.height > 100 {
                         withAnimation(.easeOut(duration: 0.2)) {
-                            dragOffset = UIScreen.main.bounds.height
+                            dragOffset = 1000
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                             onClose()
