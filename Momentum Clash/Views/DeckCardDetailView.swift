@@ -15,7 +15,7 @@ struct DeckCardDetailView: View {
         ZStack {
             // 스와이프 시 뒤에 보이는 배경 (검정 → 투명)
             Color.black
-                .opacity(max(0, 1 - dragOffset / 400))
+                .opacity(Double(max(0, 1.0 - dragOffset / 400)))
                 .ignoresSafeArea()
 
             ZStack {
