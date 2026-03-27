@@ -68,85 +68,261 @@ private func makeSphereNode(
     return node
 }
 
-// MARK: - 🔥 용암 분출 (화)
+// MARK: - 🔥 지옥 기사 — 지옥문 강림 시네마틱
 
 private func buildLavaEruptionScene() -> SCNScene {
     let scene = SCNScene()
 
-    // 카메라
+    // ── 카메라 (HDR 블룸) ──
     let cameraNode = SCNNode()
-    cameraNode.camera = SCNCamera()
-    cameraNode.position = SCNVector3(0, 2, 8)
-    cameraNode.look(at: SCNVector3(0, 1, 0))
+    let camera = SCNCamera()
+    camera.wantsHDR = true
+    camera.bloomIntensity = 1.5
+    camera.bloomThreshold = 0.4
+    camera.motionBlurIntensity = 0.15
+    camera.zNear = 0.1
+    camera.zFar = 100
+    cameraNode.camera = camera
+    cameraNode.position = SCNVector3(0, 0, 12)
+    cameraNode.look(at: SCNVector3(0, 0, 0))
     scene.rootNode.addChildNode(cameraNode)
 
-    // 조명
-    let light = SCNNode()
-    light.light = SCNLight()
-    light.light!.type = .omni
-    light.light!.color = UIColor(red: 1, green: 0.3, blue: 0, alpha: 1)
-    light.light!.intensity = 2000
-    light.position = SCNVector3(0, 3, 2)
-    scene.rootNode.addChildNode(light)
+    // ── Phase 0: 완전 암흑 시작 ──
+    let ambient = SCNNode()
+    ambient.light = SCNLight()
+    ambient.light!.type = .ambient
+    ambient.light!.color = UIColor(white: 0.02, alpha: 1)
+    ambient.light!.intensity = 50
+    scene.rootNode.addChildNode(ambient)
 
-    // 용암 구체 (중앙)
-    let core = makeSphereNode(
-        radius: 0.8,
-        color: UIColor(red: 1, green: 0.2, blue: 0, alpha: 1),
-        emission: UIColor(red: 1, green: 0.5, blue: 0, alpha: 1),
-        transparency: 0.7
-    )
-    core.position = SCNVector3(0, 0, 0)
-    scene.rootNode.addChildNode(core)
+    // ── 바닥 균열 (Phase 1: 0~0.5s) ──
+    // 바닥판
+    let floor = SCNFloor()
+    let floorMat = SCNMaterial()
+    floorMat.diffuse.contents = UIColor(red: 0.08, green: 0.04, blue: 0.02, alpha: 1)
+    floorMat.emission.contents = UIColor.black
+    floor.materials = [floorMat]
+    let floorNode = SCNNode(geometry: floor)
+    floorNode.position = SCNVector3(0, -3, 0)
+    scene.rootNode.addChildNode(floorNode)
 
-    // 구체 맥동
-    let pulse = SCNAction.sequence([
-        SCNAction.scale(to: 1.3, duration: 0.4),
-        SCNAction.scale(to: 0.9, duration: 0.3),
-        SCNAction.scale(to: 1.1, duration: 0.3)
-    ])
-    core.runAction(SCNAction.repeatForever(pulse))
-
-    // 화염 기둥 파티클 3개
-    for xPos in [-1.5, 0.0, 1.5] as [Float] {
-        let ps = makeParticleSystem(
-            birthRate: 150, lifetime: 1.2, velocity: 5, size: 0.15,
-            color: UIColor(red: 1, green: 0.9, blue: 0.3, alpha: 1),
-            endColor: UIColor(red: 0.8, green: 0.1, blue: 0, alpha: 0),
-            spread: 15
-        )
-        ps.emittingDirection = SCNVector3(0, 1, 0)
-        ps.isAffectedByGravity = false
-
-        let pillarNode = SCNNode()
-        pillarNode.position = SCNVector3(xPos, -2, 0)
-        pillarNode.addParticleSystem(ps)
-        scene.rootNode.addChildNode(pillarNode)
+    // 균열 빛 (바닥에서 새어나오는 주황빛)
+    let crackLights: [SCNNode] = (-2...2).map { i in
+        let node = SCNNode()
+        node.light = SCNLight()
+        node.light!.type = .omni
+        node.light!.color = UIColor(red: 1, green: 0.3, blue: 0, alpha: 1)
+        node.light!.intensity = 0
+        node.light!.attenuationStartDistance = 0.5
+        node.light!.attenuationEndDistance = 3.0
+        node.position = SCNVector3(Float(i) * 0.8, -2.8, Float.random(in: -0.5...0.5))
+        scene.rootNode.addChildNode(node)
+        return node
     }
 
-    // 용암 스파크 (사방)
-    let sparks = makeParticleSystem(
-        birthRate: 80, lifetime: 0.8, velocity: 8, size: 0.06,
-        color: UIColor(red: 1, green: 0.85, blue: 0.4, alpha: 1),
-        endColor: UIColor(red: 0.5, green: 0.05, blue: 0, alpha: 0),
-        spread: 180
-    )
-    sparks.isAffectedByGravity = true
-    core.addParticleSystem(sparks)
+    // Phase 1: 균열 빛이 서서히 새어나옴 (0~0.5s)
+    for (i, crackLight) in crackLights.enumerated() {
+        let delay = Double(i) * 0.08
+        crackLight.runAction(SCNAction.sequence([
+            SCNAction.wait(duration: delay),
+            SCNAction.customAction(duration: 0.4) { node, t in
+                let progress = t / 0.4
+                node.light?.intensity = CGFloat(progress) * 800
+            }
+        ]))
+    }
 
-    // 용암 안개 (하단)
-    let mist = makeParticleSystem(
-        birthRate: 30, lifetime: 2, velocity: 1, size: 0.8,
-        color: UIColor(red: 1, green: 0.3, blue: 0, alpha: 0.4),
-        endColor: UIColor(red: 0.4, green: 0.05, blue: 0, alpha: 0),
-        spread: 90
+    // 균열에서 나오는 연기
+    let crackSmoke = makeParticleSystem(
+        birthRate: 0, lifetime: 2.0, velocity: 0.8, size: 0.3,
+        color: UIColor(red: 0.4, green: 0.15, blue: 0, alpha: 0.5),
+        endColor: UIColor(red: 0.2, green: 0.05, blue: 0, alpha: 0),
+        spread: 40
     )
-    let mistNode = SCNNode()
-    mistNode.position = SCNVector3(0, -2, 0)
-    mistNode.addParticleSystem(mist)
-    scene.rootNode.addChildNode(mistNode)
+    crackSmoke.emittingDirection = SCNVector3(0, 1, 0)
+    let smokeNode = SCNNode()
+    smokeNode.position = SCNVector3(0, -2.8, 0)
+    smokeNode.addParticleSystem(crackSmoke)
+    scene.rootNode.addChildNode(smokeNode)
 
-    scheduleCleanup(scene: scene)
+    // ── Phase 2: 지옥불 기둥 분출 (0.5~1.0s) ──
+    let pillarPositions: [(Float, Float)] = [(-1.8, -0.3), (-0.6, 0.2), (0.6, -0.1), (1.8, 0.3)]
+
+    for (i, pos) in pillarPositions.enumerated() {
+        // 화염 기둥 파티클
+        let firePillar = makeParticleSystem(
+            birthRate: 0, lifetime: 0.8, velocity: 8, size: 0.12,
+            color: UIColor(red: 1, green: 0.95, blue: 0.6, alpha: 1),
+            endColor: UIColor(red: 0.8, green: 0.1, blue: 0, alpha: 0),
+            spread: 8
+        )
+        firePillar.emittingDirection = SCNVector3(0, 1, 0)
+
+        let pillarNode = SCNNode()
+        pillarNode.position = SCNVector3(pos.0, -2.8, pos.1)
+        pillarNode.addParticleSystem(firePillar)
+        scene.rootNode.addChildNode(pillarNode)
+
+        // 기둥 옆 오렌지 조명
+        let pillarLight = SCNNode()
+        pillarLight.light = SCNLight()
+        pillarLight.light!.type = .omni
+        pillarLight.light!.color = UIColor(red: 1, green: 0.4, blue: 0, alpha: 1)
+        pillarLight.light!.intensity = 0
+        pillarLight.light!.attenuationEndDistance = 5
+        pillarLight.position = SCNVector3(pos.0, 0, pos.1)
+        scene.rootNode.addChildNode(pillarLight)
+
+        // 순차 분출
+        let delay = 0.5 + Double(i) * 0.1
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            firePillar.birthRate = 250
+            pillarLight.runAction(SCNAction.customAction(duration: 0.2) { node, t in
+                node.light?.intensity = CGFloat(t / 0.2) * 2000
+            })
+        }
+    }
+
+    // ── Phase 3: 화염 검 등장 (0.8~1.5s) ──
+    // 검 블레이드 (길고 얇은 박스)
+    let blade = SCNBox(width: 0.12, height: 4.0, length: 0.03, chamferRadius: 0.01)
+    let bladeMat = SCNMaterial()
+    bladeMat.diffuse.contents = UIColor(red: 1, green: 0.7, blue: 0.2, alpha: 1)
+    bladeMat.emission.contents = UIColor(red: 1, green: 0.5, blue: 0, alpha: 1)
+    bladeMat.transparency = 0.0
+    bladeMat.isDoubleSided = true
+    blade.materials = [bladeMat]
+    let bladeNode = SCNNode(geometry: blade)
+    bladeNode.position = SCNVector3(0, -5, 1)
+    scene.rootNode.addChildNode(bladeNode)
+
+    // 검 손잡이 (가드)
+    let guard1 = SCNBox(width: 0.6, height: 0.08, length: 0.06, chamferRadius: 0.01)
+    let guardMat = SCNMaterial()
+    guardMat.diffuse.contents = UIColor(red: 0.6, green: 0.3, blue: 0, alpha: 1)
+    guardMat.emission.contents = UIColor(red: 0.8, green: 0.4, blue: 0, alpha: 0.5)
+    guard1.materials = [guardMat]
+    let guardNode = SCNNode(geometry: guard1)
+    guardNode.position = SCNVector3(0, -1.8, 0)
+    bladeNode.addChildNode(guardNode)
+
+    // 검 끝 (피라미드)
+    let tip = SCNPyramid(width: 0.12, height: 0.4, length: 0.03)
+    let tipMat = SCNMaterial()
+    tipMat.diffuse.contents = UIColor(red: 1, green: 0.85, blue: 0.4, alpha: 1)
+    tipMat.emission.contents = UIColor(red: 1, green: 0.7, blue: 0.2, alpha: 1)
+    tip.materials = [tipMat]
+    let tipNode = SCNNode(geometry: tip)
+    tipNode.position = SCNVector3(0, 2.2, 0)
+    bladeNode.addChildNode(tipNode)
+
+    // 검에서 나오는 불꽃
+    let swordFire = makeParticleSystem(
+        birthRate: 0, lifetime: 0.6, velocity: 2, size: 0.08,
+        color: UIColor(red: 1, green: 0.8, blue: 0.3, alpha: 1),
+        endColor: UIColor(red: 0.8, green: 0.15, blue: 0, alpha: 0),
+        spread: 40
+    )
+    swordFire.emittingDirection = SCNVector3(0, 1, 0)
+    bladeNode.addParticleSystem(swordFire)
+
+    // 검 중앙 강렬한 조명
+    let swordLight = SCNNode()
+    swordLight.light = SCNLight()
+    swordLight.light!.type = .omni
+    swordLight.light!.color = UIColor(red: 1, green: 0.6, blue: 0.1, alpha: 1)
+    swordLight.light!.intensity = 0
+    swordLight.light!.attenuationEndDistance = 10
+    swordLight.position = SCNVector3(0, 0, 2)
+    scene.rootNode.addChildNode(swordLight)
+
+    // Phase 3 시퀀스: 검이 바닥에서 천천히 솟아오름
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        // 검 머티리얼 페이드인
+        SCNTransaction.begin()
+        SCNTransaction.animationDuration = 0.3
+        bladeMat.transparency = 1.0
+        SCNTransaction.commit()
+
+        // 검 상승 (바닥에서 중앙으로)
+        bladeNode.runAction(SCNAction.move(to: SCNVector3(0, 0.5, 1), duration: 0.6))
+
+        // 검 불꽃 활성화
+        swordFire.birthRate = 120
+
+        // 검 조명 점등
+        swordLight.runAction(SCNAction.customAction(duration: 0.4) { node, t in
+            node.light?.intensity = CGFloat(t / 0.4) * 3000
+        })
+
+        // 카메라 줌인
+        cameraNode.runAction(SCNAction.move(to: SCNVector3(0, 0.5, 8), duration: 0.5))
+    }
+
+    // ── Phase 4: 클라이맥스 폭발 (1.3~1.6s) ──
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+        // 화면 전체 백색 플래시
+        swordLight.runAction(SCNAction.sequence([
+            SCNAction.customAction(duration: 0.1) { node, _ in
+                node.light?.intensity = 8000
+                node.light?.color = UIColor.white
+            },
+            SCNAction.customAction(duration: 0.3) { node, t in
+                let progress = t / 0.3
+                node.light?.intensity = 8000 - CGFloat(progress) * 5000
+                let r = 1.0
+                let g = 1.0 - Float(progress) * 0.4
+                let b = 1.0 - Float(progress) * 0.9
+                node.light?.color = UIColor(red: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: 1)
+            }
+        ]))
+
+        // 폭발 파티클 (사방)
+        let explosion = makeParticleSystem(
+            birthRate: 500, lifetime: 0.8, velocity: 12, size: 0.1,
+            color: UIColor(red: 1, green: 0.9, blue: 0.5, alpha: 1),
+            endColor: UIColor(red: 0.6, green: 0.1, blue: 0, alpha: 0),
+            spread: 180
+        )
+        explosion.isAffectedByGravity = true
+        explosion.loops = false
+        explosion.emissionDuration = 0.3
+        bladeNode.addParticleSystem(explosion)
+
+        // 불씨 잔여물 (천천히 떠오름)
+        let embers = makeParticleSystem(
+            birthRate: 60, lifetime: 2.0, velocity: 1.5, size: 0.04,
+            color: UIColor(red: 1, green: 0.6, blue: 0.1, alpha: 1),
+            endColor: UIColor(red: 0.5, green: 0.1, blue: 0, alpha: 0),
+            spread: 90
+        )
+        embers.emittingDirection = SCNVector3(0, 1, 0)
+        scene.rootNode.addParticleSystem(embers)
+    }
+
+    // ── Phase 5: 페이드아웃 (1.6~2.0s) ──
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+        // 모든 파티클 서서히 정지
+        scene.rootNode.enumerateChildNodes { node, _ in
+            for ps in node.particleSystems ?? [] {
+                ps.birthRate = 0
+            }
+        }
+        for ps in scene.rootNode.particleSystems ?? [] {
+            ps.birthRate = 0
+        }
+
+        // 조명 감쇠
+        swordLight.runAction(SCNAction.customAction(duration: 0.4) { node, t in
+            node.light?.intensity = 3000 - CGFloat(t / 0.4) * 3000
+        })
+        for cl in crackLights {
+            cl.runAction(SCNAction.customAction(duration: 0.4) { node, t in
+                node.light?.intensity = max(0, 800 - CGFloat(t / 0.4) * 800)
+            })
+        }
+    }
+
     return scene
 }
 
@@ -768,12 +944,31 @@ struct SummonFullscreenOverlay: View {
     }
 
     private func startShake() {
-        let shakeCount = 8
-        let interval = 0.06
-        for i in 0..<shakeCount {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * interval) {
-                withAnimation(.linear(duration: interval)) {
-                    shakeOffset = CGFloat.random(in: -4...4)
+        // Phase 1: 미세 진동 (0~0.5s, 바닥 균열)
+        for i in 0..<6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.08) {
+                withAnimation(.linear(duration: 0.08)) {
+                    shakeOffset = CGFloat.random(in: -2...2)
+                }
+            }
+        }
+        // Phase 2: 강한 충격 (0.5~0.8s, 기둥 분출)
+        for i in 0..<6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5 + Double(i) * 0.05) {
+                withAnimation(.linear(duration: 0.05)) {
+                    shakeOffset = CGFloat.random(in: -6...6)
+                }
+            }
+        }
+        // Phase 3: 폭발 충격 (1.3s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
+            let explosionShakeCount = 8
+            let interval = 0.04
+            for i in 0..<explosionShakeCount {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * interval) {
+                    withAnimation(.linear(duration: interval)) {
+                        shakeOffset = CGFloat.random(in: -8...8)
+                    }
                 }
             }
         }
