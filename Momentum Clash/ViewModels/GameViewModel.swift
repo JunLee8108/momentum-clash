@@ -95,6 +95,7 @@ struct SummonAnimation: Equatable {
     let card: AnyCard
     let targetSlotIndex: Int
     let isPlayer: Bool
+    let startPosition: CGPoint   // 출발 좌표 (해당 카드의 실제 위치)
     var animating: Bool = false   // true면 도착 위치로 이동 중
 }
 
@@ -117,6 +118,7 @@ class GameViewModel {
     var aiSlotFrames: [Int: CGRect] = [:]
     var playerHandCenter: CGPoint = .zero
     var aiHandCenter: CGPoint = .zero
+    var handCardFrames: [Int: CGRect] = [:]
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1
@@ -328,11 +330,15 @@ class GameViewModel {
             return
         }
 
+        // 카드 좌표 캡처 (패에서 제거 전)
+        let cardFrame = handCardFrames[handIndex]
+        let startPos = cardFrame.map { CGPoint(x: $0.midX, y: $0.midY) } ?? playerHandCenter
+
         // 패에서 제거
         gameState.currentPlayer.hand.remove(at: handIndex)
 
         // 소환 애니메이션 시작
-        summonAnimation = SummonAnimation(card: card, targetSlotIndex: slotIndex, isPlayer: true)
+        summonAnimation = SummonAnimation(card: card, targetSlotIndex: slotIndex, isPlayer: true, startPosition: startPos)
         uiState = .mainPhase
 
         // 짧은 딜레이 후 애니메이션 트리거 + 실제 배치
@@ -923,7 +929,7 @@ class GameViewModel {
             guard let slotIdx = gameState.players[idx].field.emptySlotIndices.first else { continue }
 
             // 소환 카드 이동 애니메이션
-            summonAnimation = SummonAnimation(card: plan.card, targetSlotIndex: slotIdx, isPlayer: false)
+            summonAnimation = SummonAnimation(card: plan.card, targetSlotIndex: slotIdx, isPlayer: false, startPosition: aiHandCenter)
             try? await Task.sleep(for: .milliseconds(50))
             withAnimation(.easeInOut(duration: 0.35)) {
                 summonAnimation?.animating = true

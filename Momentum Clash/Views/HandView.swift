@@ -20,6 +20,17 @@ struct HandView: View {
                             onCardTap?(index)
                         }
                     }
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: HandCardFramePreferenceKey.self,
+                                value: [HandCardFramePreference(
+                                    index: index,
+                                    frame: geo.frame(in: .named("gameBoard"))
+                                )]
+                            )
+                        }
+                    )
                 }
             }
             .padding(.horizontal, 8)
