@@ -8,9 +8,6 @@ struct DeckCardDetailView: View {
     let onClose: () -> Void
     let onAdd: () -> Void
 
-    @State private var appeared = false
-    @State private var dragProgress: CGFloat = 0 // 0 = 안 드래그, 1 = 완전 드래그
-
     var body: some View {
         ZStack {
             // 배경 이미지
@@ -33,14 +30,8 @@ struct DeckCardDetailView: View {
 
             // 콘텐츠
             VStack(spacing: 0) {
-                // 스와이프 힌트 바
-                Capsule()
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: 40, height: 4)
-                    .padding(.top, 8)
-
                 topBadges
-                    .padding(.top, 8)
+                    .padding(.top, 12)
 
                 Spacer()
 
@@ -51,31 +42,6 @@ struct DeckCardDetailView: View {
                     .padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
-        }
-        .scaleEffect(1.0 - dragProgress * 0.15)
-        .opacity(Double(1.0 - dragProgress * 0.5))
-        .opacity(appeared ? 1 : 0)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    if value.translation.height > 0 {
-                        dragProgress = min(1, value.translation.height / 200)
-                    }
-                }
-                .onEnded { value in
-                    if value.translation.height > 100 {
-                        onClose()
-                    } else {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            dragProgress = 0
-                        }
-                    }
-                }
-        )
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.25)) {
-                appeared = true
-            }
         }
     }
 

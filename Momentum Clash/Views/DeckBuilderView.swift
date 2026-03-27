@@ -58,7 +58,7 @@ struct DeckBuilderView: View {
             .presentationDetents([.medium, .large])
             .presentationBackground(Color(red: 0.06, green: 0.06, blue: 0.14))
         }
-        .fullScreenCover(item: $selectedCard) { card in
+        .sheet(item: $selectedCard) { card in
             DeckCardDetailView(
                 card: card,
                 currentCount: deckVM.countInDeck(name: card.name),
@@ -72,6 +72,8 @@ struct DeckBuilderView: View {
                 }
                 selectedCard = nil
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
     }
 
