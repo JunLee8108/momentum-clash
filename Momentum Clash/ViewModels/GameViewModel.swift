@@ -90,6 +90,14 @@ struct GameLog: Identifiable {
     let message: String
 }
 
+/// 소환 카드 이동 애니메이션 데이터
+struct SummonAnimation: Equatable {
+    let card: AnyCard
+    let targetSlotIndex: Int
+    let isPlayer: Bool
+    var animating: Bool = false   // true면 도착 위치로 이동 중
+}
+
 /// 게임 뷰모델 (MVVM 컨트롤러)
 @Observable
 @MainActor
@@ -102,6 +110,13 @@ class GameViewModel {
     var showingFieldCardDetail: AnyCard? = nil
     var battleDisplay: BattleDisplay? = nil
     var combatPreview: CombatPreviewData? = nil
+    var summonAnimation: SummonAnimation? = nil
+
+    /// 필드 슬롯 좌표 저장 (View에서 업데이트)
+    var playerSlotFrames: [Int: CGRect] = [:]
+    var aiSlotFrames: [Int: CGRect] = [:]
+    var playerHandCenter: CGPoint = .zero
+    var aiHandCenter: CGPoint = .zero
 
     let playerIndex = 0  // 플레이어는 항상 인덱스 0
     let aiIndex = 1      // AI는 항상 인덱스 1
@@ -316,26 +331,37 @@ class GameViewModel {
         // 패에서 제거
         gameState.currentPlayer.hand.remove(at: handIndex)
 
-        if case .monster(let monsterCard) = card {
-            let success = gameState.currentPlayer.field.summonMonster(monsterCard, at: slotIndex)
-            if success {
-                gameState.currentPlayer.summonedThisTurn.insert(slotIndex)
-                addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
+        // 소환 애니메이션 시작
+        summonAnimation = SummonAnimation(card: card, targetSlotIndex: slotIndex, isPlayer: true)
+        uiState = .mainPhase
 
-                // 소환 효과 (데이터 기반)
-                handleSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
+        // 짧은 딜레이 후 애니메이션 트리거 + 실제 배치
+        Task {
+            // 시작 위치에 렌더 → 바로 애니메이션 트리거
+            try? await Task.sleep(for: .milliseconds(50))
+            withAnimation(.easeInOut(duration: 0.35)) {
+                summonAnimation?.animating = true
             }
-        } else if case .spell(let spellCard) = card {
-            let success = gameState.currentPlayer.field.placeSpell(spellCard, at: slotIndex)
-            if success {
-                addLog("\(spellCard.name) 배치! (슬롯 \(slotIndex + 1))")
-            }
-        }
 
-        if case .selectingEffectTarget = uiState {
-            // 타겟 선택 대기 중이면 상태 유지
-        } else {
-            uiState = .mainPhase
+            // 애니메이션 완료 대기
+            try? await Task.sleep(for: .milliseconds(350))
+
+            // 실제 필드 배치
+            summonAnimation = nil
+
+            if case .monster(let monsterCard) = card {
+                let success = gameState.currentPlayer.field.summonMonster(monsterCard, at: slotIndex)
+                if success {
+                    gameState.currentPlayer.summonedThisTurn.insert(slotIndex)
+                    addLog("\(monsterCard.name) 소환! (슬롯 \(slotIndex + 1)) [기력 -\(energySpent)]")
+                    handleSummonEffect(card: monsterCard, slotIndex: slotIndex, playerIndex: gameState.currentPlayerIndex)
+                }
+            } else if case .spell(let spellCard) = card {
+                let success = gameState.currentPlayer.field.placeSpell(spellCard, at: slotIndex)
+                if success {
+                    addLog("\(spellCard.name) 배치! (슬롯 \(slotIndex + 1))")
+                }
+            }
         }
     }
 
@@ -896,7 +922,16 @@ class GameViewModel {
             // 빈 슬롯 찾기
             guard let slotIdx = gameState.players[idx].field.emptySlotIndices.first else { continue }
 
-            // 소환 연출
+            // 소환 카드 이동 애니메이션
+            summonAnimation = SummonAnimation(card: plan.card, targetSlotIndex: slotIdx, isPlayer: false)
+            try? await Task.sleep(for: .milliseconds(50))
+            withAnimation(.easeInOut(duration: 0.35)) {
+                summonAnimation?.animating = true
+            }
+            try? await Task.sleep(for: .milliseconds(350))
+            summonAnimation = nil
+
+            // 소환 배너
             withAnimation(.easeInOut(duration: 0.3)) {
                 battleDisplay = BattleDisplay(
                     message: "\(plan.card.name) 소환!",

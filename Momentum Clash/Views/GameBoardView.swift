@@ -1,5 +1,32 @@
 import SwiftUI
 
+// MARK: - 필드 슬롯 좌표 수집용 PreferenceKey
+
+struct SlotFramePreference: Equatable {
+    let index: Int
+    let isOpponent: Bool
+    let frame: CGRect
+}
+
+struct SlotFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [SlotFramePreference] = []
+    static func reduce(value: inout [SlotFramePreference], nextValue: () -> [SlotFramePreference]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+struct HandCenterPreference: Equatable {
+    let isPlayer: Bool
+    let center: CGPoint
+}
+
+struct HandCenterPreferenceKey: PreferenceKey {
+    static var defaultValue: [HandCenterPreference] = []
+    static func reduce(value: inout [HandCenterPreference], nextValue: () -> [HandCenterPreference]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
     var viewModel: GameViewModel
@@ -20,6 +47,20 @@ struct GameBoardView: View {
                 PlayerInfoView(
                     player: viewModel.aiPlayer,
                     isCurrentTurn: !viewModel.isPlayerTurn
+                )
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: HandCenterPreferenceKey.self,
+                            value: [HandCenterPreference(
+                                isPlayer: false,
+                                center: CGPoint(
+                                    x: geo.frame(in: .named("gameBoard")).midX,
+                                    y: geo.frame(in: .named("gameBoard")).midY
+                                )
+                            )]
+                        )
+                    }
                 )
 
                 LPBarView(current: viewModel.aiPlayer.lp, max: TurnSystem.startingLP)
@@ -72,6 +113,20 @@ struct GameBoardView: View {
                         viewModel.selectCardFromHand(index)
                     }
                 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: HandCenterPreferenceKey.self,
+                            value: [HandCenterPreference(
+                                isPlayer: true,
+                                center: CGPoint(
+                                    x: geo.frame(in: .named("gameBoard")).midX,
+                                    y: geo.frame(in: .named("gameBoard")).midY
+                                )
+                            )]
+                        )
+                    }
+                )
 
                 // 액션 버튼
                 actionButtons
@@ -250,7 +305,68 @@ struct GameBoardView: View {
                 )
                 .transition(.opacity)
             }
+
+            // 오버레이: 소환 카드 이동 애니메이션
+            if let anim = viewModel.summonAnimation {
+                summonCardOverlay(anim: anim)
+                    .allowsHitTesting(false)
+            }
         }
+        .coordinateSpace(name: "gameBoard")
+        .onPreferenceChange(SlotFramePreferenceKey.self) { prefs in
+            for pref in prefs {
+                if pref.isOpponent {
+                    viewModel.aiSlotFrames[pref.index] = pref.frame
+                } else {
+                    viewModel.playerSlotFrames[pref.index] = pref.frame
+                }
+            }
+        }
+        .onPreferenceChange(HandCenterPreferenceKey.self) { prefs in
+            for pref in prefs {
+                if pref.isPlayer {
+                    viewModel.playerHandCenter = pref.center
+                } else {
+                    viewModel.aiHandCenter = pref.center
+                }
+            }
+        }
+    }
+
+    // MARK: - 소환 카드 이동 애니메이션 오버레이
+
+    @ViewBuilder
+    private func summonCardOverlay(anim: SummonAnimation) -> some View {
+        let slotFrames = anim.isPlayer ? viewModel.playerSlotFrames : viewModel.aiSlotFrames
+        let startCenter = anim.isPlayer ? viewModel.playerHandCenter : viewModel.aiHandCenter
+        let targetFrame = slotFrames[anim.targetSlotIndex] ?? .zero
+
+        let targetCenter = CGPoint(x: targetFrame.midX, y: targetFrame.midY)
+        let currentPos = anim.animating ? targetCenter : startCenter
+
+        // 카드 이미지 (실제 카드 이미지 사용)
+        let imageName = anim.card.imageName
+        let hasImage = UIImage(named: imageName) != nil
+
+        ZStack {
+            if hasImage {
+                Image(uiImage: UIImage(named: imageName)!)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: anim.animating ? 75 : 70, height: anim.animating ? 90 : 100)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .strokeBorder(Color.yellow, lineWidth: 2)
+                    )
+            } else {
+                CardView(card: anim.card, isSmall: true)
+                    .scaleEffect(anim.animating ? 0.85 : 1.0)
+            }
+        }
+        .shadow(color: .yellow.opacity(0.6), radius: anim.animating ? 15 : 5)
+        .position(currentPos)
+        .opacity(anim.animating ? 0.85 : 1.0)
     }
 
     // MARK: - 지형 배경
@@ -465,6 +581,18 @@ struct GameBoardView: View {
                 ) {
                     handleSlotTap(index: i, isOpponent: isOpponent)
                 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: SlotFramePreferenceKey.self,
+                            value: [SlotFramePreference(
+                                index: i,
+                                isOpponent: isOpponent,
+                                frame: geo.frame(in: .named("gameBoard"))
+                            )]
+                        )
+                    }
+                )
                 .animation(.easeInOut(duration: 0.3), value: battleHighlight != nil)
             }
         }
