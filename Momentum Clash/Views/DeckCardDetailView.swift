@@ -9,76 +9,65 @@ struct DeckCardDetailView: View {
     let onAdd: () -> Void
 
     @State private var appeared = false
-    @State private var dragOffset: CGFloat = 0
+    @State private var dragProgress: CGFloat = 0 // 0 = 안 드래그, 1 = 완전 드래그
 
     var body: some View {
         ZStack {
-            // 스와이프 시 뒤에 보이는 배경 (검정 → 투명)
-            Color.black
-                .opacity(Double(max(0, 1.0 - dragOffset / 400)))
-                .ignoresSafeArea()
-
-            ZStack {
-                // 배경 이미지
-                GeometryReader { geo in
-                    cardBackground(size: geo.size)
-                }
-                .ignoresSafeArea()
-
-                // 그라데이션 오버레이
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.3),
-                        Color.clear,
-                        Color.black.opacity(0.7)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                // 콘텐츠
-                VStack(spacing: 0) {
-                    // 스와이프 힌트 바
-                    Capsule()
-                        .fill(Color.white.opacity(0.4))
-                        .frame(width: 40, height: 4)
-                        .padding(.top, 8)
-
-                    topBadges
-                        .padding(.top, 8)
-
-                    Spacer()
-
-                    infoPanel
-
-                    actionButtons
-                        .padding(.top, 12)
-                        .padding(.bottom, 16)
-                }
-                .padding(.horizontal, 20)
+            // 배경 이미지
+            GeometryReader { geo in
+                cardBackground(size: geo.size)
             }
-            .offset(y: dragOffset)
+            .ignoresSafeArea()
+
+            // 그라데이션 오버레이
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.black.opacity(0.7)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            // 콘텐츠
+            VStack(spacing: 0) {
+                // 스와이프 힌트 바
+                Capsule()
+                    .fill(Color.white.opacity(0.4))
+                    .frame(width: 40, height: 4)
+                    .padding(.top, 8)
+
+                topBadges
+                    .padding(.top, 8)
+
+                Spacer()
+
+                infoPanel
+
+                actionButtons
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
+            }
+            .padding(.horizontal, 20)
         }
+        .scaleEffect(1.0 - dragProgress * 0.15)
+        .opacity(Double(1.0 - dragProgress * 0.5))
         .opacity(appeared ? 1 : 0)
         .gesture(
             DragGesture()
                 .onChanged { value in
                     if value.translation.height > 0 {
-                        dragOffset = value.translation.height
+                        dragProgress = min(1, value.translation.height / 200)
                     }
                 }
                 .onEnded { value in
                     if value.translation.height > 100 {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            dragOffset = 1000
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                            onClose()
-                        }
+                        onClose()
                     } else {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                            dragOffset = 0
+                            dragProgress = 0
                         }
                     }
                 }
