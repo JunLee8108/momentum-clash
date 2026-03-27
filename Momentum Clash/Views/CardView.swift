@@ -108,7 +108,7 @@ struct CardView: View {
         )
         .overlay(
             cardShape
-                .stroke(isSelected ? Color.yellow : Color.gray.opacity(0.5), lineWidth: isSelected ? 3 : 1)
+                .strokeBorder(isSelected ? Color.yellow : Color.gray.opacity(0.5), lineWidth: isSelected ? 3 : 1)
         )
         .onTapGesture {
             onTap?()
