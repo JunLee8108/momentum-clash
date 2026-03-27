@@ -5,6 +5,7 @@ struct CardView: View {
     let card: AnyCard
     var isSelected: Bool = false
     var isSmall: Bool = false
+    var flatBottom: Bool = false
     var onTap: (() -> Void)? = nil
 
     private var width: CGFloat { isSmall ? 70 : 100 }
@@ -103,15 +104,28 @@ struct CardView: View {
                     attributeColor(card.attribute).opacity(0.15)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(cardShape)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
+            cardShape
                 .stroke(isSelected ? Color.yellow : Color.gray.opacity(0.5), lineWidth: isSelected ? 3 : 1)
         )
         .onTapGesture {
             onTap?()
         }
+    }
+
+    private var cardShape: UnevenRoundedRectangle {
+        if flatBottom {
+            return UnevenRoundedRectangle(
+                topLeadingRadius: 8, bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0, topTrailingRadius: 8
+            )
+        }
+        return UnevenRoundedRectangle(
+            topLeadingRadius: 8, bottomLeadingRadius: 8,
+            bottomTrailingRadius: 8, topTrailingRadius: 8
+        )
     }
 }
 
