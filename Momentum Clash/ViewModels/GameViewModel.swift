@@ -90,6 +90,19 @@ struct GameLog: Identifiable {
     let message: String
 }
 
+/// 핸드 카드 상세보기 데이터 (sheet용)
+struct HandCardDetail: Identifiable {
+    let id = UUID()
+    let card: AnyCard
+    let handIndex: Int
+}
+
+/// 필드 카드 상세보기 데이터 (sheet용)
+struct FieldCardDetail: Identifiable {
+    let id = UUID()
+    let card: AnyCard
+}
+
 /// 소환 카드 이동 애니메이션 데이터
 struct SummonAnimation: Equatable {
     let card: AnyCard
@@ -107,8 +120,8 @@ class GameViewModel {
     var uiState: GameUIState = .notStarted
     var logs: [GameLog] = []
     var selectedHandIndex: Int? = nil
-    var showingCardDetail: (card: AnyCard, handIndex: Int)? = nil
-    var showingFieldCardDetail: AnyCard? = nil
+    var showingCardDetail: HandCardDetail? = nil
+    var showingFieldCardDetail: FieldCardDetail? = nil
     var battleDisplay: BattleDisplay? = nil
     var combatPreview: CombatPreviewData? = nil
     var summonAnimation: SummonAnimation? = nil
@@ -264,7 +277,7 @@ class GameViewModel {
 
         let card = player.hand[index]
         // 카드 상세보기 표시
-        showingCardDetail = (card: card, handIndex: index)
+        showingCardDetail = HandCardDetail(card: card, handIndex: index)
     }
 
     /// 상세보기에서 "배치하기/사용하기" 눌렀을 때

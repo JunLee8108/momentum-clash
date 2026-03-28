@@ -1,24 +1,21 @@
 import SwiftUI
 
-/// 카드 상세 정보 풀스크린 뷰
+/// 카드 상세 정보 뷰 (sheet용)
 struct CardDetailView: View {
     let card: AnyCard
     let handIndex: Int
     let canUse: Bool
-    let onClose: () -> Void
     let onUse: () -> Void
-
-    @State private var appeared = false
 
     var body: some View {
         ZStack {
-            // 배경 이미지 — safe area 무시하여 전체 화면 채움
+            // 배경 이미지
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
             .ignoresSafeArea()
 
-            // 그라데이션 오버레이 — 역시 전체 화면
+            // 그라데이션 오버레이
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.3),
@@ -30,7 +27,7 @@ struct CardDetailView: View {
             )
             .ignoresSafeArea()
 
-            // 콘텐츠 — safe area 존중
+            // 콘텐츠
             VStack(spacing: 0) {
                 topBadges
                     .padding(.top, 12)
@@ -39,18 +36,14 @@ struct CardDetailView: View {
 
                 infoPanel
 
-                actionButtons
+                actionButton
                     .padding(.top, 12)
                     .padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
         }
-        .opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.25)) {
-                appeared = true
-            }
-        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 
     // MARK: - 배경 이미지
@@ -64,7 +57,6 @@ struct CardDetailView: View {
                 .frame(width: size.width, height: size.height)
                 .clipped()
         } else {
-            // placeholder 배경
             attributeGradient
         }
     }
@@ -284,20 +276,13 @@ struct CardDetailView: View {
 
     // MARK: - 액션 버튼
 
-    private var actionButtons: some View {
-        HStack(spacing: 16) {
-            Button("닫기") {
-                onClose()
-            }
-            .buttonStyle(LiquidGlassButtonStyle(color: .white))
-
-            Button(useButtonLabel) {
-                onUse()
-            }
-            .buttonStyle(LiquidGlassButtonStyle(color: canUse ? useButtonColor : .gray))
-            .disabled(!canUse)
-            .opacity(canUse ? 1.0 : 0.5)
+    private var actionButton: some View {
+        Button(useButtonLabel) {
+            onUse()
         }
+        .buttonStyle(LiquidGlassButtonStyle(color: canUse ? useButtonColor : .gray))
+        .disabled(!canUse)
+        .opacity(canUse ? 1.0 : 0.5)
     }
 
     private var useButtonLabel: String {
@@ -324,16 +309,13 @@ struct CardDetailView: View {
     }
 }
 
-/// 필드 카드 상세보기 (읽기 전용)
+/// 필드 카드 상세보기 (읽기 전용, sheet용)
 struct FieldCardDetailView: View {
     let card: AnyCard
-    let onClose: () -> Void
-
-    @State private var appeared = false
 
     var body: some View {
         ZStack {
-            // 배경 이미지 — safe area 무시하여 전체 화면 채움
+            // 배경 이미지
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
@@ -351,7 +333,7 @@ struct FieldCardDetailView: View {
             )
             .ignoresSafeArea()
 
-            // 콘텐츠 — safe area 존중
+            // 콘텐츠
             VStack(spacing: 0) {
                 HStack {
                     Text(card.attribute.emoji + " " + card.attribute.displayName)
@@ -401,22 +383,12 @@ struct FieldCardDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
                 .liquidGlass(cornerRadius: 16, opacity: 0.5)
-
-                Button("닫기") {
-                    onClose()
-                }
-                .buttonStyle(LiquidGlassButtonStyle(color: .white))
-                .padding(.top, 12)
                 .padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
         }
-        .opacity(appeared ? 1 : 0)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.25)) {
-                appeared = true
-            }
-        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
