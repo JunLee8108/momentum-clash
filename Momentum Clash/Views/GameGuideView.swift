@@ -92,6 +92,7 @@ struct GameGuideView: View {
         .background(Color.black.ignoresSafeArea())
         .presentationDetents([.fraction(0.7)])
         .presentationDragIndicator(.visible)
+        .presentationContentInteraction(.scrolls)
     }
 
     // MARK: - 1. 게임 개요
