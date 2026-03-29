@@ -90,7 +90,7 @@ struct GameGuideView: View {
             .padding(.vertical, 12)
         }
         .background(Color.black.ignoresSafeArea())
-        .presentationDetents([.large])
+        .presentationDetents([.fraction(0.7)])
         .presentationDragIndicator(.visible)
     }
 
