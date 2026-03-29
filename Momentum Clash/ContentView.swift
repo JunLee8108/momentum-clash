@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var deckVM = DeckViewModel()
     @State private var selectedTab = 0
     @State private var isGameActive = false
+    @State private var showGuide = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -67,6 +68,24 @@ struct ContentView: View {
                     .font(.subheadline)
                     .foregroundColor(.gray)
 
+                Button {
+                    showGuide = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 13))
+                        Text("게임 가이드")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+                    )
+                }
+
                 Spacer()
 
                 // 덱 상태 요약
@@ -115,6 +134,9 @@ struct ContentView: View {
                 Spacer()
                     .frame(height: 40)
             }
+        }
+        .sheet(isPresented: $showGuide) {
+            GameGuideView()
         }
     }
 
