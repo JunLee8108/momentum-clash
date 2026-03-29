@@ -58,8 +58,10 @@ struct GameBoardView: View {
                 // 상대 (AI) 정보
                 PlayerInfoView(
                     player: viewModel.aiPlayer,
-                    isCurrentTurn: !viewModel.isPlayerTurn
+                    isCurrentTurn: !viewModel.isPlayerTurn,
+                    isTopPlayer: true
                 )
+                .zIndex(1)
                 .background(
                     GeometryReader { geo in
                         Color.clear.preference(
@@ -106,6 +108,7 @@ struct GameBoardView: View {
                     player: viewModel.player,
                     isCurrentTurn: viewModel.isPlayerTurn
                 )
+                .zIndex(1)
 
                 // 로그
                 GameLogView(logs: viewModel.logs)

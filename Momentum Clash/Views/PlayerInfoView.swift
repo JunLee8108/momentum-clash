@@ -4,77 +4,75 @@ import SwiftUI
 struct PlayerInfoView: View {
     let player: Player
     let isCurrentTurn: Bool
+    var isTopPlayer: Bool = false
 
     @State private var showTooltip = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            HStack(spacing: 12) {
-                // 이름
-                Text(player.name)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(isCurrentTurn ? .yellow : .white)
+        HStack(spacing: 12) {
+            // 이름
+            Text(player.name)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(isCurrentTurn ? .yellow : .white)
 
-                Spacer()
+            Spacer()
 
-                // LP
-                HStack(spacing: 4) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.red)
-                    Text("\(player.lp)")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                        .foregroundColor(lpColor)
-                }
-
-                // 기세
-                HStack(spacing: 4) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.orange)
-                    Text("\(player.momentum)")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                        .foregroundColor(.orange)
-                }
-
-                // 기력
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundColor(.cyan)
-                    Text("\(player.energy)")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                        .foregroundColor(.cyan)
-                }
-
-                // 덱 잔량
-                HStack(spacing: 2) {
-                    Image(systemName: "square.stack.fill")
-                        .font(.system(size: 9))
-                        .foregroundColor(.gray)
-                    Text("\(player.deck.count)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.black.opacity(0.3))
-            )
-            .onTapGesture {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showTooltip.toggle()
-                }
+            // LP
+            HStack(spacing: 4) {
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.red)
+                Text("\(player.lp)")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(lpColor)
             }
 
-            // 툴팁 오버레이
+            // 기세
+            HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.orange)
+                Text("\(player.momentum)")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(.orange)
+            }
+
+            // 기력
+            HStack(spacing: 4) {
+                Image(systemName: "bolt.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(.cyan)
+                Text("\(player.energy)")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundColor(.cyan)
+            }
+
+            // 덱 잔량
+            HStack(spacing: 2) {
+                Image(systemName: "square.stack.fill")
+                    .font(.system(size: 9))
+                    .foregroundColor(.gray)
+                Text("\(player.deck.count)")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color.black.opacity(0.3))
+        )
+        .onTapGesture {
+            withAnimation(.easeOut(duration: 0.2)) {
+                showTooltip.toggle()
+            }
+        }
+        .overlay(alignment: isTopPlayer ? .bottom : .top) {
             if showTooltip {
                 tooltipView
-                    .offset(y: 80)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .top)))
-                    .zIndex(10)
+                    .offset(y: isTopPlayer ? 8 : -8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: isTopPlayer ? .top : .bottom)))
             }
         }
     }
