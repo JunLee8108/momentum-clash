@@ -4,8 +4,12 @@ import SwiftUI
 struct PlayerInfoView: View {
     let player: Player
     let isCurrentTurn: Bool
-    var isTopPlayer: Bool = false
     @Binding var showTooltip: Bool
+
+    /// 자동 계산: 위쪽 공간이 부족하면 아래로 열림
+    @State private var openDownward = true
+
+    private let tooltipHeight: CGFloat = 200
 
     var body: some View {
         HStack(spacing: 12) {
@@ -59,21 +63,37 @@ struct PlayerInfoView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.black.opacity(0.3))
+            GeometryReader { geo in
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.black.opacity(0.3))
+                    .onAppear {
+                        updateDirection(geo: geo)
+                    }
+                    .onChange(of: showTooltip) {
+                        updateDirection(geo: geo)
+                    }
+            }
         )
         .onTapGesture {
             withAnimation(.easeOut(duration: 0.2)) {
                 showTooltip.toggle()
             }
         }
-        .overlay(alignment: isTopPlayer ? .bottom : .top) {
+        .overlay(alignment: openDownward ? .top : .bottom) {
             if showTooltip {
                 tooltipView
-                    .offset(y: isTopPlayer ? 8 : -8)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: isTopPlayer ? .top : .bottom)))
+                    .offset(y: openDownward ? 48 : -48)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: openDownward ? .top : .bottom)))
             }
         }
+    }
+
+    private func updateDirection(geo: GeometryProxy) {
+        let frame = geo.frame(in: .global)
+        let spaceAbove = frame.minY
+        let spaceBelow = UIScreen.main.bounds.height - frame.maxY
+        // 아래 공간이 충분하면 아래로, 아니면 위로
+        openDownward = spaceBelow >= tooltipHeight || spaceBelow > spaceAbove
     }
 
     // MARK: - 툴팁

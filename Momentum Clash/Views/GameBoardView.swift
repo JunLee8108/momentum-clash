@@ -61,7 +61,6 @@ struct GameBoardView: View {
                 PlayerInfoView(
                     player: viewModel.aiPlayer,
                     isCurrentTurn: !viewModel.isPlayerTurn,
-                    isTopPlayer: true,
                     showTooltip: $showAITooltip
                 )
                 .zIndex(1)
