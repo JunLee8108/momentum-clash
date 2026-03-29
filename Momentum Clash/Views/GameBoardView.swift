@@ -46,6 +46,8 @@ struct GameBoardView: View {
     @State private var showTerrainTooltip = false
     @State private var showMomentumSkillPanel = false
     @State private var isPeekingField = false
+    @State private var showPlayerTooltip = false
+    @State private var showAITooltip = false
 
     var body: some View {
         ZStack {
@@ -59,7 +61,8 @@ struct GameBoardView: View {
                 PlayerInfoView(
                     player: viewModel.aiPlayer,
                     isCurrentTurn: !viewModel.isPlayerTurn,
-                    isTopPlayer: true
+                    isTopPlayer: true,
+                    showTooltip: $showAITooltip
                 )
                 .zIndex(1)
                 .background(
@@ -106,7 +109,8 @@ struct GameBoardView: View {
                 // 내 정보
                 PlayerInfoView(
                     player: viewModel.player,
-                    isCurrentTurn: viewModel.isPlayerTurn
+                    isCurrentTurn: viewModel.isPlayerTurn,
+                    showTooltip: $showPlayerTooltip
                 )
                 .zIndex(1)
 
@@ -147,6 +151,19 @@ struct GameBoardView: View {
                 actionButtons
             }
             .padding(.vertical, 8)
+
+            // 오버레이: 툴팁 닫기용 투명 배경
+            if showPlayerTooltip || showAITooltip {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            showPlayerTooltip = false
+                            showAITooltip = false
+                        }
+                    }
+            }
 
             // 오버레이: 드로우 선택
             if case .drawSelection(let c1, let c2) = viewModel.uiState, !isPeekingField {

@@ -5,8 +5,7 @@ struct PlayerInfoView: View {
     let player: Player
     let isCurrentTurn: Bool
     var isTopPlayer: Bool = false
-
-    @State private var showTooltip = false
+    @Binding var showTooltip: Bool
 
     var body: some View {
         HStack(spacing: 12) {
