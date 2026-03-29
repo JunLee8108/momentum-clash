@@ -41,7 +41,7 @@ struct HandCardFramePreferenceKey: PreferenceKey {
 
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
-    var viewModel: GameViewModel
+    @Bindable var viewModel: GameViewModel
     var onGoHome: (() -> Void)? = nil
     @State private var showTerrainTooltip = false
     @State private var showMomentumSkillPanel = false
@@ -120,7 +120,7 @@ struct GameBoardView: View {
                     if isPeekingField {
                         // 전장 확인 중: 읽기 전용 상세보기
                         let card = viewModel.player.hand[index]
-                        viewModel.showingFieldCardDetail = card
+                        viewModel.showingFieldCardDetail = FieldCardDetail(card: card)
                     } else {
                         viewModel.selectCardFromHand(index)
                     }
@@ -297,26 +297,7 @@ struct GameBoardView: View {
             // 오버레이: 지형 툴팁
             terrainTooltipOverlay
 
-            // 오버레이: 카드 상세보기 (패에서)
-            if let detail = viewModel.showingCardDetail {
-                CardDetailView(
-                    card: detail.card,
-                    handIndex: detail.handIndex,
-                    canUse: viewModel.canUseCard(detail.card),
-                    onClose: { viewModel.closeCardDetail() },
-                    onUse: { viewModel.useCardFromDetail() }
-                )
-                .transition(.opacity)
-            }
-
-            // 오버레이: 필드 카드 상세보기
-            if let fieldCard = viewModel.showingFieldCardDetail {
-                FieldCardDetailView(
-                    card: fieldCard,
-                    onClose: { viewModel.showingFieldCardDetail = nil }
-                )
-                .transition(.opacity)
-            }
+            // (카드 상세보기는 .sheet로 이동)
 
             // 오버레이: 소환 카드 이동 애니메이션
             if let anim = viewModel.summonAnimation {
@@ -349,6 +330,17 @@ struct GameBoardView: View {
                 frames[pref.index] = pref.frame
             }
             viewModel.handCardFrames = frames
+        }
+        .sheet(item: $viewModel.showingCardDetail) { detail in
+            CardDetailView(
+                card: detail.card,
+                handIndex: detail.handIndex,
+                canUse: viewModel.canUseCard(detail.card),
+                onUse: { viewModel.useCardFromDetail() }
+            )
+        }
+        .sheet(item: $viewModel.showingFieldCardDetail) { detail in
+            FieldCardDetailView(card: detail.card)
         }
     }
 
@@ -765,9 +757,9 @@ struct GameBoardView: View {
     private func showFieldCardDetail(slot: FieldSlot) {
         switch slot.content {
         case .monster(let card, _):
-            viewModel.showingFieldCardDetail = .monster(card)
+            viewModel.showingFieldCardDetail = FieldCardDetail(card: .monster(card))
         case .spell(let card):
-            viewModel.showingFieldCardDetail = .spell(card)
+            viewModel.showingFieldCardDetail = FieldCardDetail(card: .spell(card))
         case .empty:
             break
         }
