@@ -35,7 +35,6 @@ struct GameGuideView: View {
                 deckBuildingPage.tag(7)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
-            .animation(.easeInOut(duration: 0.3), value: currentPage)
 
             // 하단 페이지 인디케이터 + 버튼
             HStack {
