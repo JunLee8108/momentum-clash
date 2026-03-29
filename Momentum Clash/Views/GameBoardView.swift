@@ -63,6 +63,7 @@ struct GameBoardView: View {
                     isCurrentTurn: !viewModel.isPlayerTurn,
                     showTooltip: $showAITooltip
                 )
+                .padding(.horizontal, 8)
                 .zIndex(1)
                 .background(
                     GeometryReader { geo in
@@ -111,6 +112,7 @@ struct GameBoardView: View {
                     isCurrentTurn: viewModel.isPlayerTurn,
                     showTooltip: $showPlayerTooltip
                 )
+                .padding(.horizontal, 8)
                 .zIndex(1)
 
                 // 로그

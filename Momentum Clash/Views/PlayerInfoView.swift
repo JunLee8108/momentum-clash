@@ -90,9 +90,11 @@ struct PlayerInfoView: View {
 
     private func updateDirection(geo: GeometryProxy) {
         let frame = geo.frame(in: .global)
-        let spaceAbove = frame.minY
-        // 위쪽 공간이 툴팁 높이보다 부족하면 아래로 열기
-        openDownward = spaceAbove < tooltipHeight
+        // 아래가 기본. 아래 공간이 부족할 때만 위로.
+        let window = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first
+        let screenHeight = window?.frame.height ?? 900
+        let spaceBelow = screenHeight - frame.maxY
+        openDownward = spaceBelow >= tooltipHeight
     }
 
     // MARK: - 툴팁
