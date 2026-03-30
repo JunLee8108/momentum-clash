@@ -353,12 +353,7 @@ struct GameBoardView: View {
             }
             viewModel.handCardFrames = frames
         }
-        .sheet(item: $viewModel.showingCardDetail, onDismiss: {
-            if let action = viewModel.pendingCardAction {
-                viewModel.pendingCardAction = nil
-                action()
-            }
-        }) { detail in
+        .sheet(item: $viewModel.showingCardDetail) { detail in
             CardDetailView(
                 card: detail.card,
                 handIndex: detail.handIndex,
