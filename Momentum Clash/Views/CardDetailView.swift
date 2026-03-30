@@ -120,15 +120,6 @@ struct CardDetailView: View {
                 spellInfo(s)
             }
 
-            HStack(spacing: 6) {
-                Image(systemName: "bolt.circle.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(.cyan)
-                Text("기력: \(card.cost)")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
-            }
-
             if !card.flavorText.isEmpty {
                 Text(card.flavorText)
                     .font(.system(size: 13, weight: .regular))
