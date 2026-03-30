@@ -46,6 +46,8 @@ struct DrawSelectionView: View {
     let onSelect: (AnyCard, AnyCard) -> Void
     let onPeek: () -> Void
 
+    @State private var detailCard: FieldCardDetail? = nil
+
     var body: some View {
         VStack(spacing: 16) {
             Text("카드를 선택하세요")
@@ -57,16 +59,40 @@ struct DrawSelectionView: View {
                 .foregroundColor(.gray)
 
             HStack(spacing: 30) {
-                CardView(card: choice1) {
-                    onSelect(choice1, choice2)
+                // 카드 1
+                VStack(spacing: 6) {
+                    CardView(card: choice1) {
+                        onSelect(choice1, choice2)
+                    }
+                    Button {
+                        detailCard = FieldCardDetail(card: choice1)
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Color.white.opacity(0.1)))
+                    }
                 }
 
                 Text("OR")
                     .font(.title3)
                     .foregroundColor(.gray)
 
-                CardView(card: choice2) {
-                    onSelect(choice2, choice1)
+                // 카드 2
+                VStack(spacing: 6) {
+                    CardView(card: choice2) {
+                        onSelect(choice2, choice1)
+                    }
+                    Button {
+                        detailCard = FieldCardDetail(card: choice2)
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(Color.white.opacity(0.1)))
+                    }
                 }
             }
 
@@ -93,5 +119,8 @@ struct DrawSelectionView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
         )
+        .sheet(item: $detailCard) { detail in
+            FieldCardDetailView(card: detail.card)
+        }
     }
 }
