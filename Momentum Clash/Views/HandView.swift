@@ -5,6 +5,7 @@ struct HandView: View {
     let hand: [AnyCard]
     let selectedIndex: Int?
     let canInteract: Bool
+    var animatingCardIndex: Int? = nil
     var onCardTap: ((Int) -> Void)? = nil
 
     var body: some View {
@@ -20,6 +21,7 @@ struct HandView: View {
                             onCardTap?(index)
                         }
                     }
+                    .opacity(animatingCardIndex == index ? 0 : 1)
                     .background(
                         GeometryReader { geo in
                             Color.clear.preference(
