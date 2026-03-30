@@ -122,7 +122,7 @@ struct GameBoardView: View {
                 // 내 패
                 HandView(
                     hand: viewModel.player.hand,
-                    selectedIndex: isPeekingField ? nil : viewModel.selectedHandIndex,
+                    selectedIndex: isPeekingField ? nil : (viewModel.summoningHandIndex ?? viewModel.selectedHandIndex),
                     canInteract: isPeekingField || (viewModel.isPlayerTurn && viewModel.gameState.currentPhase == .main),
                     animatingCardIndex: viewModel.summonAnimation?.isPlayer == true ? viewModel.summonAnimation?.handIndex : nil
                 ) { index in

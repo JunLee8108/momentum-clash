@@ -121,6 +121,10 @@ class GameViewModel {
     var uiState: GameUIState = .notStarted
     var logs: [GameLog] = []
     var selectedHandIndex: Int? = nil
+    var summoningHandIndex: Int? {
+        if case .selectingSummonSlot(_, let handIndex) = uiState { return handIndex }
+        return nil
+    }
     var showingCardDetail: HandCardDetail? = nil
     var showingFieldCardDetail: FieldCardDetail? = nil
     var battleDisplay: BattleDisplay? = nil
