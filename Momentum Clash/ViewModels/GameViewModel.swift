@@ -382,7 +382,7 @@ class GameViewModel {
 
             // 패에서 제거 (애니메이션 완료 후 자연스럽게)
             withAnimation(.easeInOut(duration: 0.2)) {
-                gameState.currentPlayer.hand.remove(at: handIndex)
+                _ = gameState.currentPlayer.hand.remove(at: handIndex)
             }
 
             // 실제 필드 배치
