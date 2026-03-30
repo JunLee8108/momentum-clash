@@ -126,6 +126,9 @@ class GameViewModel {
     var combatPreview: CombatPreviewData? = nil
     var summonAnimation: SummonAnimation? = nil
 
+    /// sheet dismiss 후 실행할 액션
+    var pendingCardAction: (() -> Void)? = nil
+
     /// 필드 슬롯 좌표 저장 (View에서 업데이트)
     var playerSlotFrames: [Int: CGRect] = [:]
     var aiSlotFrames: [Int: CGRect] = [:]
@@ -285,33 +288,43 @@ class GameViewModel {
         guard let detail = showingCardDetail else { return }
         let card = detail.card
         let index = detail.handIndex
-        showingCardDetail = nil
 
         // 비용 확인 (기력으로만 지불)
         if card.cost > player.energy {
             addLog("기력이 부족합니다! (비용: \(card.cost), 기력: \(player.energy))")
+            showingCardDetail = nil
             return
         }
 
-        // 슬롯 선택 모드
+        // pendingCardAction에 저장하고 sheet dismiss 후 실행
         if case .monster = card {
             if player.field.emptySlotIndices.isEmpty {
                 addLog("빈 슬롯이 없습니다!")
+                showingCardDetail = nil
                 return
             }
-            uiState = .selectingSummonSlot(card: card, handIndex: index)
+            pendingCardAction = { [weak self] in
+                self?.uiState = .selectingSummonSlot(card: card, handIndex: index)
+            }
         } else if case .spell(let spellCard) = card {
             if spellCard.spellType == .continuous {
                 if player.field.emptySlotIndices.isEmpty {
                     addLog("빈 슬롯이 없습니다!")
+                    showingCardDetail = nil
                     return
                 }
-                uiState = .selectingSummonSlot(card: card, handIndex: index)
+                pendingCardAction = { [weak self] in
+                    self?.uiState = .selectingSummonSlot(card: card, handIndex: index)
+                }
             } else {
-                // 즉시 발동 마법
-                executeSpell(spellCard, handIndex: index)
+                pendingCardAction = { [weak self] in
+                    self?.executeSpell(spellCard, handIndex: index)
+                }
             }
         }
+
+        // sheet dismiss 트리거 — onDismiss에서 pendingCardAction 실행
+        showingCardDetail = nil
     }
 
     func closeCardDetail() {
