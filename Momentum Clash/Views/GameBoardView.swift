@@ -898,6 +898,7 @@ struct GameBoardView: View {
                 }
             }
         }
+        .frame(height: 36)
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
     }
