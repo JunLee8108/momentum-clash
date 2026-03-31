@@ -48,7 +48,7 @@ struct CardDetailView: View {
                     .buttonStyle(LiquidGlassButtonStyle(color: .red))
                 }
                 .padding(.top, 12)
-                .padding(.bottom, 16)
+                .padding(.bottom, 32)
             }
             .padding(.horizontal, 20)
         }
@@ -114,41 +114,8 @@ struct CardDetailView: View {
     // MARK: - 정보 패널
 
     private var infoPanel: some View {
-        VStack(spacing: 10) {
-            // 섹션 1: 카드명 + 스탯
-            nameAndStatsSection
-
-            // 섹션 2: 효과
-            switch card {
-            case .monster(let m):
-                if let effect = m.effect {
-                    effectSection(icon: "sparkles", color: .purple, title: "소환 효과", description: effect.description)
-                }
-            case .spell(let s):
-                effectSection(icon: "wand.and.stars", color: .yellow, title: "\(s.spellType.displayName) 효과", description: s.effect.description)
-            }
-
-            // 섹션 3: 속성 상성 (몬스터만)
-            if case .monster(let m) = card {
-                attributeMatchupSection(m)
-            }
-
-            // 플레이버 텍스트
-            if !card.flavorText.isEmpty {
-                Text(card.flavorText)
-                    .font(.system(size: 13))
-                    .italic()
-                    .foregroundColor(.white.opacity(0.5))
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 4)
-            }
-        }
-    }
-
-    private var nameAndStatsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            // 카드명 + 스탯
             Text(card.name)
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
@@ -168,10 +135,47 @@ struct CardDetailView: View {
                     statPill(icon: "flame.fill", text: "기력 \(s.cost)", color: .cyan)
                 }
             }
+
+            // 효과
+            switch card {
+            case .monster(let m):
+                if let effect = m.effect {
+                    sectionDivider
+                    effectContent(icon: "sparkles", color: .purple, title: "소환 효과", description: effect.description)
+                }
+            case .spell(let s):
+                sectionDivider
+                effectContent(icon: "wand.and.stars", color: .yellow, title: "\(s.spellType.displayName) 효과", description: s.effect.description)
+            }
+
+            // 속성 상성 (몬스터만)
+            if case .monster(let m) = card {
+                sectionDivider
+                attributeMatchupContent(m)
+            }
+
+            // 플레이버 텍스트
+            if !card.flavorText.isEmpty {
+                sectionDivider
+                Text(card.flavorText)
+                    .font(.system(size: 13))
+                    .italic()
+                    .foregroundColor(.white.opacity(0.5))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .liquidGlass(cornerRadius: 14, opacity: 0.5)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.3))
+        )
+        .liquidGlass(cornerRadius: 16, opacity: 0.7)
+    }
+
+    private var sectionDivider: some View {
+        Divider().background(Color.white.opacity(0.2))
     }
 
     private func statPill(icon: String, text: String, color: Color) -> some View {
@@ -189,8 +193,8 @@ struct CardDetailView: View {
         )
     }
 
-    private func effectSection(icon: String, color: Color, title: String, description: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func effectContent(icon: String, color: Color, title: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -199,20 +203,14 @@ struct CardDetailView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(color)
             }
-
-            Divider().background(color.opacity(0.3))
-
             Text(description)
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.9))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .liquidGlass(cornerRadius: 14, opacity: 0.5)
     }
 
-    private func attributeMatchupSection(_ m: MonsterCard) -> some View {
+    private func attributeMatchupContent(_ m: MonsterCard) -> some View {
         let attr = m.attribute
         let strong = attr.strongAgainst
         let weak = attr.weakAgainst
@@ -220,7 +218,7 @@ struct CardDetailView: View {
         let weakCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: weak))
         let isMutual = strong == weak
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "shield.lefthalf.filled")
                     .font(.system(size: 12))
@@ -230,8 +228,6 @@ struct CardDetailView: View {
                     .foregroundColor(.white.opacity(0.7))
             }
 
-            Divider().background(Color.white.opacity(0.2))
-
             if isMutual {
                 matchupRow(emoji: strong.emoji, text: "\(strong.displayName)과 상호 강화", cp: strongCP, color: .orange)
             } else {
@@ -239,9 +235,6 @@ struct CardDetailView: View {
                 matchupRow(emoji: weak.emoji, text: "\(weak.displayName)에 약함", cp: weakCP, color: .red)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .liquidGlass(cornerRadius: 14, opacity: 0.5)
     }
 
     private func matchupRow(emoji: String, text: String, cp: Int, color: Color) -> some View {
@@ -341,8 +334,8 @@ struct FieldCardDetailView: View {
 
                 Spacer()
 
-                // 정보 섹션들
-                fieldInfoSections
+                // 정보 패널
+                fieldInfoPanel
 
                 // 닫기 버튼
                 Button {
@@ -352,67 +345,75 @@ struct FieldCardDetailView: View {
                 }
                 .buttonStyle(LiquidGlassButtonStyle(color: .red))
                 .padding(.top, 12)
-                .padding(.bottom, 16)
+                .padding(.bottom, 32)
             }
             .padding(.horizontal, 20)
         }
     }
 
-    private var fieldInfoSections: some View {
-        VStack(spacing: 10) {
-            // 섹션 1: 카드명 + 스탯
-            VStack(alignment: .leading, spacing: 10) {
-                Text(card.name)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.white)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
+    private var fieldInfoPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 카드명 + 스탯
+            Text(card.name)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
 
-                switch card {
-                case .monster(let m):
-                    HStack(spacing: 8) {
-                        fieldStatPill(icon: "person.fill", text: m.monsterType.displayName, color: .white.opacity(0.7))
-                        fieldStatPill(icon: "bolt.fill", text: "전투력 \(m.combatPower)", color: .orange)
-                        fieldStatPill(icon: "flame.fill", text: "기력 \(m.cost)", color: .cyan)
-                    }
-                case .spell(let s):
-                    HStack(spacing: 8) {
-                        fieldStatPill(icon: "wand.and.stars", text: s.spellType.displayName, color: .purple)
-                        fieldStatPill(icon: "flame.fill", text: "기력 \(s.cost)", color: .cyan)
-                    }
+            switch card {
+            case .monster(let m):
+                HStack(spacing: 8) {
+                    fieldStatPill(icon: "person.fill", text: m.monsterType.displayName, color: .white.opacity(0.7))
+                    fieldStatPill(icon: "bolt.fill", text: "전투력 \(m.combatPower)", color: .orange)
+                    fieldStatPill(icon: "flame.fill", text: "기력 \(m.cost)", color: .cyan)
+                }
+            case .spell(let s):
+                HStack(spacing: 8) {
+                    fieldStatPill(icon: "wand.and.stars", text: s.spellType.displayName, color: .purple)
+                    fieldStatPill(icon: "flame.fill", text: "기력 \(s.cost)", color: .cyan)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .liquidGlass(cornerRadius: 14, opacity: 0.5)
 
-            // 섹션 2: 효과
+            // 효과
             switch card {
             case .monster(let m):
                 if let effect = m.effect {
-                    fieldEffectSection(icon: "sparkles", color: .purple, title: "소환 효과", description: effect.description)
+                    fieldSectionDivider
+                    fieldEffectContent(icon: "sparkles", color: .purple, title: "소환 효과", description: effect.description)
                 }
             case .spell(let s):
-                fieldEffectSection(icon: "wand.and.stars", color: .yellow, title: "\(s.spellType.displayName) 효과", description: s.effect.description)
+                fieldSectionDivider
+                fieldEffectContent(icon: "wand.and.stars", color: .yellow, title: "\(s.spellType.displayName) 효과", description: s.effect.description)
             }
 
-            // 섹션 3: 속성 상성 (몬스터만)
+            // 속성 상성 (몬스터만)
             if case .monster(let m) = card {
-                fieldAttributeMatchupSection(m)
+                fieldSectionDivider
+                fieldAttributeMatchupContent(m)
             }
 
             // 플레이버 텍스트
             if !card.flavorText.isEmpty {
+                fieldSectionDivider
                 Text(card.flavorText)
                     .font(.system(size: 13))
                     .italic()
                     .foregroundColor(.white.opacity(0.5))
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 4)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.3))
+        )
+        .liquidGlass(cornerRadius: 16, opacity: 0.7)
+    }
+
+    private var fieldSectionDivider: some View {
+        Divider().background(Color.white.opacity(0.2))
     }
 
     private func fieldStatPill(icon: String, text: String, color: Color) -> some View {
@@ -428,8 +429,8 @@ struct FieldCardDetailView: View {
         .background(Capsule().fill(color.opacity(0.15)))
     }
 
-    private func fieldEffectSection(icon: String, color: Color, title: String, description: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func fieldEffectContent(icon: String, color: Color, title: String, description: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -438,18 +439,14 @@ struct FieldCardDetailView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(color)
             }
-            Divider().background(color.opacity(0.3))
             Text(description)
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.9))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .liquidGlass(cornerRadius: 14, opacity: 0.5)
     }
 
-    private func fieldAttributeMatchupSection(_ m: MonsterCard) -> some View {
+    private func fieldAttributeMatchupContent(_ m: MonsterCard) -> some View {
         let attr = m.attribute
         let strong = attr.strongAgainst
         let weak = attr.weakAgainst
@@ -457,7 +454,7 @@ struct FieldCardDetailView: View {
         let weakCP = Int(Double(m.combatPower) * attr.damageMultiplier(against: weak))
         let isMutual = strong == weak
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "shield.lefthalf.filled")
                     .font(.system(size: 12))
@@ -466,7 +463,6 @@ struct FieldCardDetailView: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white.opacity(0.7))
             }
-            Divider().background(Color.white.opacity(0.2))
             if isMutual {
                 fieldMatchupRow(emoji: strong.emoji, text: "\(strong.displayName)과 상호 강화", cp: strongCP, color: .orange)
             } else {
@@ -474,9 +470,6 @@ struct FieldCardDetailView: View {
                 fieldMatchupRow(emoji: weak.emoji, text: "\(weak.displayName)에 약함", cp: weakCP, color: .red)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .liquidGlass(cornerRadius: 14, opacity: 0.5)
     }
 
     private func fieldMatchupRow(emoji: String, text: String, cp: Int, color: Color) -> some View {
