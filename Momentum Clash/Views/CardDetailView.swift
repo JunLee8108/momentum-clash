@@ -45,7 +45,7 @@ struct CardDetailView: View {
                     } label: {
                         Text("닫기")
                     }
-                    .buttonStyle(LiquidGlassButtonStyle(color: .gray))
+                    .buttonStyle(LiquidGlassButtonStyle(color: .red))
                 }
                 .padding(.top, 12)
                 .padding(.bottom, 16)
@@ -308,18 +308,20 @@ struct CardDetailView: View {
     }
 }
 
-/// 필드 카드 상세보기 (읽기 전용, sheet용)
+/// 필드 카드 상세보기 (읽기 전용, 풀스크린 오버레이)
 struct FieldCardDetailView: View {
     let card: AnyCard
+    let onClose: () -> Void
 
     var body: some View {
         ZStack {
-            // 배경 이미지
+            // 배경 이미지 (전체화면)
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
+            .ignoresSafeArea()
 
-            // 그라데이션 오버레이
+            // 그라데이션 오버레이 (전체화면)
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.3),
@@ -329,8 +331,9 @@ struct FieldCardDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .ignoresSafeArea()
 
-            // 콘텐츠
+            // 콘텐츠 (safe area 내)
             VStack(spacing: 0) {
                 HStack {
                     Text(card.attribute.emoji + " " + card.attribute.displayName)
@@ -380,12 +383,19 @@ struct FieldCardDetailView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
                 .liquidGlass(cornerRadius: 16, opacity: 0.5)
+
+                // 닫기 버튼
+                Button {
+                    onClose()
+                } label: {
+                    Text("닫기")
+                }
+                .buttonStyle(LiquidGlassButtonStyle(color: .red))
+                .padding(.top, 12)
                 .padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder

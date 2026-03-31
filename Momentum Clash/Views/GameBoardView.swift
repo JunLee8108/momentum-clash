@@ -41,7 +41,7 @@ struct HandCardFramePreferenceKey: PreferenceKey {
 
 /// 메인 게임 보드 뷰
 struct GameBoardView: View {
-    @Bindable var viewModel: GameViewModel
+    var viewModel: GameViewModel
     var onGoHome: (() -> Void)? = nil
     @State private var showTerrainTooltip = false
     @State private var showMomentumSkillPanel = false
@@ -146,7 +146,9 @@ struct GameBoardView: View {
                     if isPeekingField {
                         // 전장 확인 중: 읽기 전용 상세보기
                         let card = viewModel.player.hand[index]
-                        viewModel.showingFieldCardDetail = FieldCardDetail(card: card)
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            viewModel.showingFieldCardDetail = FieldCardDetail(card: card)
+                        }
                     } else {
                         viewModel.selectCardFromHand(index)
                     }
@@ -192,6 +194,10 @@ struct GameBoardView: View {
                 }, onPeek: {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         isPeekingField = true
+                    }
+                }, onShowDetail: { card in
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        viewModel.showingFieldCardDetail = FieldCardDetail(card: card)
                     }
                 })
             }
@@ -353,6 +359,20 @@ struct GameBoardView: View {
                 .zIndex(50)
             }
 
+            // 오버레이: 필드 카드 상세보기 (풀스크린)
+            if let detail = viewModel.showingFieldCardDetail {
+                FieldCardDetailView(
+                    card: detail.card,
+                    onClose: {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            viewModel.showingFieldCardDetail = nil
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(50)
+            }
+
             // 오버레이: 소환 카드 이동 애니메이션
             if let anim = viewModel.summonAnimation {
                 summonCardOverlay(anim: anim)
@@ -384,9 +404,6 @@ struct GameBoardView: View {
                 frames[pref.index] = pref.frame
             }
             viewModel.handCardFrames = frames
-        }
-        .sheet(item: $viewModel.showingFieldCardDetail) { detail in
-            FieldCardDetailView(card: detail.card)
         }
     }
 
@@ -803,9 +820,13 @@ struct GameBoardView: View {
     private func showFieldCardDetail(slot: FieldSlot) {
         switch slot.content {
         case .monster(let card, _):
-            viewModel.showingFieldCardDetail = FieldCardDetail(card: .monster(card))
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.showingFieldCardDetail = FieldCardDetail(card: .monster(card))
+            }
         case .spell(let card):
-            viewModel.showingFieldCardDetail = FieldCardDetail(card: .spell(card))
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.showingFieldCardDetail = FieldCardDetail(card: .spell(card))
+            }
         case .empty:
             break
         }
