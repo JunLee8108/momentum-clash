@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 카드 상세 정보 뷰 (오버레이 패널)
+/// 카드 상세 정보 뷰 (풀스크린 오버레이)
 struct CardDetailView: View {
     let card: AnyCard
     let handIndex: Int
@@ -9,60 +9,53 @@ struct CardDetailView: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 헤더: 드래그 인디케이터 + 닫기 버튼
-            HStack {
-                Spacer()
-                Capsule()
-                    .fill(Color.white.opacity(0.4))
-                    .frame(width: 36, height: 5)
-                Spacer()
+        ZStack {
+            // 배경 이미지
+            GeometryReader { geo in
+                cardBackground(size: geo.size)
             }
-            .overlay(alignment: .trailing) {
-                Button {
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.white.opacity(0.6))
+            .ignoresSafeArea()
+
+            // 그라데이션 오버레이
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.clear,
+                    Color.black.opacity(0.7)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            // 콘텐츠
+            VStack(spacing: 0) {
+                // 닫기 버튼
+                HStack {
+                    Spacer()
+                    Button {
+                        onClose()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
                 }
-                .padding(.trailing, 16)
+                .padding(.top, 12)
+
+                topBadges
+                    .padding(.top, 8)
+
+                Spacer()
+
+                infoPanel
+
+                actionButton
+                    .padding(.top, 12)
+                    .padding(.bottom, 16)
             }
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    topBadges
-
-                    infoPanel
-
-                    actionButton
-                        .padding(.top, 4)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 20)
-            }
+            .padding(.horizontal, 20)
         }
-        .background(
-            ZStack {
-                // 배경 이미지
-                GeometryReader { geo in
-                    cardBackground(size: geo.size)
-                }
-                // 그라데이션 오버레이
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.5),
-                        Color.black.opacity(0.8)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-        )
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 20))
-        .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
     }
 
     // MARK: - 배경 이미지

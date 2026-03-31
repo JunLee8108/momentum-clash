@@ -336,32 +336,21 @@ struct GameBoardView: View {
             // 오버레이: 지형 툴팁
             terrainTooltipOverlay
 
-            // 오버레이: 패 카드 상세보기 패널
+            // 오버레이: 패 카드 상세보기 (풀스크린)
             if let detail = viewModel.showingCardDetail {
-                Color.black.opacity(0.4)
-                    .ignoresSafeArea()
-                    .onTapGesture {
+                CardDetailView(
+                    card: detail.card,
+                    handIndex: detail.handIndex,
+                    canUse: viewModel.canUseCard(detail.card),
+                    onUse: { viewModel.useCardFromDetail() },
+                    onClose: {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             viewModel.showingCardDetail = nil
                         }
                     }
-
-                VStack {
-                    Spacer()
-                    CardDetailView(
-                        card: detail.card,
-                        handIndex: detail.handIndex,
-                        canUse: viewModel.canUseCard(detail.card),
-                        onUse: { viewModel.useCardFromDetail() },
-                        onClose: {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                viewModel.showingCardDetail = nil
-                            }
-                        }
-                    )
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .animation(.easeInOut(duration: 0.25), value: viewModel.showingCardDetail != nil)
+                )
+                .ignoresSafeArea()
+                .transition(.opacity)
                 .zIndex(50)
             }
 
