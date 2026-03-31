@@ -130,7 +130,6 @@ class GameViewModel {
     var battleDisplay: BattleDisplay? = nil
     var combatPreview: CombatPreviewData? = nil
     var summonAnimation: SummonAnimation? = nil
-    var pendingCardAction: (() -> Void)? = nil
 
     /// 필드 슬롯 좌표 저장 (View에서 업데이트)
     var playerSlotFrames: [Int: CGRect] = [:]
@@ -289,7 +288,9 @@ class GameViewModel {
 
         let card = player.hand[index]
         // 카드 상세보기 표시
-        showingCardDetail = HandCardDetail(card: card, handIndex: index)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            showingCardDetail = HandCardDetail(card: card, handIndex: index)
+        }
     }
 
     /// 상세보기에서 "배치하기/사용하기" 눌렀을 때
@@ -298,50 +299,33 @@ class GameViewModel {
         let card = detail.card
         let index = detail.handIndex
 
+        // 오버레이 즉시 닫기
+        showingCardDetail = nil
+
         // 비용 확인 (기력으로만 지불)
         if card.cost > player.energy {
             addLog("기력이 부족합니다! (비용: \(card.cost), 기력: \(player.energy))")
-            showingCardDetail = nil
             return
         }
 
-        // pendingCardAction에 저장 후 sheet dismiss → onDismiss에서 실행
+        // 슬롯 선택 모드
         if case .monster = card {
             if player.field.emptySlotIndices.isEmpty {
                 addLog("빈 슬롯이 없습니다!")
-                showingCardDetail = nil
                 return
             }
-            pendingCardAction = { [weak self] in
-                self?.uiState = .selectingSummonSlot(card: card, handIndex: index)
-            }
+            uiState = .selectingSummonSlot(card: card, handIndex: index)
         } else if case .spell(let spellCard) = card {
             if spellCard.spellType == .continuous {
                 if player.field.emptySlotIndices.isEmpty {
                     addLog("빈 슬롯이 없습니다!")
-                    showingCardDetail = nil
                     return
                 }
-                pendingCardAction = { [weak self] in
-                    self?.uiState = .selectingSummonSlot(card: card, handIndex: index)
-                }
+                uiState = .selectingSummonSlot(card: card, handIndex: index)
             } else {
-                pendingCardAction = { [weak self] in
-                    self?.executeSpell(spellCard, handIndex: index)
-                }
+                executeSpell(spellCard, handIndex: index)
             }
         }
-
-        // 애니메이션 없이 즉시 sheet dismiss → onDismiss에서 pendingCardAction 실행
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            showingCardDetail = nil
-        }
-    }
-
-    func closeCardDetail() {
-        showingCardDetail = nil
     }
 
     /// 패에서 카드 사용 가능 여부
