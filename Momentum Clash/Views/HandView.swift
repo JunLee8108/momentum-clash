@@ -47,8 +47,7 @@ struct DrawSelectionView: View {
     let choice2: AnyCard
     let onSelect: (AnyCard, AnyCard) -> Void
     let onPeek: () -> Void
-
-    @State private var detailCard: FieldCardDetail? = nil
+    var onShowDetail: ((AnyCard) -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 16) {
@@ -67,7 +66,7 @@ struct DrawSelectionView: View {
                         onSelect(choice1, choice2)
                     }
                     Button {
-                        detailCard = FieldCardDetail(card: choice1)
+                        onShowDetail?(choice1)
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 12))
@@ -87,7 +86,7 @@ struct DrawSelectionView: View {
                         onSelect(choice2, choice1)
                     }
                     Button {
-                        detailCard = FieldCardDetail(card: choice2)
+                        onShowDetail?(choice2)
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 12))
@@ -121,8 +120,5 @@ struct DrawSelectionView: View {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.85))
         )
-        .sheet(item: $detailCard) { detail in
-            FieldCardDetailView(card: detail.card)
-        }
     }
 }
