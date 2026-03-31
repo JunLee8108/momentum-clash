@@ -10,12 +10,13 @@ struct CardDetailView: View {
 
     var body: some View {
         ZStack {
-            // 배경 이미지
+            // 배경 이미지 (전체화면)
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
+            .ignoresSafeArea()
 
-            // 그라데이션 오버레이
+            // 그라데이션 오버레이 (전체화면)
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.3),
@@ -25,32 +26,29 @@ struct CardDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .ignoresSafeArea()
 
-            // 콘텐츠
+            // 콘텐츠 (safe area 내)
             VStack(spacing: 0) {
-                // 닫기 버튼
-                HStack {
-                    Spacer()
-                    Button {
-                        onClose()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
-                .padding(.top, 12)
-
                 topBadges
-                    .padding(.top, 8)
+                    .padding(.top, 12)
 
                 Spacer()
 
                 infoPanel
 
-                actionButton
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
+                // 하단 버튼: 배치하기(왼쪽) + 닫기(오른쪽)
+                HStack(spacing: 12) {
+                    actionButton
+                    Button {
+                        onClose()
+                    } label: {
+                        Text("닫기")
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle(color: .gray))
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 16)
             }
             .padding(.horizontal, 20)
         }
