@@ -10,12 +10,13 @@ struct CardDetailView: View {
 
     var body: some View {
         ZStack {
-            // 배경 이미지
+            // 배경 이미지 (전체화면)
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
+            .ignoresSafeArea()
 
-            // 그라데이션 오버레이
+            // 그라데이션 오버레이 (전체화면)
             LinearGradient(
                 colors: [
                     Color.black.opacity(0.3),
@@ -25,8 +26,9 @@ struct CardDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
+            .ignoresSafeArea()
 
-            // 콘텐츠
+            // 콘텐츠 (safe area 내)
             VStack(spacing: 0) {
                 // 닫기 버튼
                 HStack {
