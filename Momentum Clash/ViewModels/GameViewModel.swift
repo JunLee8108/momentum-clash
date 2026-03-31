@@ -160,6 +160,12 @@ class GameViewModel {
         isPlayerTurn
     }
 
+    var hasAttackableMonster: Bool {
+        player.field.slots.contains { slot in
+            slot.content.isOccupied && !slot.hasAttacked
+        }
+    }
+
     init() {
         let playerDeck = SampleCards.fireRushDeck()
         let aiDeck = SampleCards.earthFortressDeck()
