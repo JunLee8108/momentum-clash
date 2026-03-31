@@ -11,7 +11,7 @@ struct HandView: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(Array(hand.enumerated()), id: \.element.id) { index, card in
+                ForEach(Array(hand.enumerated()), id: \.offset) { index, card in
                     CardView(
                         card: card,
                         isSelected: selectedIndex == index,
