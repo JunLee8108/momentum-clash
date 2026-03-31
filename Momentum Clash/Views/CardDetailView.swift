@@ -410,11 +410,11 @@ struct FieldCardDetailView: View {
             } label: {
                 Text("닫기")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.red)
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(
-                        Capsule().stroke(Color.red.opacity(0.6), lineWidth: 1.2)
+                        Capsule().fill(Color.red)
                     )
             }
         }
