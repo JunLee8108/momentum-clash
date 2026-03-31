@@ -102,6 +102,23 @@ struct GameBoardView: View {
 
                 // 내 필드
                 fieldView(player: viewModel.player, isOpponent: false)
+                    .overlay(alignment: .top) {
+                        if case .battlePhase = viewModel.uiState {
+                            Text("공격할 카드를 선택하세요")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.red.opacity(0.7))
+                                )
+                                .transition(.opacity)
+                                .animation(.easeInOut(duration: 0.2), value: viewModel.uiState)
+                                .allowsHitTesting(false)
+                                .offset(y: -4)
+                        }
+                    }
 
                 LPBarView(current: viewModel.player.lp, max: TurnSystem.startingLP)
                     .padding(.horizontal, 12)
