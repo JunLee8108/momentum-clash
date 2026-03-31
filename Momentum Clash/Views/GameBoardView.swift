@@ -349,7 +349,6 @@ struct GameBoardView: View {
                         }
                     }
                 )
-                .ignoresSafeArea()
                 .transition(.opacity)
                 .zIndex(50)
             }
