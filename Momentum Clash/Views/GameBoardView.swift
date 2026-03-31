@@ -103,7 +103,7 @@ struct GameBoardView: View {
                 // 내 필드
                 fieldView(player: viewModel.player, isOpponent: false)
                     .overlay(alignment: .top) {
-                        if case .battlePhase = viewModel.uiState, viewModel.hasAttackableMonster {
+                        if case .battlePhase = viewModel.uiState, viewModel.hasAttackableMonster, viewModel.battleDisplay == nil {
                             Text("공격할 카드를 선택하세요")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.white)
