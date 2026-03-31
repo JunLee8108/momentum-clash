@@ -14,7 +14,6 @@ struct CardDetailView: View {
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
-            .ignoresSafeArea()
 
             // 그라데이션 오버레이
             LinearGradient(
@@ -26,7 +25,6 @@ struct CardDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
 
             // 콘텐츠
             VStack(spacing: 0) {
@@ -322,7 +320,6 @@ struct FieldCardDetailView: View {
             GeometryReader { geo in
                 cardBackground(size: geo.size)
             }
-            .ignoresSafeArea()
 
             // 그라데이션 오버레이
             LinearGradient(
@@ -334,7 +331,6 @@ struct FieldCardDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .ignoresSafeArea()
 
             // 콘텐츠
             VStack(spacing: 0) {
