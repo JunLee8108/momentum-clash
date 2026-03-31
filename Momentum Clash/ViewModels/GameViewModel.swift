@@ -305,29 +305,34 @@ class GameViewModel {
             showingCardDetail = nil
         }
 
-        // 비용 확인 (기력으로만 지불)
-        if card.cost > player.energy {
-            addLog("기력이 부족합니다! (비용: \(card.cost), 기력: \(player.energy))")
-            return
-        }
+        // sheet 해제 완료 후 다음 런루프에서 실행
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
 
-        // 슬롯 선택 모드
-        if case .monster = card {
-            if player.field.emptySlotIndices.isEmpty {
-                addLog("빈 슬롯이 없습니다!")
+            // 비용 확인 (기력으로만 지불)
+            if card.cost > self.player.energy {
+                self.addLog("기력이 부족합니다! (비용: \(card.cost), 기력: \(self.player.energy))")
                 return
             }
-            uiState = .selectingSummonSlot(card: card, handIndex: index)
-        } else if case .spell(let spellCard) = card {
-            if spellCard.spellType == .continuous {
-                if player.field.emptySlotIndices.isEmpty {
-                    addLog("빈 슬롯이 없습니다!")
+
+            // 슬롯 선택 모드
+            if case .monster = card {
+                if self.player.field.emptySlotIndices.isEmpty {
+                    self.addLog("빈 슬롯이 없습니다!")
                     return
                 }
-                uiState = .selectingSummonSlot(card: card, handIndex: index)
-            } else {
-                // 즉시 발동 마법
-                executeSpell(spellCard, handIndex: index)
+                self.uiState = .selectingSummonSlot(card: card, handIndex: index)
+            } else if case .spell(let spellCard) = card {
+                if spellCard.spellType == .continuous {
+                    if self.player.field.emptySlotIndices.isEmpty {
+                        self.addLog("빈 슬롯이 없습니다!")
+                        return
+                    }
+                    self.uiState = .selectingSummonSlot(card: card, handIndex: index)
+                } else {
+                    // 즉시 발동 마법
+                    self.executeSpell(spellCard, handIndex: index)
+                }
             }
         }
     }
