@@ -36,19 +36,7 @@ struct CardDetailView: View {
                 Spacer()
 
                 infoPanel
-
-                // 하단 버튼: 배치하기(왼쪽) + 닫기(오른쪽)
-                HStack(spacing: 12) {
-                    actionButton
-                    Button {
-                        onClose()
-                    } label: {
-                        Text("닫기")
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(color: .red))
-                }
-                .padding(.top, 12)
-                .padding(.bottom, 32)
+                    .padding(.bottom, 32)
             }
             .padding(.horizontal, 20)
         }
@@ -164,6 +152,38 @@ struct CardDetailView: View {
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            // 버튼
+            sectionDivider
+            HStack(spacing: 10) {
+                Button {
+                    onUse()
+                } label: {
+                    Text(useButtonLabel)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().fill(canUse ? useButtonColor : Color.gray)
+                        )
+                }
+                .disabled(!canUse)
+                .opacity(canUse ? 1.0 : 0.5)
+
+                Button {
+                    onClose()
+                } label: {
+                    Text("닫기")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule().stroke(Color.red.opacity(0.6), lineWidth: 1.2)
+                        )
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
@@ -251,17 +271,6 @@ struct CardDetailView: View {
         }
     }
 
-    // MARK: - 액션 버튼
-
-    private var actionButton: some View {
-        Button(useButtonLabel) {
-            onUse()
-        }
-        .buttonStyle(LiquidGlassButtonStyle(color: canUse ? useButtonColor : .gray))
-        .disabled(!canUse)
-        .opacity(canUse ? 1.0 : 0.5)
-    }
-
     private var useButtonLabel: String {
         switch card {
         case .monster: return "배치하기"
@@ -336,16 +345,7 @@ struct FieldCardDetailView: View {
 
                 // 정보 패널
                 fieldInfoPanel
-
-                // 닫기 버튼
-                Button {
-                    onClose()
-                } label: {
-                    Text("닫기")
-                }
-                .buttonStyle(LiquidGlassButtonStyle(color: .red))
-                .padding(.top, 12)
-                .padding(.bottom, 32)
+                    .padding(.bottom, 32)
             }
             .padding(.horizontal, 20)
         }
@@ -401,6 +401,21 @@ struct FieldCardDetailView: View {
                     .foregroundColor(.white.opacity(0.5))
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // 닫기 버튼
+            fieldSectionDivider
+            Button {
+                onClose()
+            } label: {
+                Text("닫기")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule().stroke(Color.red.opacity(0.6), lineWidth: 1.2)
+                    )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
