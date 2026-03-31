@@ -45,7 +45,7 @@ struct CardDetailView: View {
                     } label: {
                         Text("닫기")
                     }
-                    .buttonStyle(LiquidGlassButtonStyle(color: .gray))
+                    .buttonStyle(LiquidGlassButtonStyle(color: .white))
                 }
                 .padding(.top, 12)
                 .padding(.bottom, 16)
